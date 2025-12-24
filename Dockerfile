@@ -29,8 +29,6 @@ ENV NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=$NEXT_PUBLIC_CLERK_SIGN_UP_F
 
 RUN npm run build
 
-RUN npm run build
-
 # 3. Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
