@@ -3,8 +3,8 @@ import React from 'react'
 
 function Dashboard() {
   return (
-    <div>
-      <UserButton />
+    <div className='font-bold'>
+       Dashboard
     </div>
   )
 }
