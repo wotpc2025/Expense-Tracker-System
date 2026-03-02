@@ -19,7 +19,8 @@ function DashboardLayout({children}) {
   const getUserBudgets = async () => {
     // เรียกผ่าน Action ที่เราสร้างไว้ Error จะไม่โผล่มาที่หน้าเว็บครับ
     const result = await checkUserBudgetsAction(user?.primaryEmailAddress?.emailAddress);
-    console.log("Budget Result:", result);
+    // พิมพ์ข้อมูลแบบ cleaned ถ้าต้องการ
+    console.log("Budget Result:", JSON.parse(JSON.stringify(result)));
     if(result?.length==0)
         {
             router.replace('/dashboard/budgets')

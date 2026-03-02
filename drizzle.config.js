@@ -1,5 +1,10 @@
 import { defineConfig } from "drizzle-kit";
+import * as dotenv from "dotenv";
 
+// สั่งให้โหลดค่าจากไฟล์ .env.local
+dotenv.config({
+  path: ".env.local",
+});
 
 export default defineConfig({
   // 1. ระบุประเภทฐานข้อมูล (ในคลิปรุ่นเก่าไม่ต้องใส่ส่วนนี้)
