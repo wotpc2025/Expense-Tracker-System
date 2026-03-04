@@ -2,7 +2,7 @@
 
 import { db } from '@/utils/dbConfig'
 import { Budgets, Expenses } from '@/utils/schema'
-import { eq, getTableColumns, sql, cast } from 'drizzle-orm'
+import { eq, getTableColumns, sql, cast, desc } from 'drizzle-orm'
 import { numeric } from 'drizzle-orm/pg-core'
 
 
@@ -47,7 +47,8 @@ export const getBudgetListAction = async (email) => {
     .from(Budgets)
     .leftJoin(Expenses, eq(Budgets.id, Expenses.budgetId))
     .where(eq(Budgets.createdBy, email))
-    .groupBy(Budgets.id);
+    .groupBy(Budgets.id)
+    .orderBy(desc(Budgets.id));
 
     
     return result;

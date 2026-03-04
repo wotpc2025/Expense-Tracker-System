@@ -21,7 +21,7 @@ import { toast } from 'sonner'
 
 
 
-function CreateBudget() {
+function CreateBudget({ refreshData }) {
 
     const [emojiIcon,setEmojiIcon]=useState('😀');
     const [openEmojiPicker,setOpenEmojiPicker]=useState(false);
@@ -47,7 +47,8 @@ function CreateBudget() {
   // ถ้าบันทึกสำเร็จ (ผลลัพธ์ไม่เป็น null หรือไม่มี error)
   if (result) 
      {
-     toast('New Budget Created!');
+        refreshData() && refreshData(); // รีเฟรชข้อมูลในหน้า
+        toast('New Budget Created!');
      }
     }
 
