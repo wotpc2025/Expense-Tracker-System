@@ -4,26 +4,32 @@ import CreateBudget from './CreateBudget'
 import { useUser } from '@clerk/nextjs'
 import { getBudgetListAction } from '@/app/_actions/dbActions' // Import action เข้ามา
 import BudgetItem from './BudgetItem'
-import { index } from 'drizzle-orm/gel-core'
 
 function BudgetList() {
   
   const [budgetList, setBudgetList] = useState([]); // สร้าง State ไว้เก็บข้อมูลที่ดึงมา
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
 
   useEffect(() => {
-    if (user) {
+    if (isLoaded && user) {
       getBudgetList();
     }
-  }, [user])
+  }, [isLoaded, user])
 
   const getBudgetList = async () => {
     // เรียกใช้ Server Action แทนการเขียน db.select ตรงนี้
     const email = user?.primaryEmailAddress?.emailAddress;
-    if (!email) return;
+    if (!email) {
+      console.warn("Email not available");
+      return;
+    }
 
     const result = await getBudgetListAction(email);
-    setBudgetList(result);
+    if (result && result.length > 0) {
+      setBudgetList(result);
+    } else {
+      setBudgetList([]);
+    }
 
     // log แบบ clean เหมือนในคลิป
     console.log("Budget List Data:", JSON.parse(JSON.stringify(result)));

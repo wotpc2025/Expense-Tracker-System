@@ -2,7 +2,8 @@
 
 import React, { useEffect } from 'react'
 import Image from 'next/image'
-import { LayoutGrid, Link, PiggyBank, ReceiptText, ShieldCheck, User } from 'lucide-react'
+import { LayoutGrid, PiggyBank, ReceiptText, ShieldCheck, User } from 'lucide-react'
+import Link from 'next/link'
 import { UserButton } from '@clerk/nextjs'
 import { usePathname } from 'next/navigation'
 function SideNav() {
@@ -46,22 +47,21 @@ function SideNav() {
               height={100}
           />
           <div className='mt-5'>
-            {menuList.map((menu,index)=>(
-                // <Link href={menu.path}>
-                    <h2 
-                    key={menu.id}
-                    className={`flex gap-2 items-center
-                text-gray-500 font-medium
-                mb-2
-                p-5 cursor-pointer rounded-md
-                hover:text-amber-600 hover:bg-amber-100
-                ${path == menu.path && 'text-amber-600 bg-amber-100'}
-                `}>
-                        <menu.icon />
-                        {menu.name}
-                    </h2>
-                // </Link>
-            ))}
+                  {menuList.map((menu, index) => (
+                  <Link href={menu.path} key={menu.id}>
+                      <h2
+                          className={`flex gap-2 items-center
+                                    text-gray-500 font-medium
+                                    mb-2
+                                    p-5 cursor-pointer rounded-md
+                                    hover:text-amber-600 hover:bg-amber-100
+                                    ${path == menu.path && 'text-amber-600 bg-amber-100'}
+                                    `}>
+                          <menu.icon />
+                          {menu.name}
+                      </h2>
+                  </Link>
+              ))}
           </div>
           <div className='fixed bottom-10 p-5 flex gap-2
           items-center'>
