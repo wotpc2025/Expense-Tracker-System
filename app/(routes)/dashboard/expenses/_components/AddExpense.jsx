@@ -3,12 +3,13 @@ import { Input } from '@/components/ui/input'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { addNewExpenseAction} from '@/app/_actions/dbActions';
+import { addNewExpenseAction } from '@/app/_actions/dbActions';
+import moment from 'moment';
 
-function AddExpense({budgetId,user,refreshData}) {
+function AddExpense({ budgetId, refreshData  }) {
 
-    const [name,setName]=useState();
-    const [amount,setAmount]=useState();
+    const [name,setName]=useState('');
+    const [amount,setAmount]=useState('');
 
     const addNewExpense = async () => {
         // เรียกใช้ Server Action
@@ -16,11 +17,13 @@ function AddExpense({budgetId,user,refreshData}) {
             name: name,
             amount: amount,
             budgetId: budgetId,
-            createdAt: user?.primaryEmailAddress?.emailAddress // ตาม Logic เดิมของคุณ
-        });
+            createdAt:moment().format('DD/MM/YYYY')
+        })
 
         if (result) {
-            toast('New Expense Added!');
+            setName('');
+            setAmount(''); // ล้างค่าหลังเพิ่มเสร็จ
+            toast.success('New Expense Added!');
             refreshData && refreshData(); // สั่ง refresh ข้อมูลหน้าจอถ้ามี function ส่งมา
         }
     }
@@ -32,12 +35,14 @@ function AddExpense({budgetId,user,refreshData}) {
               <h2 className='text-black font-medium my-1'>Expense Name</h2>
               <Input placeholder="e.g. Home Decor"
                   autoComplete="on"
+                  value={name}
                   onChange={(e) => setName(e.target.value)} />
           </div>
           <div className='mt-2'>
               <h2 className='text-black font-medium my-1'>Expense Amount</h2>
               <Input placeholder="e.g. 1000$"
                   autoComplete="on"
+                  value={amount}
                   onChange={(e) => setAmount(e.target.value)} />
           </div>
           <Button disabled={!(name && amount)} 

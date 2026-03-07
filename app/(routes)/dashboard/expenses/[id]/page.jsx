@@ -4,15 +4,25 @@ import { useUser } from '@clerk/nextjs'
 import { getBudgetInfoAction } from '@/app/_actions/dbActions'
 import BudgetItem from '../../budgets/_components/BudgetItem';
 import AddExpense from '../_components/AddExpense';
+import { getExpensesListAction } from '@/app/_actions/dbActions';
+import ExpensesListTable from '../../budgets/_components/ExpensesListTable';
 
 function ExpensesScreen({ params }) {
     const unwrappedParams = use(params);
     const { user, isLoaded } = useUser();
     const [budgetInfo, setBudgetInfo] = useState(null);
+    const [expensesList, setExpensesList] = useState([]);
+    const [budgetId, setBudgetId] = useState(null);
+
+    const refreshData = () => {
+        getBudgetInfo();    // เพื่อให้แถบ Progress Bar อัปเดตยอด Spend
+        getExpensesList();  // เพื่อให้ตาราง Latest Expenses อัปเดตรายการใหม่
+    }
 
     useEffect(() => {
         if (isLoaded && user && unwrappedParams?.id) {
             getBudgetInfo();
+            getExpensesList(unwrappedParams.id);
         }
     }, [isLoaded, user, unwrappedParams?.id]);
 
@@ -40,6 +50,14 @@ function ExpensesScreen({ params }) {
         }
     }
 
+    // Get Latest Expenses
+   const getExpensesList = async (id) => {
+        // ✅ เรียกผ่าน Server Action แทนการใช้ db โดยตรง
+        const result = await getExpensesListAction(id);
+        setExpensesList(result);
+        console.log("Expenses List:", result);
+    }
+
   return (
     <div className='p-10'>
        <h2 className='text-2xl font-bold'>My Expenses</h2>
@@ -51,10 +69,24 @@ function ExpensesScreen({ params }) {
             <div className='h-37.5 w-full bg-slate-200 
             rounded-lg animate-pulse'>
             </div>}
-            <AddExpense budgetId={unwrappedParams?.id}
+            <AddExpense 
+            budgetId={unwrappedParams?.id}
             user={user}
-            refreshData={() => getBudgetInfo() /* ส่งฟังก์ชันรีเฟรชข้อมูลไปให้ AddExpense เพื่อให้มันเรียกใช้หลังเพิ่มข้อมูลใหม่ */ }
+            refreshData={() => {
+                getBudgetInfo();
+                getExpensesList(unwrappedParams.id);
+            }}
             />
+        </div>
+        <div className='mt-4'>
+          <h2 className='font-bold text-lg'>Latest Expenses</h2>   
+          <ExpensesListTable 
+            expensesList={expensesList} 
+            refreshData={() => {
+                getBudgetInfo();
+                getExpensesList(unwrappedParams.id);
+            }}
+          />
         </div>  
     </div>
   );

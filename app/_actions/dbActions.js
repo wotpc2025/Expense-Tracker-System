@@ -6,6 +6,7 @@ import { eq, getTableColumns, sql, cast, desc } from 'drizzle-orm'
 import { numeric } from 'drizzle-orm/pg-core'
 
 
+
 export async function checkUserBudgetsAction(email) {
   if (!email) return [];
   const result = await db.select()
@@ -77,6 +78,8 @@ export async function getBudgetInfoAction(email, budgetId) {
         .where(eq(Budgets.id, budgetId))
         .groupBy(Budgets.id);
 
+        getExpensesListAction();
+
         return result[0] ? result[0] : null; // ส่งกลับเป็น Object ตัวเดียว
     } catch (error) {
         console.error("Error fetching budget info:", error);
@@ -100,3 +103,36 @@ export async function addNewExpenseAction(data) {
         return null;
     }
 }
+
+// ✅ ฟังก์ชันสำหรับดึงรายการค่าใช้จ่าย (Expenses) ตาม ID ของ Budget
+export const getExpensesListAction = async (budgetId) => {
+    if (!budgetId) return [];
+
+    try {
+        const result = await db.select()
+            .from(Expenses)
+            .where(eq(Expenses.budgetId, budgetId))
+            .orderBy(desc(Expenses.id));
+
+            console.log("Expenses List:", result);
+        return result;
+    } catch (error) {
+        console.error("Error fetching expenses:", error);
+        return [];
+    }
+}
+
+// ✅ ฟังก์ชันสำหรับลบ Expense
+export async function deleteExpenseAction(expenseId) {
+    try {
+        const result = await db.delete(Expenses)
+            .where(eq(Expenses.id, expenseId))
+            .returning();
+
+        return result;
+    } catch (error) {
+        console.error("Error deleting expense:", error);
+        return null;
+    }
+}
+
