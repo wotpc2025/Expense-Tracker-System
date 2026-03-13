@@ -1,4 +1,4 @@
-import { SignUp } from '@clerk/nextjs'
+import { SignIn } from '@clerk/nextjs'
 import Image from 'next/image'
 
 export default function Page() {
@@ -34,13 +34,13 @@ export default function Page() {
                   Welcome, to <span className="text-amber-600">Exfinit</span>
                 </h2>
                 <p className="mt-3 text-gray-500 dark:text-gray-300">
-                  Sign Up to access your account
+                  Sign in to access your account
                 </p>
               </div>
   
               <div className="mt-8">
-                <SignUp />
-  
+                <SignIn signUpUrl="/sign-up" />
+
                 {/* <p className="mt-6 text-sm text-center text-gray-400">
                   Don&#x27;t have an account yet?{' '}
                   <a
