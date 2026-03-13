@@ -136,3 +136,22 @@ export async function deleteExpenseAction(expenseId) {
     }
 }
 
+// ✅ ฟังก์ชันสำหรับลบ Budget
+export async function deleteBudgetAction(budgetId) {
+    try {
+        // ลบ Expenses ที่เกี่ยวข้องกับ Budget นี้ก่อน
+        await db.delete(Expenses)
+            .where(eq(Expenses.budgetId, budgetId))
+            .returning();
+
+        // จากนั้นลบ Budget
+        const result = await db.delete(Budgets)
+            .where(eq(Budgets.id, budgetId))
+            .returning();
+        
+        return result;
+    } catch (error) {
+        console.error("Error deleting budget:", error);
+        return null;
+    }
+}

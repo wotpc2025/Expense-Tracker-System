@@ -6,13 +6,31 @@ import BudgetItem from '../../budgets/_components/BudgetItem';
 import AddExpense from '../_components/AddExpense';
 import { getExpensesListAction } from '@/app/_actions/dbActions';
 import ExpensesListTable from '../../budgets/_components/ExpensesListTable';
+import { Trash } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { deleteBudgetAction } from '@/app/_actions/dbActions';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+
+
 
 function ExpensesScreen({ params }) {
     const unwrappedParams = use(params);
     const { user, isLoaded } = useUser();
     const [budgetInfo, setBudgetInfo] = useState(null);
     const [expensesList, setExpensesList] = useState([]);
-    const [budgetId, setBudgetId] = useState(null);
+    const router =useRouter();
 
     const refreshData = () => {
         getBudgetInfo();    // เพื่อให้แถบ Progress Bar อัปเดตยอด Spend
@@ -58,9 +76,43 @@ function ExpensesScreen({ params }) {
         console.log("Expenses List:", result);
     }
 
+    // ✅ ฟังก์ชันสำหรับลบ Budget พร้อมกับ Expenses ทั้งหมดที่เกี่ยวข้อง
+    const deleteBudget = async () => {
+        try {
+            const result = await deleteBudgetAction(unwrappedParams?.id);
+            console.log("Delete Budget Result:", result);
+            toast.success('Budget Deleted!');
+            router.refresh(); // รีเฟรชข้อมูลของทั้งหน้า
+            router.push('/dashboard/budgets'); // กลับไปหน้ารายการ Budgets หลังจากลบเสร็จ
+        } catch (error) {
+            console.error("Error deleting budget:", error);
+            toast.error('Failed to delete budget');
+        }
+    }
+
   return (
     <div className='p-10'>
-       <h2 className='text-2xl font-bold'>My Expenses</h2>
+       <h2 className='text-2xl font-bold flex justify-between items-center'>My Expenses
+              <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                     <Button className='flex gap-2 cursor-pointer hover:bg-red-800' variant="destructive">
+                        <Trash/> Delete</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                      <AlertDialogHeader>
+                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete your current budget along with expenses
+                              and remove your data from our servers.
+                          </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() =>deleteBudget()}>Continue</AlertDialogAction>
+                      </AlertDialogFooter>
+                  </AlertDialogContent>
+              </AlertDialog>
+       </h2>
        <div className='grid grid-cols-1 md:grid-cols-2 
        mt-6 gap-5'>
             {budgetInfo?<BudgetItem
