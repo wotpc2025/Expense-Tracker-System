@@ -6,7 +6,7 @@ import BudgetItem from '../../budgets/_components/BudgetItem';
 import AddExpense from '../_components/AddExpense';
 import { getExpensesListAction } from '@/app/_actions/dbActions';
 import ExpensesListTable from '../../budgets/_components/ExpensesListTable';
-import { Trash } from 'lucide-react';
+import { Trash, PenBox} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -22,6 +22,7 @@ import {
 import { deleteBudgetAction } from '@/app/_actions/dbActions';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import EditBudget from '../../_components/EditBudget';
 
 
 
@@ -34,7 +35,7 @@ function ExpensesScreen({ params }) {
 
     const refreshData = () => {
         getBudgetInfo();    // เพื่อให้แถบ Progress Bar อัปเดตยอด Spend
-        getExpensesList();  // เพื่อให้ตาราง Latest Expenses อัปเดตรายการใหม่
+        getExpensesList(unwrappedParams?.id);  // เพื่อให้ตาราง Latest Expenses อัปเดตรายการใหม่
     }
 
     useEffect(() => {
@@ -82,7 +83,6 @@ function ExpensesScreen({ params }) {
             const result = await deleteBudgetAction(unwrappedParams?.id);
             console.log("Delete Budget Result:", result);
             toast.success('Budget Deleted!');
-            router.refresh(); // รีเฟรชข้อมูลของทั้งหน้า
             router.push('/dashboard/budgets'); // กลับไปหน้ารายการ Budgets หลังจากลบเสร็จ
         } catch (error) {
             console.error("Error deleting budget:", error);
@@ -93,12 +93,15 @@ function ExpensesScreen({ params }) {
   return (
     <div className='p-10'>
        <h2 className='text-2xl font-bold flex justify-between items-center'>My Expenses
+              <div className='flex gap-2 items-center'>
+        {budgetInfo && <EditBudget budgetInfo={budgetInfo} refreshData={refreshData} />}
+              
               <AlertDialog>
                   <AlertDialogTrigger asChild>
                      <Button className='flex gap-2 cursor-pointer hover:bg-red-800' variant="destructive">
                         <Trash/> Delete</Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent>
+                  <AlertDialogContent suppressHydrationWarning>
                       <AlertDialogHeader>
                           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                           <AlertDialogDescription>
@@ -112,6 +115,8 @@ function ExpensesScreen({ params }) {
                       </AlertDialogFooter>
                   </AlertDialogContent>
               </AlertDialog>
+              </div>
+              
        </h2>
        <div className='grid grid-cols-1 md:grid-cols-2 
        mt-6 gap-5'>

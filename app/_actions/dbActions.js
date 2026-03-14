@@ -155,3 +155,20 @@ export async function deleteBudgetAction(budgetId) {
         return null;
     }
 }
+
+// ✅ ฟังก์ชันสำหรับแก้ Budget
+export async function updateBudgetAction(budgetInfo, name, amount, emojiIcon) {
+    try {
+        const result = await db.update(Budgets).set({
+            name:name,
+            amount:amount,
+            icon: emojiIcon || budgetInfo?.icon || '😀'
+        }).where(eq(Budgets.id, budgetInfo.id))
+        .returning();
+
+        return result;
+    } catch (error) {
+        console.error("Error updating budget:", error);
+        return null;
+    }
+}
