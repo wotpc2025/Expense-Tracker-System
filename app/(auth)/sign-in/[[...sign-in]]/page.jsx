@@ -39,7 +39,11 @@ export default function Page() {
               </div>
   
               <div className="mt-8">
-                <SignIn signUpUrl="/sign-up" />
+                <SignIn 
+                  signUpUrl="/sign-up"
+                  fallbackRedirectUrl="/dashboard/budgets"
+                  signInFallbackRedirectUrl="/dashboard/budgets"
+                />
 
                 {/* <p className="mt-6 text-sm text-center text-gray-400">
                   Don&#x27;t have an account yet?{' '}
