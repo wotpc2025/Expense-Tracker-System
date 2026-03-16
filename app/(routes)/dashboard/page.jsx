@@ -3,6 +3,7 @@ import { UserButton, useUser } from '@clerk/nextjs'
 import React, { useEffect, useState } from 'react'
 import CardInfo from './_components/CardInfo';
 import { getBudgetListAction } from '@/app/_actions/dbActions';
+import BarChartDashboard from './_components/BarChartDashboard';
 
 function Dashboard() {
 
@@ -42,6 +43,16 @@ function Dashboard() {
        <p className='text-gray-500'>Here's what happening with your money, Let's Manage your expenses</p>
 
        <CardInfo budgetList={budgetList}/>
+       <div className='grid grid-cols-1 md:grid-cols-3 mt-6'>
+          <div className='md:col-span-2'>
+            <BarChartDashboard
+              budgetList={budgetList}
+            />
+          </div>
+          <div>
+            Other Content
+          </div>
+       </div>
     </div>
   )
 }
