@@ -42,8 +42,8 @@ export default function Page() {
             <div className="mt-8">
               <SignUp 
                 signInUrl="/sign-in"
-                fallbackRedirectUrl="/dashboard/dashboard"
-                signUpFallbackRedirectUrl="/dashboard/dashboard"
+                fallbackRedirectUrl="/dashboard"
+                signUpFallbackRedirectUrl="/dashboard"
               />
 
               {/* <p className="mt-6 text-sm text-center text-gray-400">
