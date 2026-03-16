@@ -10,7 +10,9 @@ function BudgetItem({budget}) {
     return percentage > 100 ? 100 : percentage; // ถ้าเกิน 100% ให้แสดงแค่ 100%
   }
   return (
-    <Link href={`/dashboard/expenses/${budget?.id}`} className='p-5 border rounded-lg 
+    
+    <Link href={`/dashboard/expenses/${budget?.id}`} >
+      <div className='p-5 border rounded-lg 
     hover:shadow-md cursor-pointer h-42.5'>
         <div className='flex gap-2 items-center justify-between'>
         <div className='flex gap-2 items-center'>
@@ -44,6 +46,7 @@ function BudgetItem({budget}) {
 
             </div>
          </div>
+      </div>   
     </Link>
   )
 }

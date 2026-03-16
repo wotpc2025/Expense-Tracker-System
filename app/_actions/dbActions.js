@@ -3,7 +3,7 @@
 import { db } from '@/utils/dbConfig'
 import { Budgets, Expenses } from '@/utils/schema'
 import { eq, getTableColumns, sql, cast, desc } from 'drizzle-orm'
-import { numeric } from 'drizzle-orm/pg-core'
+
 
 
 
@@ -30,33 +30,6 @@ export async function createBudgetAction(data) {
         console.error("Error creating budget:", error);
         return { error: "Failed to create budget" };
     }
-}
-
-export const getBudgetListAction = async (email) => {
-  if (!email) return [];
-
-  try {
-    const result = await db.select({
-      id: Budgets.id,
-      name: Budgets.name,
-      amount: Budgets.amount,
-      icon: Budgets.icon, // <--- ตรวจสอบว่าใน Schema ตั้งชื่อว่า icon ใช่ไหม
-      createdBy: Budgets.createdBy,
-      totalSpend: sql`sum(CAST(${Expenses.amount} AS NUMERIC))`.mapWith(Number),
-      totalItem: sql`coalesce(count(${Expenses.id}), 0)`.mapWith(Number),
-    })
-    .from(Budgets)
-    .leftJoin(Expenses, eq(Budgets.id, Expenses.budgetId))
-    .where(eq(Budgets.createdBy, email))
-    .groupBy(Budgets.id)
-    .orderBy(desc(Budgets.id));
-
-    
-    return result;
-  } catch (error) {
-    console.error("Error fetching budget list:", error);
-    return [];
-  }
 }
 
 // เพิ่มฟังก์ชันนี้เพื่อดึงข้อมูล Budget และยอดรวมในหน้า Expense
@@ -172,3 +145,60 @@ export async function updateBudgetAction(budgetInfo, name, amount, emojiIcon) {
         return null;
     }
 }
+
+// ✅ ฟังก์ชันสำหรับดึงรายการ Budget ตาม Email
+export const getBudgetListAction = async (email) => {
+  if (!email) return [];
+
+  try {
+    const result = await db.select({
+      id: Budgets.id,
+      name: Budgets.name,
+      amount: Budgets.amount,
+      icon: Budgets.icon, // <--- ตรวจสอบว่าใน Schema ตั้งชื่อว่า icon ใช่ไหม
+      createdBy: Budgets.createdBy,
+      totalSpend: sql`sum(CAST(${Expenses.amount} AS NUMERIC))`.mapWith(Number),
+      totalItem: sql`coalesce(count(${Expenses.id}), 0)`.mapWith(Number),
+    })
+    .from(Budgets)
+    .leftJoin(Expenses, eq(Budgets.id, Expenses.budgetId))
+    .where(eq(Budgets.createdBy, email))
+    .groupBy(Budgets.id)
+    .orderBy(desc(Budgets.id));
+
+    getAllExpensesAction();
+
+    return result;
+  } catch (error) {
+    console.error("Error fetching budget list:", error);
+    return [];
+  }
+}
+
+
+// ✅ ฟังก์ชันสำหรับดึงรายการค่าใช้จ่าย (Expenses) ทั้งหมด ของผู้ใช้ตาม Email (สำหรับหน้า Dashboard)
+export async function getAllExpensesAction(email) {
+    if (!email) return [];
+    try {
+        const result = await db.select({
+            id: Expenses.id,
+            name: Expenses.name,
+            amount: Expenses.amount,
+            createdAt: Expenses.createdAt,
+            budgetId: Expenses.budgetId,
+            budgetName: Budgets.name,
+        }).from(Budgets)
+        .rightJoin(Expenses, eq(Budgets.id, Expenses.budgetId))
+        .where(eq(Budgets.createdBy, email))
+        .orderBy(desc(Expenses.id));
+
+        console.log("All Expenses Data:", result);
+        return result;
+    } catch (error) {
+        console.error("Error fetching all expenses:", error);
+        return [];
+    }
+}
+
+        
+            

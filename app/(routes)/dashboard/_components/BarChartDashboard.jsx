@@ -9,8 +9,8 @@ function BarChartDashboard({budgetList}) {
           <BarChart
           data={budgetList}
           margin={{
-              top: 7,
-              right: 30,
+              top: 10,
+              right: 50,
               left: 0,
               bottom: 0
           }}

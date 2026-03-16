@@ -16,7 +16,7 @@ function Header() {
   }, []);
 
   return (
-    <div className='p-5 flex justify-between items-center border shadow-sm'>
+    <div suppressHydrationWarning className='p-5 flex justify-between items-center border shadow-sm'>
         <Image src ='/logo-exfinit.png'
         alt="logo"
         width={160}
