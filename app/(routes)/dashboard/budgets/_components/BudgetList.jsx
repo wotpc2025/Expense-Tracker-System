@@ -31,8 +31,8 @@ function BudgetList() {
       setBudgetList([]);
     }
 
-    // log แบบ clean เหมือนในคลิป
-    console.log("Budget List Data:", JSON.parse(JSON.stringify(result)));
+    // log ข้อมูลที่ได้มาเพื่อเช็คว่า Server Action ทำงานถูกต้องหรือไม่
+    //console.log("Budget List Data:", JSON.parse(JSON.stringify(result)));
   }
 
   return (
