@@ -1,3 +1,5 @@
+"use client"
+
 import React from 'react'
 import { Input } from '@/components/ui/input'
 import { useState } from 'react'
@@ -5,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { addNewExpenseAction } from '@/app/_actions/dbActions';
 import moment from 'moment';
-import { set } from 'lodash';
 import { Loader } from 'lucide-react';
 
 function AddExpense({ budgetId, refreshData }) {

@@ -2,7 +2,7 @@
 
 import { db } from '@/utils/dbConfig'
 import { Budgets, Expenses } from '@/utils/schema'
-import { eq, getTableColumns, sql, cast, desc } from 'drizzle-orm'
+import { eq, sql, desc } from 'drizzle-orm'
 
 
 
