@@ -120,3 +120,36 @@
     @apply bg-background text-foreground;
   }
 }
+
+.expenses-grid.ag-theme-quartz {
+  --ag-font-size: 16px;
+  --ag-font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --ag-row-height: 44px;
+  --ag-header-height: 46px;
+  --ag-border-color: #d6d9de;
+  --ag-row-border-color: #e3e7ed;
+  --ag-header-background-color: #f8fafc;
+  --ag-odd-row-background-color: #ffffff;
+  --ag-background-color: #ffffff;
+  --ag-cell-horizontal-border: solid #eef2f7;
+  --ag-selected-row-background-color: #eef6ff;
+  --ag-range-selection-background-color: #e8f1ff;
+  --ag-row-hover-color: #f8fafc;
+  --ag-header-column-separator-display: block;
+  --ag-header-column-separator-color: #e2e8f0;
+  --ag-border-radius: 12px;
+}
+
+.expenses-grid .ag-header-cell-label {
+  font-weight: 600;
+}
+
+.expenses-grid .ag-cell {
+  display: flex;
+  align-items: center;
+}
+
+.expenses-grid .ag-paging-panel {
+  border-top: 1px solid #e5e7eb;
+  color: #475569;
+}
