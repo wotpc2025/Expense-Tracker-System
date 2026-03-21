@@ -25,13 +25,13 @@ function BudgetItem({budget}) {
              </div>
             
          </div>
-         <h2 className='font-bold text-green-400 text-lg'> ${budget?.amount}</h2>
+         <h2 className='font-bold text-green-400 text-lg'>฿{budget?.amount?.toLocaleString('th-TH')}</h2>
          </div>
 
          <div className='mt-5'>
             <div className='flex items-center justify-between mb-3'>
-                <h2 className='font-bold text-xs text-slate-400'>${budget?.totalSpend ? budget?.totalSpend : 0} Spend</h2>
-                <h2 className='font-bold text-xs text-slate-400'>${budget?.amount - (budget?.totalSpend || 0)} Remaining</h2>
+                <h2 className='font-bold text-xs text-slate-400'>฿{budget?.totalSpend ? budget?.totalSpend?.toLocaleString('th-TH') : 0} Spend</h2>
+                <h2 className='font-bold text-xs text-slate-400'>฿{(budget?.amount - (budget?.totalSpend || 0))?.toLocaleString('th-TH')} Remaining</h2>
             </div>
             <div className='w-full 
                  bg-slate-300 h-2 rounded-full'>
@@ -44,6 +44,9 @@ function BudgetItem({budget}) {
                 
                 </div>
 
+            </div>
+            <div className='flex justify-end mt-1'>
+              <h2 className='text-xs font-semibold text-slate-500'>{calculateProgressPercentage().toFixed(1)}% used</h2>
             </div>
          </div>
       </div>   

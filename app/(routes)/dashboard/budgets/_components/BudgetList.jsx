@@ -1,9 +1,11 @@
 "use client"
-import React, { useEffect, useState } from 'react' // เพิ่ม useState
-import CreateBudget from './CreateBudget'
+import React, { useEffect, useState } from 'react'
 import { useUser } from '@clerk/nextjs'
-import { getBudgetListAction } from '@/app/_actions/dbActions' // Import action เข้ามา
+import { getBudgetListAction } from '@/app/_actions/dbActions'
 import BudgetItem from './BudgetItem'
+import CreateBudget from './CreateBudget'
+import AIBudgetAssistant from './AIBudgetAssistant'
+import { PlusCircle, Sparkles } from 'lucide-react'
 
 function BudgetList() {
   
@@ -37,10 +39,28 @@ function BudgetList() {
 
   return (
     <div className='mt-7'>
+          <div className='flex gap-2 mb-5'>
+            <CreateBudget
+              refreshData={getBudgetList}
+              trigger={
+                <button className='flex items-center gap-2 px-4 py-2 rounded-md border text-sm font-medium text-gray-600 hover:text-amber-600 hover:bg-amber-50 hover:border-amber-300 cursor-pointer transition-colors'>
+                  <PlusCircle className='h-4 w-4' />
+                  Create Budget
+                </button>
+              }
+            />
+            <AIBudgetAssistant
+              refreshData={getBudgetList}
+              trigger={
+                <button className='flex items-center gap-2 px-4 py-2 rounded-md border text-sm font-medium text-gray-600 hover:text-violet-600 hover:bg-violet-50 hover:border-violet-300 cursor-pointer transition-colors'>
+                  <Sparkles className='h-4 w-4' />
+                  AI Budget
+                </button>
+              }
+            />
+          </div>
           <div className='grid grid-cols-1
           md:grid-cols-2 lg:grid-cols-3 gap-5'>
-              <CreateBudget
-              refreshData={getBudgetList}/>
               {budgetList?.length > 0? budgetList.map((budget,index) => (
                 <BudgetItem budget={budget} key={index}/>
               ))
