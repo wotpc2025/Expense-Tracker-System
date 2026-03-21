@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'qwen/qwen2.5-vl-72b-instruct';
 
 function mapScanErrorToThai(errorText, statusCode) {
   const text = String(errorText || '').toLowerCase();
+
+  if (statusCode === 402 || text.includes('insufficient') || text.includes('credit')) {
+    return 'เครดิต OpenRouter ไม่เพียงพอ กรุณาเติมเครดิตก่อนใช้งาน';
+  }
 
   if (statusCode === 429 || text.includes('resource_exhausted') || text.includes('quota')) {
     const retryMatch = String(errorText || '').match(/retry in\s+([\d.]+)s/i);
@@ -63,12 +67,12 @@ function extractJson(text) {
 
 export async function POST(request) {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
         {
-          error: 'Missing GEMINI_API_KEY in environment',
-          userMessage: 'ยังไม่ได้ตั้งค่า GEMINI_API_KEY ในระบบ',
+          error: 'Missing OPENROUTER_API_KEY in environment',
+          userMessage: 'ยังไม่ได้ตั้งค่า OPENROUTER_API_KEY ในระบบ',
         },
         { status: 500 }
       );
@@ -91,10 +95,18 @@ export async function POST(request) {
       );
     }
 
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: 'Image too large', userMessage: 'ขนาดรูปต้องไม่เกิน 5MB' },
+        { status: 400 }
+      );
+    }
+
     const bytes = await file.arrayBuffer();
     const base64Image = Buffer.from(bytes).toString('base64');
+    const imageDataUrl = `data:${file.type};base64,${base64Image}`;
 
-    const prompt = [
+    const systemPrompt = [
       'You are an OCR and finance parser assistant.',
       'Extract receipt information and return ONLY valid JSON.',
       'Required JSON keys:',
@@ -104,40 +116,55 @@ export async function POST(request) {
       '  "description": string | null,',
       '  "category": string | null,',
       '  "date": string | null,',
-      '  "confidence": number',
+      '  "confidence": number,',
+      '  "lineItems": [{ "name": string, "amount": number }]',
       '}',
       'Rules:',
       '- amount should be the final amount paid.',
       '- expenseName should be short and useful for transaction name.',
       '- confidence should be from 0 to 1.',
+      '- lineItems should include every purchased item that has a non-zero price.',
+      '- if receipt has combo/set with child lines at 0.00, keep only priced parent item.',
       '- return JSON only, no markdown.',
     ].join('\n');
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+      'https://openrouter.ai/api/v1/chat/completions',
       {
         method: 'POST',
         headers: {
+          Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
+          'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+          'X-Title': 'Expense Tracker System',
         },
         body: JSON.stringify({
-          contents: [
+          model: OPENROUTER_MODEL,
+          messages: [
+            {
+              role: 'system',
+              content: systemPrompt,
+            },
             {
               role: 'user',
-              parts: [
-                { text: prompt },
+              content: [
                 {
-                  inline_data: {
-                    mime_type: file.type,
-                    data: base64Image,
+                  type: 'text',
+                  text: 'Read this receipt image and extract the fields.',
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: imageDataUrl,
                   },
                 },
               ],
             },
           ],
-          generationConfig: {
-            temperature: 0.1,
-            responseMimeType: 'application/json',
+          temperature: 0.1,
+          max_tokens: 500,
+          response_format: {
+            type: 'json_object',
           },
         }),
       }
@@ -147,13 +174,13 @@ export async function POST(request) {
       const errText = await response.text();
       const userMessage = mapScanErrorToThai(errText, response.status);
       return NextResponse.json(
-        { error: `Gemini API error: ${errText}`, userMessage },
+        { error: `OpenRouter API error: ${errText}`, userMessage },
         { status: 502 }
       );
     }
 
     const data = await response.json();
-    const outputText = data?.candidates?.[0]?.content?.parts?.map((part) => part?.text || '').join('\n');
+    const outputText = data?.choices?.[0]?.message?.content;
     const parsed = extractJson(outputText);
 
     if (!parsed) {
@@ -166,6 +193,16 @@ export async function POST(request) {
       );
     }
 
+    const lineItems = Array.isArray(parsed?.lineItems)
+      ? parsed.lineItems
+          .map((item) => ({
+            name: String(item?.name || '').trim(),
+            amount: Number(item?.amount || 0),
+          }))
+          .filter((item) => item.name && Number.isFinite(item.amount) && item.amount > 0)
+          .slice(0, 50)
+      : [];
+
     return NextResponse.json({
       expenseName: parsed.expenseName || parsed.description || null,
       amount: typeof parsed.amount === 'number' ? parsed.amount : null,
@@ -173,6 +210,7 @@ export async function POST(request) {
       category: parsed.category || null,
       date: parsed.date || null,
       confidence: typeof parsed.confidence === 'number' ? parsed.confidence : null,
+      lineItems,
     });
   } catch (error) {
     console.error('scan-receipt error:', error);

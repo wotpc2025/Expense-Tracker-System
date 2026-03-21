@@ -9,7 +9,17 @@ import { toast } from 'sonner';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import { Button } from '@/components/ui/button';
-import { DEFAULT_EXPENSE_CATEGORIES, getCategoryColor } from '@/lib/expenseCategories';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { DEFAULT_EXPENSE_CATEGORIES, getCategoryColor, normalizeCategoryName } from '@/lib/expenseCategories';
 
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
@@ -34,6 +44,9 @@ function ExpensesListTable({ expensesList, refreshData, gridHeight = '420px' }) 
     const [searchInput, setSearchInput] = useState('');
     const [showExportMenu, setShowExportMenu] = useState(false);
     const [categoryFilter, setCategoryFilter] = useState('all');
+    const [customCategories, setCustomCategories] = useState([]);
+    const [addCategoryOpen, setAddCategoryOpen] = useState(false);
+    const [newCategory, setNewCategory] = useState('');
     const gridRef = useRef(null);
     const exportMenuRef = useRef(null);
     const { user } = useUser();
@@ -118,10 +131,34 @@ function ExpensesListTable({ expensesList, refreshData, gridHeight = '420px' }) 
     const uniqueCategories = useMemo(() => {
         const cats = new Set([
             ...DEFAULT_EXPENSE_CATEGORIES,
+            ...customCategories,
             ...(expensesList || []).map((e) => e.category).filter(Boolean),
         ]);
         return Array.from(cats).sort();
-    }, [expensesList]);
+    }, [customCategories, expensesList]);
+
+    const addCategoryOption = () => {
+        const nextCategory = normalizeCategoryName(newCategory);
+
+        if (!nextCategory) {
+            toast.error('Please enter a category name');
+            return;
+        }
+
+        const exists = uniqueCategories.some((cat) => cat.toLowerCase() === nextCategory.toLowerCase());
+        if (exists) {
+            setCategoryFilter(nextCategory);
+            setAddCategoryOpen(false);
+            setNewCategory('');
+            return;
+        }
+
+        setCustomCategories((prev) => [...prev, nextCategory].sort((a, b) => a.localeCompare(b)));
+        setCategoryFilter(nextCategory);
+        toast.success(`Added category: ${nextCategory}`);
+        setAddCategoryOpen(false);
+        setNewCategory('');
+    };
 
     const rowData = useMemo(() => {
         return (expensesList || [])
@@ -214,6 +251,51 @@ function ExpensesListTable({ expensesList, refreshData, gridHeight = '420px' }) 
                         <option key={cat} value={cat}>{cat}</option>
                     ))}
                 </select>
+                <Dialog open={addCategoryOpen} onOpenChange={setAddCategoryOpen}>
+                    <DialogTrigger asChild>
+                        <Button
+                            type='button'
+                            variant='outline'
+                            className='h-10 px-3 text-sm cursor-pointer'
+                        >
+                            Add Category
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className='max-w-md'>
+                        <DialogHeader>
+                            <DialogTitle>Add Category</DialogTitle>
+                            <DialogDescription>
+                                Add a new category option for filtering expenses.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <Input
+                            placeholder='e.g. Pets'
+                            value={newCategory}
+                            onChange={(e) => setNewCategory(e.target.value)}
+                            autoFocus
+                        />
+                        <DialogFooter>
+                            <Button
+                                type='button'
+                                variant='outline'
+                                onClick={() => {
+                                    setAddCategoryOpen(false);
+                                    setNewCategory('');
+                                }}
+                                className='cursor-pointer'
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type='button'
+                                onClick={addCategoryOption}
+                                className='cursor-pointer'
+                            >
+                                Add
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
 
             <div className='expenses-grid ag-theme-quartz rounded-xl overflow-hidden border border-slate-200'

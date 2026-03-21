@@ -11,12 +11,22 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from '@/components/ui/input';
-import { useUser } from '@clerk/nextjs';
 import EmojiPicker from 'emoji-picker-react';
 import { PenBox } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { updateBudgetAction } from '@/app/_actions/dbActions';
+import { syncBudgetCategoryToExpensesAction, updateBudgetAction } from '@/app/_actions/dbActions';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 
 function EditBudget({budgetInfo, refreshData}) {
@@ -25,15 +35,15 @@ function EditBudget({budgetInfo, refreshData}) {
 
   const [name,setName]=useState(budgetInfo?.name || '');
   const [amount,setAmount]=useState(budgetInfo?.amount || '');
-
-
-    const {user}=useUser();
+  const [category,setCategory]=useState(budgetInfo?.category || '');
+  const [syncingCategory, setSyncingCategory] = useState(false);
 
     useEffect(() => {
       if (!budgetInfo) return;
       setEmojiIcon(budgetInfo.icon || '😀');
       setName(budgetInfo.name || '');
       setAmount(budgetInfo.amount || '');
+      setCategory(budgetInfo.category || '');
     }, [budgetInfo]);
 
     const onUpdateBudget = async () => {
@@ -41,7 +51,7 @@ function EditBudget({budgetInfo, refreshData}) {
 
         // เรียกใช้ Server Action โดยตรง (ไม่ต้องต่อท้ายด้วย .returning เพราะเราเขียนไว้ใน dbActions แล้ว)
         // ต้องส่ง budgetInfo.id ไปด้วยเพื่อระบุว่าเราจะแก้ไข Budget ไหน
-        const result = await updateBudgetAction(budgetInfo, name, amount, emojiIcon);
+        const result = await updateBudgetAction(budgetInfo, name, amount, emojiIcon, category);
 
         // ถ้าบันทึกสำเร็จ (ผลลัพธ์ไม่เป็น null หรือไม่มี error)
         if (result) 
@@ -49,6 +59,30 @@ function EditBudget({budgetInfo, refreshData}) {
         refreshData?.(); // รีเฟรชข้อมูลในหน้า
             toast.success('Budget Updated!');
         }
+    }
+
+    const onSyncCategoryToExistingExpenses = async () => {
+      if (!budgetInfo?.id) return;
+
+      const normalizedCategory = String(category || '').trim();
+      if (!normalizedCategory) {
+        toast.error('Please set default category first');
+        return;
+      }
+
+      try {
+        setSyncingCategory(true);
+        const result = await syncBudgetCategoryToExpensesAction(budgetInfo.id, normalizedCategory);
+        if (!result?.success) {
+          toast.error(result?.error || 'Sync failed');
+          return;
+        }
+
+        toast.success(`Category synced to ${result.count} expense(s)`);
+        refreshData?.();
+      } finally {
+        setSyncingCategory(false);
+      }
     }
 
   return (
@@ -90,6 +124,47 @@ function EditBudget({budgetInfo, refreshData}) {
                             value={amount}
                             autoComplete="on"
                             onChange={(e)=>setAmount(e.target.value)}/>
+                          </div>
+
+                          <div className='mt-2'>
+                            <h2 className='text-black font-medium my-1'>Default Category (optional)</h2>
+                            <Input
+                              placeholder='e.g. Food'
+                              value={category}
+                              autoComplete='on'
+                              onChange={(e)=>setCategory(e.target.value)}
+                            />
+                          </div>
+
+                          <div className='mt-3'>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  type='button'
+                                  variant='outline'
+                                  className='w-full cursor-pointer'
+                                  disabled={syncingCategory}
+                                >
+                                  Sync Category To Existing Expenses
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Sync existing expenses?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will update all existing expenses in this budget to category "{category || '-'}".
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={onSyncCategoryToExistingExpenses}
+                                  >
+                                    Confirm Sync
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
 
                           

@@ -17,7 +17,6 @@ import { Input } from '@/components/ui/input'
 import { useUser } from '@clerk/nextjs'
 import { createBudgetAction } from '@/app/_actions/dbActions'
 import { toast } from 'sonner'
-import { Loader2, ScanLine } from 'lucide-react'
 
 
 
@@ -26,55 +25,12 @@ function CreateBudget({ refreshData, trigger }) {
 
     const [emojiIcon,setEmojiIcon]=useState('😀');
     const [openEmojiPicker,setOpenEmojiPicker]=useState(false);
-    const [scanLoading, setScanLoading] = useState(false);
-    const receiptInputRef = useRef(null);
 
     const [name,setName]=useState();
     const [amount,setAmount]=useState();
 
 
     const {user}=useUser();
-
-    const handleReceiptSelection = async (event) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-
-      try {
-        setScanLoading(true);
-        const formData = new FormData();
-        formData.append('receipt', file);
-
-        const response = await fetch('/api/ai/scan-receipt', {
-          method: 'POST',
-          body: formData,
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-          toast.error(result?.error || 'Receipt scan failed');
-          return;
-        }
-
-        if (result?.expenseName) {
-          setName(`${result.expenseName} Budget`);
-        }
-
-        if (result?.amount !== null && result?.amount !== undefined) {
-          setAmount(String(result.amount));
-        }
-
-        toast.success('Receipt scanned with AI');
-      } catch (error) {
-        console.error('Scan budget receipt error:', error);
-        toast.error('Unable to scan receipt right now');
-      } finally {
-        setScanLoading(false);
-        if (receiptInputRef.current) {
-          receiptInputRef.current.value = '';
-        }
-      }
-    };
 
     /**
      * Used to Create New Budget
@@ -115,22 +71,6 @@ function CreateBudget({ refreshData, trigger }) {
                       <DialogTitle>Create New Budget</DialogTitle>
                       <DialogDescription>
                         <div className='mt-5'>
-                          <input
-                            ref={receiptInputRef}
-                            type='file'
-                            accept='image/*'
-                            className='hidden'
-                            onChange={handleReceiptSelection}
-                          />
-                          <Button
-                            type='button'
-                            onClick={() => receiptInputRef.current?.click()}
-                            disabled={scanLoading}
-                            className='w-full mb-3 bg-linear-to-r from-fuchsia-500 to-violet-500 hover:from-fuchsia-600 hover:to-violet-600 cursor-pointer text-white'
-                          >
-                            {scanLoading ? <Loader2 className='h-4 w-4 animate-spin' /> : <ScanLine className='h-4 w-4 mr-2' />}
-                            {scanLoading ? 'Scanning Receipt...' : 'Scan Receipt with AI'}
-                          </Button>
                           <Button variant="outline"
                           className="cursor-pointer text-lg"
                           onClick={()=>setOpenEmojiPicker(!openEmojiPicker)}

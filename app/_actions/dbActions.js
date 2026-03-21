@@ -22,7 +22,8 @@ export async function createBudgetAction(data) {
                 name: data.name,
                 amount: data.amount,
                 createdBy: data.createdBy,
-                icon: data.icon
+                icon: data.icon,
+                category: data.category || null,
             })
             .returning({insertedId:Budgets.id}); // ส่งค่าที่บันทึกสำเร็จกลับมา
         return result;
@@ -41,6 +42,7 @@ export async function getBudgetInfoAction(email, budgetId) {
             name: Budgets.name,
             amount: Budgets.amount,
             icon: Budgets.icon,
+            category: Budgets.category,
             createdBy: Budgets.createdBy,
             totalSpend: sql`sum(CAST(${Expenses.amount} AS NUMERIC))`.mapWith(Number),
             totalItem: sql`coalesce(count(${Expenses.id}), 0)`.mapWith(Number),
@@ -75,6 +77,44 @@ export async function addNewExpenseAction(data) {
     } catch (error) {
         console.error("Error adding expense:", error);
         return null;
+    }
+}
+
+export async function addBulkExpensesAction(payload) {
+    try {
+        const budgetId = Number(payload?.budgetId);
+        const category = String(payload?.category || '').trim() || null;
+        const createdAt = String(payload?.createdAt || '').trim() || new Date().toLocaleDateString('en-GB');
+        const rawItems = Array.isArray(payload?.items) ? payload.items : [];
+
+        if (!budgetId || rawItems.length === 0) {
+            return { success: false, error: 'Missing bulk expense data' };
+        }
+
+        const values = rawItems
+            .map((item) => ({
+                name: String(item?.name || '').trim(),
+                amount: String(item?.amount || '').trim(),
+            }))
+            .filter((item) => item.name && Number(item.amount) > 0)
+            .slice(0, 100)
+            .map((item) => ({
+                name: item.name,
+                amount: item.amount,
+                budgetId,
+                category,
+                createdAt,
+            }));
+
+        if (values.length === 0) {
+            return { success: false, error: 'No valid items to add' };
+        }
+
+        const inserted = await db.insert(Expenses).values(values).returning({ id: Expenses.id });
+        return { success: true, count: inserted.length };
+    } catch (error) {
+        console.error('Error adding bulk expenses:', error);
+        return { success: false, error: 'Failed to add scanned items' };
     }
 }
 
@@ -131,12 +171,13 @@ export async function deleteBudgetAction(budgetId) {
 }
 
 // ✅ ฟังก์ชันสำหรับแก้ Budget
-export async function updateBudgetAction(budgetInfo, name, amount, emojiIcon) {
+export async function updateBudgetAction(budgetInfo, name, amount, emojiIcon, category) {
     try {
         const result = await db.update(Budgets).set({
             name:name,
             amount:amount,
-            icon: emojiIcon || budgetInfo?.icon || '😀'
+            icon: emojiIcon || budgetInfo?.icon || '😀',
+            category: category || null,
         }).where(eq(Budgets.id, budgetInfo.id))
         .returning();
 
@@ -144,6 +185,36 @@ export async function updateBudgetAction(budgetInfo, name, amount, emojiIcon) {
     } catch (error) {
         console.error("Error updating budget:", error);
         return null;
+    }
+}
+
+export async function syncBudgetCategoryToExpensesAction(budgetId, category) {
+    try {
+        const parsedBudgetId = Number(budgetId);
+        const nextCategory = String(category || '').trim();
+
+        if (!parsedBudgetId) {
+            return { success: false, error: 'Invalid budget id' };
+        }
+
+        if (!nextCategory) {
+            return { success: false, error: 'Please set default category first' };
+        }
+
+        // Keep budget default category in sync so Edit dialog shows current value after refresh.
+        await db.update(Budgets)
+            .set({ category: nextCategory })
+            .where(eq(Budgets.id, parsedBudgetId));
+
+        const updated = await db.update(Expenses)
+            .set({ category: nextCategory })
+            .where(eq(Expenses.budgetId, parsedBudgetId))
+            .returning({ id: Expenses.id });
+
+        return { success: true, count: updated.length };
+    } catch (error) {
+        console.error('Error syncing budget category to expenses:', error);
+        return { success: false, error: 'Failed to sync category to expenses' };
     }
 }
 
@@ -157,6 +228,7 @@ export const getBudgetListAction = async (email) => {
       name: Budgets.name,
       amount: Budgets.amount,
       icon: Budgets.icon, // <--- ตรวจสอบว่าใน Schema ตั้งชื่อว่า icon ใช่ไหม
+            category: Budgets.category,
       createdBy: Budgets.createdBy,
       totalSpend: sql`sum(CAST(${Expenses.amount} AS NUMERIC))`.mapWith(Number),
       totalItem: sql`coalesce(count(${Expenses.id}), 0)`.mapWith(Number),

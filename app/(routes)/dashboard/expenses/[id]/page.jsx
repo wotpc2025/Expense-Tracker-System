@@ -128,6 +128,7 @@ function ExpensesScreen({ params }) {
             </div>}
             <AddExpense 
             budgetId={unwrappedParams?.id}
+            initialCategory={budgetInfo?.category || ''}
             user={user}
             refreshData={() => {
                 getBudgetInfo();
