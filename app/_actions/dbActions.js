@@ -3,7 +3,6 @@
 import { db } from '@/utils/dbConfig'
 import { Budgets, Expenses } from '@/utils/schema'
 import { eq, sql, desc } from 'drizzle-orm'
-import moment from 'moment'
 
 
 
@@ -67,7 +66,8 @@ export async function addNewExpenseAction(data) {
         const result = await db.insert(Expenses).values({
             name: data.name,
             amount: data.amount,
-            budgetId: data.budgetId,
+                budgetId: data.budgetId,
+                category: data.category || null,
             createdAt: data.createdAt // หรือใช้คำสั่ง sql`now()` ถ้าอยากได้เวลาปัจจุบันจาก DB
         }).returning({ insertedId: Expenses.id });
 
@@ -187,6 +187,7 @@ export async function getAllExpensesAction(email) {
             amount: Expenses.amount,
             createdAt: Expenses.createdAt,
             budgetId: Expenses.budgetId,
+                category: Expenses.category,
             budgetName: Budgets.name,
         }).from(Budgets)
         .rightJoin(Expenses, eq(Budgets.id, Expenses.budgetId))
@@ -201,52 +202,3 @@ export async function getAllExpensesAction(email) {
     }
 }
 
-export async function createBudgetWithExpensesAction(payload) {
-    try {
-        const email = payload?.createdBy;
-        const budgetName = payload?.budgetName?.trim();
-        const budgetAmount = payload?.budgetAmount;
-        const icon = payload?.icon || '💰';
-        const starterExpenses = Array.isArray(payload?.starterExpenses) ? payload.starterExpenses : [];
-
-        if (!email || !budgetName || !budgetAmount) {
-            return { success: false, error: 'Missing required data' };
-        }
-
-        const createdBudget = await db.insert(Budgets)
-            .values({
-                name: budgetName,
-                amount: String(budgetAmount),
-                createdBy: email,
-                icon,
-            })
-            .returning({ insertedId: Budgets.id });
-
-        const budgetId = createdBudget?.[0]?.insertedId;
-        if (!budgetId) {
-            return { success: false, error: 'Failed to create budget' };
-        }
-
-        const validExpenses = starterExpenses
-            .filter((item) => item?.name && item?.amount)
-            .slice(0, 10)
-            .map((item) => ({
-                name: String(item.name).trim(),
-                amount: String(item.amount),
-                budgetId,
-                createdAt: moment().format('DD/MM/YYYY'),
-            }));
-
-        if (validExpenses.length > 0) {
-            await db.insert(Expenses).values(validExpenses);
-        }
-
-        return { success: true, budgetId };
-    } catch (error) {
-        console.error('Error creating AI budget with expenses:', error);
-        return { success: false, error: 'Failed to create AI budget' };
-    }
-}
-
-        
-            

@@ -4,8 +4,7 @@ import { useUser } from '@clerk/nextjs'
 import { getBudgetListAction } from '@/app/_actions/dbActions'
 import BudgetItem from './BudgetItem'
 import CreateBudget from './CreateBudget'
-import AIBudgetAssistant from './AIBudgetAssistant'
-import { PlusCircle, Sparkles } from 'lucide-react'
+import { PlusCircle } from 'lucide-react'
 
 function BudgetList() {
   
@@ -46,15 +45,6 @@ function BudgetList() {
                 <button className='flex items-center gap-2 px-4 py-2 rounded-md border text-sm font-medium text-gray-600 hover:text-amber-600 hover:bg-amber-50 hover:border-amber-300 cursor-pointer transition-colors'>
                   <PlusCircle className='h-4 w-4' />
                   Create Budget
-                </button>
-              }
-            />
-            <AIBudgetAssistant
-              refreshData={getBudgetList}
-              trigger={
-                <button className='flex items-center gap-2 px-4 py-2 rounded-md border text-sm font-medium text-gray-600 hover:text-violet-600 hover:bg-violet-50 hover:border-violet-300 cursor-pointer transition-colors'>
-                  <Sparkles className='h-4 w-4' />
-                  AI Budget
                 </button>
               }
             />

@@ -6,6 +6,7 @@ import { LayoutGrid, PiggyBank, ReceiptText, ShieldCheck, X } from 'lucide-react
 import Link from 'next/link'
 import { UserButton } from '@clerk/nextjs'
 import { usePathname } from 'next/navigation'
+
 function SideNav({ mobile = false, onClose, onNavigate }) {
     const menuList=[
         {
@@ -60,7 +61,7 @@ function SideNav({ mobile = false, onClose, onNavigate }) {
                             </button>
                         )}
                     </div>
-          <div className='mt-5 flex-1'>
+          <div className='mt-5 flex-1 overflow-y-auto pr-1'>
                   {menuList.map((menu) => (
                   <Link href={menu.path} key={menu.id}>
                       <h2
