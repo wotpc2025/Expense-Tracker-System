@@ -72,6 +72,7 @@ function Dashboard() {
           
           <ExpensesListTable
             expensesList={expensesList}
+            gridHeight='clamp(420px, calc(100vh - 260px), 820px)'
             refreshData={()=>getBudgetList()}
           />  
 

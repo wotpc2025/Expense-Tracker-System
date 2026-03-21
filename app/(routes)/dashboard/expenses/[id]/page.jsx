@@ -139,6 +139,7 @@ function ExpensesScreen({ params }) {
           
           <ExpensesListTable 
             expensesList={expensesList} 
+                        gridHeight='clamp(380px, calc(100vh - 420px), 760px)'
             refreshData={() => {
                 getBudgetInfo();
                 getExpensesList(unwrappedParams.id);

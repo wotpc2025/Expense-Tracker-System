@@ -36,7 +36,7 @@ const EXPORT_LANGUAGE_OPTIONS = {
     },
 };
 
-function ExpensesListTable({expensesList, refreshData}) {
+function ExpensesListTable({expensesList, refreshData, gridHeight = '420px'}) {
 
  const [searchInput, setSearchInput] = useState('');
  const [showExportMenu, setShowExportMenu] = useState(false);
@@ -274,7 +274,10 @@ function ExpensesListTable({expensesList, refreshData}) {
                         onChange={(event) => setSearchInput(event.target.value)}
                     />
                 </div>
-                <div className='expenses-grid ag-theme-quartz mt-3 rounded-xl overflow-hidden border border-slate-200' style={{ width: '100%', height: 420 }}>
+                <div
+                    className='expenses-grid ag-theme-quartz mt-3 rounded-xl overflow-hidden border border-slate-200'
+                    style={{ width: '100%', height: gridHeight }}
+                >
                     <AgGridReact
                     ref={gridRef}
                         theme='legacy'

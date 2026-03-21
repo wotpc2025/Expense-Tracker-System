@@ -29,6 +29,7 @@ function ExpensesPage() {
       <ExpensesListTable
         expensesList={expensesList}
         refreshData={getAllExpenses}
+        gridHeight='clamp(420px, calc(100vh - 260px), 820px)'
       />
     </div>
   )
