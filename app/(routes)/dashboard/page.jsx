@@ -51,7 +51,7 @@ function Dashboard() {
       if (!email) return;
       const result = await getAllExpensesAction(email);
       setExpensesList(result);
-      console.log("All Expenses:", result);
+      // console.log("All Expenses:", result);
     }
 
   return (

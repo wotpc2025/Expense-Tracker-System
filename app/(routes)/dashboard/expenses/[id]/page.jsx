@@ -71,7 +71,7 @@ function ExpensesScreen({ params }) {
             
             if (result) {
                 setBudgetInfo(result); // result เป็น Object ตัวเดียว ไม่ใช่ array
-                console.log("Budget Info:", result);
+                // console.log("Budget Info:", result);
             } else {
                 console.warn("No budget info found");
             }
@@ -89,7 +89,7 @@ function ExpensesScreen({ params }) {
             setIsLoadingExpenses(true);
             const result = await getExpensesListAction(id);
             setExpensesList(result);
-            console.log("Expenses List:", result);
+            // console.log("Expenses List:", result);
         } finally {
             setIsLoadingExpenses(false);
         }
@@ -99,7 +99,7 @@ function ExpensesScreen({ params }) {
     const deleteBudget = async () => {
         try {
             const result = await deleteBudgetAction(unwrappedParams?.id);
-            console.log("Delete Budget Result:", result);
+            // console.log("Delete Budget Result:", result);
             toast.success('Budget Deleted!');
             router.push('/dashboard/budgets'); // กลับไปหน้ารายการ Budgets หลังจากลบเสร็จ
         } catch (error) {

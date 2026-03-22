@@ -128,7 +128,7 @@ export const getExpensesListAction = async (budgetId) => {
             .where(eq(Expenses.budgetId, budgetId))
             .orderBy(desc(Expenses.id));
 
-            console.log("Expenses List:", result);
+            // console.log("Expenses List:", result);
         return result;
     } catch (error) {
         console.error("Error fetching expenses:", error);
@@ -266,7 +266,7 @@ export async function getAllExpensesAction(email) {
         .where(eq(Budgets.createdBy, email))
         .orderBy(desc(Expenses.id));
 
-        console.log("All Expenses Data:", result);
+        // console.log("All Expenses Data:", result);
         return result;
     } catch (error) {
         console.error("Error fetching all expenses:", error);
