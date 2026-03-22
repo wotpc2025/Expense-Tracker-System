@@ -36,7 +36,6 @@ function Dashboard() {
       const result = await getBudgetListAction(email);
       if (result && result.length > 0) {
         setBudgetList(result);
-        getAllExpensesAction();
       } else {
         setBudgetList([]);
       }
@@ -56,15 +55,16 @@ function Dashboard() {
     }
 
   return (
-    <div className='p-8'>
-       <h2 className='font-bold text-3xl'> 
-        Welcome, {user?.fullName} ✌️
-       </h2>
-       <p className='text-gray-500'>Here's what happening with your money, Let's Manage your expenses</p>
+    <section className='mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8'>
+       <div className='rounded-2xl border bg-linear-to-br from-white to-slate-50 px-4 py-4 shadow-sm sm:px-6'>
+         <p className='text-xs font-semibold uppercase tracking-[0.18em] text-amber-600'>Dashboard Overview</p>
+         <h1 className='mt-1 text-2xl font-bold tracking-tight sm:text-3xl'>Welcome, {user?.fullName} ✌️</h1>
+         <p className='mt-1 text-sm text-slate-500'>Here is what is happening with your money today.</p>
+       </div>
 
        <CardInfo budgetList={budgetList}/>
-       <div className='grid grid-cols-1 md:grid-cols-3 mt-6 gap-5'>
-          <div className='md:col-span-2'>
+       <div className='mt-6 grid grid-cols-1 gap-5 xl:grid-cols-3'>
+          <div className='xl:col-span-2'>
             <BarChartDashboard
               budgetList={budgetList}
             />
@@ -73,18 +73,18 @@ function Dashboard() {
           <ExpensesListTable
             expensesList={expensesList}
             gridHeight='clamp(420px, calc(100vh - 260px), 820px)'
-            refreshData={()=>getBudgetList()}
+            refreshData={getAllExpenses}
           />  
 
           </div>
           <div className='flex flex-col gap-5 self-start'>
-            <h2 className='font-bold text-lg'>Latest Budgets</h2>
-            {budgetList.map((budget,index) => (
+            <h2 className='text-lg font-bold'>Latest Budgets</h2>
+            {budgetList.slice(0, 4).map((budget,index) => (
                <BudgetItem key={index} budget={budget}/>
             ))}
           </div>
        </div>
-    </div>
+    </section>
   )
 }
 

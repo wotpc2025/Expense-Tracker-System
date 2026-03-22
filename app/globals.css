@@ -153,3 +153,25 @@
   border-top: 1px solid #e5e7eb;
   color: #475569;
 }
+
+@keyframes sparkline-draw {
+  from {
+    stroke-dashoffset: 160;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.sparkline-line {
+  stroke-dasharray: 160;
+  stroke-dashoffset: 160;
+  animation: sparkline-draw 0.8s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sparkline-line {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}

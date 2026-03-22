@@ -1,5 +1,5 @@
 import { PiggyBank, ReceiptText, Wallet } from 'lucide-react'
-import React, { use, useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 function CardInfo({ budgetList }) {
 
@@ -11,20 +11,16 @@ function CardInfo({ budgetList }) {
       }, [budgetList]);
 
     const CalculateCardInfo=()=>{
-        console.log("Calculating Card Info from budgetList:", JSON.parse(JSON.stringify(budgetList)));
         let totalBudget_=0;
         let totalSpend_=0;
 
         budgetList.forEach(element => {
-            totalBudget_=totalBudget_ + Number(element.amount);
-            totalSpend_=totalSpend_ + element.totalSpend;
+            totalBudget_=totalBudget_ + Number(element.amount || 0);
+            totalSpend_=totalSpend_ + Number(element.totalSpend || 0);
         }); 
 
         setTotalBudget(totalBudget_);
         setTotalSpend(totalSpend_);
-
-        console.log("Total Budget Calculated:", totalBudget_);
-        console.log("Total Spend Calculated:", totalSpend_);
     }
 
   return (
@@ -32,25 +28,25 @@ function CardInfo({ budgetList }) {
     {budgetList?.length > 0 ?
     <div className='mt-7 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5'>
       
-       <div className='p-7 border rounded-lg flex items-center justify-between'>
+       <div className='rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex items-center justify-between'>
             <div>
-                <h2 className='text-sm'>Total Budget</h2>
-                <h2 className='font-bold text-2xl'>${totalBudget}</h2>
+                <h2 className='text-sm text-slate-500'>Total Budget</h2>
+                <h2 className='font-bold text-2xl'>฿{totalBudget.toLocaleString('th-TH')}</h2>
             </div>
             <PiggyBank 
             className='bg-amber-600 p-3 h-12 w-12 rounded-full text-white'/>
         </div>
-        <div className='p-7 border rounded-lg flex items-center justify-between'>
+        <div className='rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex items-center justify-between'>
             <div>
-                <h2 className='text-sm'>Total Spend</h2>
-                <h2 className='font-bold text-2xl'>${totalSpend}</h2>
+                <h2 className='text-sm text-slate-500'>Total Spend</h2>
+                <h2 className='font-bold text-2xl'>฿{totalSpend.toLocaleString('th-TH')}</h2>
             </div>
             <ReceiptText 
             className='bg-amber-600 p-3 h-12 w-12 rounded-full text-white'/>
         </div>
-        <div className='p-7 border rounded-lg flex items-center justify-between'>
+        <div className='rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex items-center justify-between'>
             <div>
-                <h2 className='text-sm'>No. of Budget</h2>
+                <h2 className='text-sm text-slate-500'>Active Budgets</h2>
                 <h2 className='font-bold text-2xl'>{budgetList.length}</h2>
             </div>
             <Wallet 

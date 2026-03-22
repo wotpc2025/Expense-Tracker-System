@@ -10,7 +10,7 @@ import moment from 'moment';
 import { Loader, ScanLine } from 'lucide-react';
 import { DEFAULT_EXPENSE_CATEGORIES, normalizeCategoryName } from '@/lib/expenseCategories';
 
-function AddExpense({ budgetId, initialCategory = '', refreshData }) {
+function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'comfortable' }) {
 
     const [name, setName] = useState('');
     const [amount, setAmount] = useState('');
@@ -197,8 +197,8 @@ function AddExpense({ budgetId, initialCategory = '', refreshData }) {
     }
 
     return (
-        <div className='border p-5 rounded-lg'>
-            <h2 className='font-bold text-lg'>Add Expense</h2>
+        <div className={`rounded-xl border border-slate-200 bg-white ${density === 'compact' ? 'p-3.5 sm:p-4' : 'p-4 sm:p-5'}`}>
+            <h2 className='text-lg font-bold sm:text-xl'>Add Expense</h2>
             <input
                 ref={receiptInputRef}
                 type='file'
@@ -210,14 +210,14 @@ function AddExpense({ budgetId, initialCategory = '', refreshData }) {
                 type='button'
                 onClick={() => receiptInputRef.current?.click()}
                 disabled={scanLoading}
-                className='mt-3 w-full bg-linear-to-r from-fuchsia-500 to-violet-500 hover:from-fuchsia-600 hover:to-violet-600 cursor-pointer text-white'
+                className={`mt-3 w-full cursor-pointer bg-linear-to-r from-fuchsia-500 to-violet-500 text-white hover:from-fuchsia-600 hover:to-violet-600 ${density === 'compact' ? 'h-9' : 'h-10'}`}
             >
                 {scanLoading ? <Loader className='animate-spin' /> : <ScanLine className='mr-2 h-4 w-4' />}
                 {scanLoading ? 'Scanning Receipt...' : 'Scan Receipt with AI'}
             </Button>
 
             {scannedItems.length > 0 && (
-                <div className='mt-3 rounded-md border bg-slate-50 p-3'>
+                <div className='mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3'>
                     <div className='flex items-center justify-between mb-2 gap-2 flex-wrap'>
                         <div>
                             <h3 className='text-sm font-semibold text-slate-700'>Scanned Items ({scannedItems.length})</h3>
@@ -243,7 +243,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData }) {
                             </Button>
                         </div>
                     </div>
-                    <div className='max-h-44 overflow-y-auto space-y-1 pr-1'>
+                    <div className='max-h-44 space-y-1 overflow-y-auto pr-1'>
                         {scannedItems.map((item, idx) => (
                             <div key={`${item.name}-${idx}`} className='flex items-center justify-between text-xs rounded border bg-white px-2 py-1.5'>
                                 <label className='flex items-center gap-2 min-w-0 flex-1 cursor-pointer'>
@@ -261,28 +261,28 @@ function AddExpense({ budgetId, initialCategory = '', refreshData }) {
                 </div>
             )}
 
-            <div className='mt-2'>
+            <div className={density === 'compact' ? 'mt-2.5' : 'mt-3'}>
                 <h2 className='text-black font-medium my-1'>Expense Name</h2>
                 <Input placeholder="e.g. Home Decor"
                     autoComplete="on"
                     value={name}
                     onChange={(e) => setName(e.target.value)} />
             </div>
-            <div className='mt-2'>
+            <div className={density === 'compact' ? 'mt-2.5' : 'mt-3'}>
                 <h2 className='text-black font-medium my-1'>Expense Amount</h2>
                 <Input placeholder="e.g. 1000$"
                     autoComplete="on"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)} />
             </div>
-            <div className='mt-2'>
+            <div className={density === 'compact' ? 'mt-2.5' : 'mt-3'}>
                 <h2 className='text-black font-medium my-1'>
                     Category <span className='text-slate-400 text-xs font-normal'>(optional)</span>
                 </h2>
                 <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className='w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm'
+                    className={`w-full rounded-md border border-input bg-transparent px-3 text-sm ${density === 'compact' ? 'h-9' : 'h-10'}`}
                 >
                     <option value=''>Select category</option>
                     {categoryOptions.map((cat) => (
@@ -290,7 +290,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData }) {
                     ))}
                 </select>
 
-                <div className='mt-2 flex gap-2'>
+                <div className='mt-2 flex flex-wrap gap-2 sm:flex-nowrap'>
                     <Input
                         placeholder='Add new category'
                         autoComplete='off'
@@ -309,9 +309,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData }) {
             </div>
             <Button disabled={!(name && amount) || loading || scanLoading}
                 onClick={() => addNewExpense()}
-
-                className='mt-3 w-full bg-amber-600
-           hover:bg-amber-700 cursor-pointer'>
+                className={`mt-4 w-full bg-amber-600 hover:bg-amber-700 cursor-pointer ${density === 'compact' ? 'h-9' : 'h-10'}`}>
                 {loading ?
                     <Loader className='animate-spin' /> : "Add New Expense"
                 }
