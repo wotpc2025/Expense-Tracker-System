@@ -6,7 +6,7 @@ import { useTheme } from 'next-themes'
 import { getBudgetListAction, getAllExpensesAction } from '@/app/_actions/dbActions'
 import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
 import { getTranslation } from '@/lib/translations'
-import { EXPORT_LANGUAGE_OPTIONS, exportRowsToCsv, formatCurrencyForLanguage, sanitizeFileNamePart } from '@/lib/csvExport'
+import { EXPORT_LANGUAGE_OPTIONS, exportRowsToCsv, sanitizeFileNamePart } from '@/lib/csvExport'
 import moment from 'moment'
 import 'moment/locale/th'
 import { jsPDF } from 'jspdf'
@@ -170,12 +170,17 @@ export default function ReportsPage() {
       return btoa(binary)
     }
 
+    const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onloadend = () => resolve(reader.result)
+      reader.onerror = reject
+      reader.readAsDataURL(blob)
+    })
+
     const ensureThaiFont = async (doc) => {
       if (doc.__thaiFontReady) return
       const response = await fetch('/fonts/NotoSansThai-Regular.ttf')
-      if (!response.ok) {
-        throw new Error('Cannot load Thai font file')
-      }
+      if (!response.ok) throw new Error('Cannot load Thai font file')
       const fontBuffer = await response.arrayBuffer()
       const fontBase64 = arrayBufferToBase64(fontBuffer)
       doc.addFileToVFS('NotoSansThai-Regular.ttf', fontBase64)
@@ -183,59 +188,180 @@ export default function ReportsPage() {
       doc.__thaiFontReady = true
     }
 
+    const loadLogoDataUrl = async () => {
+      const response = await fetch('/logo-exfinit.png')
+      if (!response.ok) throw new Error('Cannot load logo image')
+      const blob = await response.blob()
+      return blobToDataUrl(blob)
+    }
+
     const userName = sanitizeFileNamePart(user?.fullName || 'user')
     const userEmail = sanitizeFileNamePart(user?.primaryEmailAddress?.emailAddress || 'no-email')
     const generatedDate = moment().format('YYYY-MM-DD HH:mm')
     const fileName = `reports-budget-performance-${userName}-${userEmail}-${selectedLanguage}-${moment().format('YYYY-MM-DD')}.pdf`
 
-    const rows = sortedBudgetList.map((b) => {
+    const rawRows = sortedBudgetList.map((b) => {
       const budget = Number(b.amount)
       const spent = Number(b.totalSpend || 0)
       const remaining = budget - spent
       const ratio = budget > 0 ? (spent / budget) * 100 : 0
-
-      return [
-        b.name || '',
-        selectedLanguage === 'th' ? formatCurrencyForLanguage(budget, 'th-TH') : formatPdfCurrency(budget),
-        selectedLanguage === 'th' ? formatCurrencyForLanguage(spent, 'th-TH') : formatPdfCurrency(spent),
-        selectedLanguage === 'th' ? formatCurrencyForLanguage(remaining, 'th-TH') : formatPdfCurrency(remaining),
-        `${ratio.toFixed(2)}%`,
-      ]
+      return { name: b.name || '', budget, spent, remaining, ratio }
     })
 
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
+    const columnsTH = [
+      { key: 'name', label: 'งบประมาณ', x: 40, width: 250, align: 'left', render: (row) => row.name },
+      { key: 'budget', label: 'จำนวนงบประมาณ', x: 290, width: 140, align: 'right', render: (row) => formatPdfCurrency(row.budget) },
+      { key: 'spent', label: 'ใช้จ่ายจริง', x: 430, width: 140, align: 'right', render: (row) => formatPdfCurrency(row.spent) },
+      { key: 'remaining', label: 'คงเหลือ', x: 570, width: 140, align: 'right', render: (row) => formatPdfCurrency(row.remaining) },
+      { key: 'ratio', label: 'อัตราการใช้ร้อยละ', x: 710, width: 140, align: 'right', render: (row) => `${row.ratio.toFixed(2)}%` },
+    ]
+
+    const columnsEN = [
+      { key: 'name', label: 'Budget', render: (row) => row.name },
+      { key: 'budget', label: 'Budget Amount', render: (row) => formatPdfCurrency(row.budget) },
+      { key: 'spent', label: 'Actual Spent', render: (row) => formatPdfCurrency(row.spent) },
+      { key: 'remaining', label: 'Remaining', render: (row) => formatPdfCurrency(row.remaining) },
+      { key: 'ratio', label: 'Usage Ratio (%)', render: (row) => `${row.ratio.toFixed(2)}%` },
+    ]
+
+    const logoDataUrl = await loadLogoDataUrl().catch(() => null)
+    const logoX = 40
+    const logoY = 26
+    const logoWidth = 64
+    const logoHeight = 24
+    const headerTextX = logoDataUrl ? logoX + logoWidth + 12 : 72
+
     if (selectedLanguage === 'th') {
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
       await ensureThaiFont(doc)
+
+      const isThaiText = (value) => /[\u0E00-\u0E7F]/.test(String(value || ''))
+      const setFontByText = (value, size) => {
+        if (isThaiText(value)) doc.setFont('NotoSansThai', 'normal')
+        else doc.setFont('helvetica', 'normal')
+        if (size) doc.setFontSize(size)
+      }
+
+      if (logoDataUrl) {
+        doc.addImage(logoDataUrl, 'PNG', logoX, logoY, logoWidth, logoHeight)
+      } else {
+        doc.setFillColor(15, 23, 42)
+        doc.roundedRect(40, 28, 24, 24, 4, 4, 'F')
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(255, 255, 255)
+        doc.setFontSize(10)
+        doc.text('ETS', 46, 43)
+      }
+
       doc.setFont('NotoSansThai', 'normal')
+      doc.setTextColor(17, 24, 39)
+      doc.setFontSize(16)
+      doc.text('รายงานประสิทธิภาพงบประมาณ', headerTextX, 40)
+      doc.setFontSize(10)
+      doc.setTextColor(71, 85, 105)
+      doc.text('วันที่สร้าง:', headerTextX, 58)
+      doc.setFont('helvetica', 'normal')
+      doc.text(generatedDate, headerTextX + 50, 58)
+      doc.setFont('NotoSansThai', 'normal')
+      doc.text('งบประมาณ:', 300, 58)
+      doc.setFont('helvetica', 'normal')
+      doc.text(String(rawRows.length), 350, 58)
+
+      const drawHeader = (y) => {
+        doc.setFillColor(30, 41, 59)
+        doc.rect(40, y, 810, 22, 'F')
+        doc.setTextColor(255, 255, 255)
+        columnsTH.forEach((col) => {
+          setFontByText(col.label, 10)
+          if (col.align === 'right') {
+            const w = doc.getTextWidth(col.label)
+            doc.text(col.label, col.x + col.width - 8 - w, y + 15)
+          } else {
+            doc.text(col.label, col.x + 8, y + 15)
+          }
+        })
+      }
+
+      let y = 80
+      drawHeader(y)
+      y += 22
+
+      rawRows.forEach((row, index) => {
+        const rowHeight = 22
+        const pageBottomLimit = doc.internal.pageSize.getHeight() - 30
+        if (y + rowHeight > pageBottomLimit) {
+          doc.addPage()
+          y = 40
+          drawHeader(y)
+          y += 22
+        }
+
+        doc.setFillColor(index % 2 === 0 ? 248 : 241, index % 2 === 0 ? 250 : 245, index % 2 === 0 ? 252 : 249)
+        doc.rect(40, y, 810, rowHeight, 'F')
+        doc.setTextColor(31, 41, 55)
+
+        columnsTH.forEach((col) => {
+          const value = col.render(row)
+          setFontByText(value, 9.5)
+          if (col.align === 'right') {
+            const textWidth = doc.getTextWidth(value)
+            doc.text(value, col.x + col.width - 8 - textWidth, y + 15)
+          } else {
+            doc.text(value, col.x + 8, y + 15, { maxWidth: col.width - 16 })
+          }
+        })
+
+        y += rowHeight
+      })
+
+      const pageHeight = doc.internal.pageSize.height
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(100, 116, 139)
+      doc.text(`Expense Tracker System - ${user?.primaryEmailAddress?.emailAddress || 'N/A'}`, 40, pageHeight - 20)
+      doc.save(fileName)
+      setShowExportMenu(false)
+      return
     }
 
-    doc.setFillColor(15, 23, 42)
-    doc.roundedRect(40, 28, 24, 24, 4, 4, 'F')
-    doc.setTextColor(255, 255, 255)
-    doc.setFontSize(10)
-    doc.text('ETS', 46, 43)
+    const enRows = rawRows.map((row) => columnsEN.map((col) => col.render(row)))
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
+
+    if (logoDataUrl) {
+      doc.addImage(logoDataUrl, 'PNG', logoX, logoY, logoWidth, logoHeight)
+    } else {
+      doc.setFillColor(15, 23, 42)
+      doc.roundedRect(40, 28, 24, 24, 4, 4, 'F')
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(10)
+      doc.text('ETS', 46, 43)
+    }
+
     doc.setTextColor(17, 24, 39)
     doc.setFontSize(16)
-    doc.text(selectedLanguage === 'th' ? 'รายงานประสิทธิภาพงบประมาณ' : 'Budget Performance Report', 72, 40)
+    doc.text('Budget Performance Report', headerTextX, 40)
     doc.setFontSize(10)
     doc.setTextColor(71, 85, 105)
-    doc.text(selectedLanguage === 'th' ? `วันที่สร้าง: ${generatedDate}` : `Generated: ${generatedDate}`, 72, 58)
-    doc.text(selectedLanguage === 'th' ? `งบประมาณ: ${sortedBudgetList.length}` : `Budgets: ${sortedBudgetList.length}`, 300, 58)
+    doc.text(`Generated: ${generatedDate}`, headerTextX, 58)
+    doc.text(`Budgets: ${rawRows.length}`, 290, 58)
 
     autoTable(doc, {
-      head: [selectedLanguage === 'th'
-        ? ['งบประมาณ', 'จำนวนงบประมาณ', 'ใช้จ่ายจริง', 'คงเหลือ', 'อัตราการใช้ (%)']
-        : ['Budget', 'Budget Amount', 'Actual Spent', 'Remaining', 'Usage Ratio (%)']],
-      body: rows,
+      head: [columnsEN.map((col) => col.label)],
+      body: enRows,
       startY: 72,
       styles: {
-        font: selectedLanguage === 'th' ? 'NotoSansThai' : 'helvetica',
+        font: 'helvetica',
         fontStyle: 'normal',
-        fontSize: selectedLanguage === 'th' ? 9.5 : 8.5,
+        fontSize: 8.5,
         cellPadding: 4.5,
         textColor: [31, 41, 55],
       },
-      headStyles: { fillColor: [30, 41, 59] },
+      headStyles: {
+        fillColor: [30, 41, 59],
+        textColor: [255, 255, 255],
+        font: 'helvetica',
+        fontStyle: 'bold',
+      },
       alternateRowStyles: { fillColor: [248, 250, 252] },
       columnStyles: {
         0: { cellWidth: 180 },
