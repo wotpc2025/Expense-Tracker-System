@@ -174,12 +174,12 @@ export default function ReportsPage() {
         const ratio = budget > 0 ? (spent / budget) * 100 : 0
 
         return `
-          <tr>
-            <td>${b.name || ''}</td>
-            <td style="text-align:right;">${formatPdfCurrency(budget)}</td>
-            <td style="text-align:right;">${formatPdfCurrency(spent)}</td>
-            <td style="text-align:right;">${formatPdfCurrency(remaining)}</td>
-            <td style="text-align:right;">${ratio.toFixed(2)}%</td>
+          <tr style="background:${ratio >= 100 ? '#fef2f2' : '#ffffff'};">
+            <td style="padding: 8px 10px; border-bottom: 1px solid #e5e7eb;">${b.name || ''}</td>
+            <td style="padding: 8px 10px; border-bottom: 1px solid #e5e7eb; text-align:right;">${formatPdfCurrency(budget)}</td>
+            <td style="padding: 8px 10px; border-bottom: 1px solid #e5e7eb; text-align:right;">${formatPdfCurrency(spent)}</td>
+            <td style="padding: 8px 10px; border-bottom: 1px solid #e5e7eb; text-align:right;">${formatPdfCurrency(remaining)}</td>
+            <td style="padding: 8px 10px; border-bottom: 1px solid #e5e7eb; text-align:right; color:${ratio >= 100 ? '#dc2626' : '#111827'};">${ratio.toFixed(2)}%</td>
           </tr>
         `
       }).join('')
@@ -188,28 +188,39 @@ export default function ReportsPage() {
       container.style.position = 'fixed'
       container.style.left = '-10000px'
       container.style.top = '0'
-      container.style.width = '1600px'
+      container.style.width = '1500px'
       container.style.background = '#ffffff'
-      container.style.padding = '32px'
+      container.style.padding = '24px'
       container.innerHTML = `
         <div style="font-family: Tahoma, 'Noto Sans Thai', sans-serif; color: #111827;">
-          <h1 style="font-size: 28px; margin: 0 0 8px 0;">รายงานประสิทธิภาพงบประมาณ</h1>
-          <p style="font-size: 16px; margin: 0 0 16px 0;">วันที่สร้างรายงาน: ${generatedDate}</p>
-          <table style="width: 100%; border-collapse: collapse; font-size: 16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <div>
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+                <span style="display:inline-flex; width:26px; height:26px; border-radius:6px; align-items:center; justify-content:center; background:#0f172a; color:#fff; font-size:11px; font-weight:700;">ETS</span>
+                <h1 style="font-size: 24px; margin: 0;">รายงานประสิทธิภาพงบประมาณ</h1>
+              </div>
+              <p style="font-size: 13px; margin: 0; color:#475569;">Expense Tracker System</p>
+            </div>
+            <div style="text-align:right; font-size:12px; color:#334155; line-height:1.6;">
+              <div><strong>วันที่สร้างรายงาน:</strong> ${generatedDate}</div>
+              <div><strong>จำนวนงบทั้งหมด:</strong> ${sortedBudgetList.length} รายการ</div>
+            </div>
+          </div>
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden;">
             <thead>
               <tr style="background: #1e293b; color: #ffffff;">
-                <th style="padding: 10px; text-align: left;">งบประมาณ</th>
-                <th style="padding: 10px; text-align: right;">จำนวนงบประมาณ</th>
-                <th style="padding: 10px; text-align: right;">ใช้จ่ายจริง</th>
-                <th style="padding: 10px; text-align: right;">คงเหลือ</th>
-                <th style="padding: 10px; text-align: right;">อัตราการใช้ (%)</th>
+                <th style="padding: 9px 10px; text-align: left;">งบประมาณ</th>
+                <th style="padding: 9px 10px; text-align: right;">จำนวนงบประมาณ</th>
+                <th style="padding: 9px 10px; text-align: right;">ใช้จ่ายจริง</th>
+                <th style="padding: 9px 10px; text-align: right;">คงเหลือ</th>
+                <th style="padding: 9px 10px; text-align: right;">อัตราการใช้ (%)</th>
               </tr>
             </thead>
             <tbody>
               ${rows}
             </tbody>
           </table>
-          <p style="font-size: 12px; margin-top: 16px; color: #475569;">Expense Tracker System</p>
+          <p style="font-size: 11px; margin-top: 10px; color: #64748b;">Generated for ${user?.fullName || 'User'} (${user?.primaryEmailAddress?.emailAddress || 'N/A'})</p>
         </div>
       `
 
@@ -267,19 +278,28 @@ export default function ReportsPage() {
     })
 
     const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
-    doc.setFontSize(16)
-    doc.text('Budget Performance Report', 40, 40)
+    doc.setFillColor(15, 23, 42)
+    doc.roundedRect(40, 28, 24, 24, 4, 4, 'F')
+    doc.setTextColor(255, 255, 255)
     doc.setFontSize(10)
-    doc.text(`Generated: ${generatedDate}`, 40, 60)
+    doc.text('ETS', 46, 43)
+    doc.setTextColor(17, 24, 39)
+    doc.setFontSize(16)
+    doc.text('Budget Performance Report', 72, 40)
+    doc.setFontSize(10)
+    doc.setTextColor(71, 85, 105)
+    doc.text(`Generated: ${generatedDate}`, 72, 58)
+    doc.text(`Budgets: ${sortedBudgetList.length}`, 290, 58)
 
     autoTable(doc, {
       head: [['Budget', 'Budget Amount', 'Actual Spent', 'Remaining', 'Usage Ratio (%)']],
       body: rows,
-      startY: 78,
-      styles: { fontSize: 9, cellPadding: 6 },
+      startY: 72,
+      styles: { fontSize: 8.5, cellPadding: 4.5, textColor: [31, 41, 55] },
       headStyles: { fillColor: [30, 41, 59] },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
       columnStyles: {
-        0: { cellWidth: 190 },
+        0: { cellWidth: 180 },
         1: { halign: 'right' },
         2: { halign: 'right' },
         3: { halign: 'right' },
@@ -288,7 +308,8 @@ export default function ReportsPage() {
       didDrawPage: () => {
         const pageHeight = doc.internal.pageSize.height
         doc.setFontSize(9)
-        doc.text('Expense Tracker System', 40, pageHeight - 20)
+        doc.setTextColor(100, 116, 139)
+        doc.text(`Expense Tracker System • ${user?.primaryEmailAddress?.emailAddress || 'N/A'}`, 40, pageHeight - 20)
       },
     })
 
