@@ -4,10 +4,10 @@ import React, { useEffect, useRef, useState } from 'react'
 import { CircleHelp } from 'lucide-react'
 
 const toneStyles = {
-  amber: 'border-amber-100 bg-amber-50/70',
-  slate: 'border-slate-200 bg-slate-50',
-  emerald: 'border-emerald-100 bg-emerald-50/70',
-  white: 'border-slate-200 bg-white',
+  amber: 'border-amber-100 bg-amber-50/70 dark:border-amber-900/50 dark:bg-amber-950/40',
+  slate: 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/60',
+  emerald: 'border-emerald-100 bg-emerald-50/70 dark:border-emerald-900/50 dark:bg-emerald-950/40',
+  white: 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800',
 }
 
 function Sparkline({ points }) {
@@ -77,7 +77,7 @@ function StatCard({ title, value, caption, formula = '', tone = 'slate', points 
       ) : (
         <>
           <div className='flex items-center justify-between gap-2'>
-            <p className='text-xs font-semibold uppercase tracking-wide text-slate-600'>{title}</p>
+            <p className='text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400'>{title}</p>
             {formula && (
               <div className='group/tooltip relative' ref={tooltipRef}>
                 <button
@@ -88,14 +88,14 @@ function StatCard({ title, value, caption, formula = '', tone = 'slate', points 
                 >
                   <CircleHelp className='h-3.5 w-3.5' />
                 </button>
-                <div className={`absolute right-0 z-20 mt-2 w-56 rounded-md border border-slate-200 bg-white p-2 text-[11px] font-medium text-slate-600 shadow-lg transition-all ${tooltipOpen ? 'visible opacity-100' : 'pointer-events-none invisible opacity-0'} md:group-hover/tooltip:visible md:group-hover/tooltip:opacity-100`}>
+                <div className={`absolute right-0 z-20 mt-2 w-56 rounded-md border border-slate-200 bg-white p-2 text-[11px] font-medium text-slate-600 shadow-lg transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 ${tooltipOpen ? 'visible opacity-100' : 'pointer-events-none invisible opacity-0'} md:group-hover/tooltip:visible md:group-hover/tooltip:opacity-100`}>
                   {formula}
                 </div>
               </div>
             )}
           </div>
-          <p className='mt-1 text-xl font-bold text-slate-800'>{value}</p>
-          <div className='mt-2 flex items-end justify-between gap-2 text-slate-500'>
+          <p className='mt-1 text-xl font-bold text-slate-800 dark:text-slate-100'>{value}</p>
+          <div className='mt-2 flex items-end justify-between gap-2 text-slate-500 dark:text-slate-400'>
             <span className='text-[11px] font-medium'>{caption}</span>
             <Sparkline points={points} />
           </div>

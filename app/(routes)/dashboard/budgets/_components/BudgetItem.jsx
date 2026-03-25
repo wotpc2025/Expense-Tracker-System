@@ -13,7 +13,7 @@ function BudgetItem({ budget, density = 'comfortable' }) {
   return (
     
     <Link href={`/dashboard/expenses/${budget?.id}`} >
-      <div className={`cursor-pointer rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${density === 'compact' ? 'min-h-36 p-3.5 sm:p-4' : 'min-h-42 p-4 sm:p-5'}`}>
+      <div className={`cursor-pointer rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-800 dark:hover:shadow-slate-700/50 ${density === 'compact' ? 'min-h-36 p-3.5 sm:p-4' : 'min-h-42 p-4 sm:p-5'}`}>
         <div className='flex gap-2 items-center justify-between'>
         <div className='flex gap-2 items-center'>
             <h2 className={`rounded-full bg-linear-to-br from-slate-100 to-slate-200 ${density === 'compact' ? 'p-2 text-xl sm:text-2xl' : 'p-2.5 text-2xl sm:p-3 sm:text-3xl'}`}>
@@ -30,8 +30,8 @@ function BudgetItem({ budget, density = 'comfortable' }) {
 
          <div className={density === 'compact' ? 'mt-3 sm:mt-4' : 'mt-4 sm:mt-5'}>
             <div className='mb-3 flex items-center justify-between gap-2'>
-                <h2 className='font-bold text-xs text-slate-400'>฿{budget?.totalSpend ? budget?.totalSpend?.toLocaleString('th-TH') : 0} Spend</h2>
-                <h2 className='font-bold text-xs text-slate-400'>฿{(budget?.amount - (budget?.totalSpend || 0))?.toLocaleString('th-TH')} Remaining</h2>
+                <h2 className='font-bold text-xs text-slate-400 dark:text-slate-500'>฿{budget?.totalSpend ? budget?.totalSpend?.toLocaleString('th-TH') : 0} Spend</h2>
+                <h2 className='font-bold text-xs text-slate-400 dark:text-slate-500'>฿{(budget?.amount - (budget?.totalSpend || 0))?.toLocaleString('th-TH')} Remaining</h2>
             </div>
             <div className='w-full 
              bg-slate-200 h-2 rounded-full'>
@@ -46,7 +46,7 @@ function BudgetItem({ budget, density = 'comfortable' }) {
 
             </div>
             <div className='flex justify-end mt-1'>
-              <h2 className='text-xs font-semibold text-slate-500'>{calculateProgressPercentage().toFixed(1)}% used</h2>
+              <h2 className='text-xs font-semibold text-slate-500 dark:text-slate-400'>{calculateProgressPercentage().toFixed(1)}% used</h2>
             </div>
          </div>
       </div>   

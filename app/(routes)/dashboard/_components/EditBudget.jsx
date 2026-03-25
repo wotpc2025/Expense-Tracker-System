@@ -100,7 +100,7 @@ function EditBudget({budgetInfo, refreshData}) {
                           className="cursor-pointer text-lg"
                           onClick={()=>setOpenEmojiPicker(!openEmojiPicker)}
                           >{emojiIcon}</Button>
-                          <div className='absolute z-20 shadow-lg bg-white rounded-xl'>
+                          <div className='absolute z-20 shadow-lg bg-white rounded-xl dark:bg-slate-800'>
                             <EmojiPicker
                             open={openEmojiPicker}
                             onEmojiClick={(e)=>{
@@ -110,14 +110,14 @@ function EditBudget({budgetInfo, refreshData}) {
                             />
                           </div>
                           <div className='mt-2'>
-                            <h2 className='text-black font-medium my-1'>Budget Name</h2>
+                            <h2 className='text-black font-medium my-1 dark:text-white'>Budget Name</h2>
                             <Input placeholder="e.g. Home Decor"
                             value={name}
                             autoComplete="on"
                             onChange={(e)=>setName(e.target.value)}/>
                           </div>
                           <div className='mt-2'>
-                            <h2 className='text-black font-medium my-1'>Budget Amount</h2>
+                            <h2 className='text-black font-medium my-1 dark:text-white'>Budget Amount</h2>
                             <Input 
                             type="number"
                             placeholder="e.g. 5000฿"
@@ -127,7 +127,7 @@ function EditBudget({budgetInfo, refreshData}) {
                           </div>
 
                           <div className='mt-2'>
-                            <h2 className='text-black font-medium my-1'>Default Category (optional)</h2>
+                            <h2 className='text-black font-medium my-1 dark:text-white'>Default Category (optional)</h2>
                             <Input
                               placeholder='e.g. Food'
                               value={category}

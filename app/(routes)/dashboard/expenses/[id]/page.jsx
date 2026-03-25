@@ -110,7 +110,7 @@ function ExpensesScreen({ params }) {
 
   return (
      <section className='mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8'>
-                 <div className='rounded-2xl border bg-linear-to-br from-white to-slate-50 px-4 py-4 shadow-sm sm:px-6'>
+                 <div className='rounded-2xl border bg-linear-to-br from-white to-slate-50 px-4 py-4 shadow-sm sm:px-6 dark:border-slate-700 dark:from-slate-900 dark:to-slate-900'>
                      <div className='flex flex-wrap items-center justify-between gap-3'>
                          <div>
                              <p className='text-xs font-semibold uppercase tracking-[0.18em] text-amber-600'>Expense Detail</p>
@@ -118,25 +118,25 @@ function ExpensesScreen({ params }) {
                              <p className='mt-1 text-sm text-slate-500'>Manage budget detail, add expenses, and keep entries clean.</p>
                          </div>
                                     <div className='flex gap-2 items-center'>
-                <div className='inline-flex h-10 items-center rounded-md border border-slate-200 bg-white p-1'>
+                <div className='inline-flex h-10 items-center rounded-md border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-900'>
                     <button
                         type='button'
                         onClick={() => setDensity('compact')}
-                        className={`rounded px-2 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${density === 'compact' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                        className={`rounded px-2 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${density === 'compact' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'}`}
                     >
                         Compact
                     </button>
                     <button
                         type='button'
                         onClick={() => setDensity('comfortable')}
-                        className={`rounded px-2 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${density === 'comfortable' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                        className={`rounded px-2 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${density === 'comfortable' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'}`}
                     >
                         Comfort
                     </button>
                     <button
                         type='button'
                         onClick={() => setDensity('auto')}
-                        className={`rounded px-2 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${density === 'auto' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                        className={`rounded px-2 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${density === 'auto' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'}`}
                         title={`Auto mode is currently ${resolvedDensity}`}
                     >
                         <span className='inline-flex items-center gap-1'>
@@ -147,7 +147,7 @@ function ExpensesScreen({ params }) {
                     <button
                         type='button'
                         onClick={resetDensity}
-                        className='rounded px-2 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100 cursor-pointer'
+                        className='rounded px-2 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100 cursor-pointer dark:text-slate-300 dark:hover:bg-slate-700'
                         title='Reset density to default'
                     >
                         <span className='inline-flex items-center gap-1'>

@@ -10,18 +10,20 @@ import moment from 'moment';
 import { Loader, ScanLine } from 'lucide-react';
 import { DEFAULT_EXPENSE_CATEGORIES, normalizeCategoryName } from '@/lib/expenseCategories';
 
-function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'comfortable' }) {
+function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'comfortable', initialScanResult = null }) {
 
-    const [name, setName] = useState('');
-    const [amount, setAmount] = useState('');
+    const [name, setName] = useState(initialScanResult?.expenseName || '');
+    const [amount, setAmount] = useState(initialScanResult?.amount != null ? String(initialScanResult.amount) : '');
     const [loading, setLoading] = useState(false);
     const [category, setCategory] = useState(initialCategory || '');
     const [categoryOptions, setCategoryOptions] = useState(DEFAULT_EXPENSE_CATEGORIES);
     const [customCategory, setCustomCategory] = useState('');
     const [scanLoading, setScanLoading] = useState(false);
     const [addingScanned, setAddingScanned] = useState(false);
-    const [scannedItems, setScannedItems] = useState([]);
-    const [selectedScannedIndexes, setSelectedScannedIndexes] = useState([]);
+    const [scannedItems, setScannedItems] = useState(Array.isArray(initialScanResult?.lineItems) ? initialScanResult.lineItems : []);
+    const [selectedScannedIndexes, setSelectedScannedIndexes] = useState(
+        Array.isArray(initialScanResult?.lineItems) ? initialScanResult.lineItems.map((_, i) => i) : []
+    );
     const receiptInputRef = useRef(null);
 
     useEffect(() => {
@@ -197,7 +199,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
     }
 
     return (
-        <div className={`rounded-xl border border-slate-200 bg-white ${density === 'compact' ? 'p-3.5 sm:p-4' : 'p-4 sm:p-5'}`}>
+        <div className={`rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 ${density === 'compact' ? 'p-3.5 sm:p-4' : 'p-4 sm:p-5'}`}>
             <h2 className='text-lg font-bold sm:text-xl'>Add Expense</h2>
             <input
                 ref={receiptInputRef}
@@ -217,10 +219,10 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
             </Button>
 
             {scannedItems.length > 0 && (
-                <div className='mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3'>
+                <div className='mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50'>
                     <div className='flex items-center justify-between mb-2 gap-2 flex-wrap'>
                         <div>
-                            <h3 className='text-sm font-semibold text-slate-700'>Scanned Items ({scannedItems.length})</h3>
+                            <h3 className='text-sm font-semibold text-slate-700 dark:text-slate-300'>Scanned Items ({scannedItems.length})</h3>
                             <p className='text-xs text-slate-500'>Selected: {selectedScannedIndexes.length}</p>
                         </div>
                         <div className='flex gap-2'>
@@ -245,7 +247,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
                     </div>
                     <div className='max-h-44 space-y-1 overflow-y-auto pr-1'>
                         {scannedItems.map((item, idx) => (
-                            <div key={`${item.name}-${idx}`} className='flex items-center justify-between text-xs rounded border bg-white px-2 py-1.5'>
+                            <div key={`${item.name}-${idx}`} className='flex items-center justify-between text-xs rounded border bg-white px-2 py-1.5 dark:border-slate-700 dark:bg-slate-800'>
                                 <label className='flex items-center gap-2 min-w-0 flex-1 cursor-pointer'>
                                     <input
                                         type='checkbox'
@@ -262,27 +264,27 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
             )}
 
             <div className={density === 'compact' ? 'mt-2.5' : 'mt-3'}>
-                <h2 className='text-black font-medium my-1'>Expense Name</h2>
+                <h2 className='text-black font-medium my-1 dark:text-white'>Expense Name</h2>
                 <Input placeholder="e.g. Home Decor"
                     autoComplete="on"
                     value={name}
                     onChange={(e) => setName(e.target.value)} />
             </div>
             <div className={density === 'compact' ? 'mt-2.5' : 'mt-3'}>
-                <h2 className='text-black font-medium my-1'>Expense Amount</h2>
+                <h2 className='text-black font-medium my-1 dark:text-white'>Expense Amount</h2>
                 <Input placeholder="e.g. 1000$"
                     autoComplete="on"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)} />
             </div>
             <div className={density === 'compact' ? 'mt-2.5' : 'mt-3'}>
-                <h2 className='text-black font-medium my-1'>
+                <h2 className='text-black font-medium my-1 dark:text-white'>
                     Category <span className='text-slate-400 text-xs font-normal'>(optional)</span>
                 </h2>
                 <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className={`w-full rounded-md border border-input bg-transparent px-3 text-sm ${density === 'compact' ? 'h-9' : 'h-10'}`}
+                    className={`w-full rounded-md border border-input bg-transparent px-3 text-sm dark:bg-slate-800 dark:text-slate-100 dark:border-slate-600 ${density === 'compact' ? 'h-9' : 'h-10'}`}
                 >
                     <option value=''>Select category</option>
                     {categoryOptions.map((cat) => (

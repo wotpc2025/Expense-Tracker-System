@@ -112,12 +112,12 @@ function BudgetList() {
               }
             />
 
-            <div className='inline-flex h-10 items-center rounded-md border border-slate-200 bg-white p-1'>
+            <div className='inline-flex h-10 items-center rounded-md border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-900'>
               <button
                 type='button'
                 onClick={() => setDensity('compact')}
                 className={`inline-flex items-center gap-1 rounded px-2 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-                  density === 'compact' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+                  density === 'compact' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'
                 }`}
               >
                 <List className='h-3.5 w-3.5' />
@@ -127,7 +127,7 @@ function BudgetList() {
                 type='button'
                 onClick={() => setDensity('comfortable')}
                 className={`inline-flex items-center gap-1 rounded px-2 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-                  density === 'comfortable' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+                  density === 'comfortable' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'
                 }`}
               >
                 <LayoutGrid className='h-3.5 w-3.5' />
@@ -137,7 +137,7 @@ function BudgetList() {
                 type='button'
                 onClick={() => setDensity('auto')}
                 className={`inline-flex items-center gap-1 rounded px-2 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-                  density === 'auto' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+                  density === 'auto' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'
                 }`}
                 title={`Auto mode is currently ${resolvedDensity}`}
               >
@@ -147,7 +147,7 @@ function BudgetList() {
               <button
                 type='button'
                 onClick={resetDensity}
-                className='inline-flex items-center gap-1 rounded px-2 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100 cursor-pointer'
+                className='inline-flex items-center gap-1 rounded px-2 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100 cursor-pointer dark:text-slate-300 dark:hover:bg-slate-700'
                 title='Reset density to default'
               >
                 <RotateCcw className='h-3.5 w-3.5' />

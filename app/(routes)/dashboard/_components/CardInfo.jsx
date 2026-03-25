@@ -28,25 +28,25 @@ function CardInfo({ budgetList }) {
     {budgetList?.length > 0 ?
     <div className='mt-7 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5'>
       
-       <div className='rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex items-center justify-between'>
+       <div className='rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex items-center justify-between dark:border-slate-700 dark:bg-slate-800'>
             <div>
-                <h2 className='text-sm text-slate-500'>Total Budget</h2>
+                <h2 className='text-sm text-slate-500 dark:text-slate-400'>Total Budget</h2>
                 <h2 className='font-bold text-2xl'>฿{totalBudget.toLocaleString('th-TH')}</h2>
             </div>
             <PiggyBank 
             className='bg-amber-600 p-3 h-12 w-12 rounded-full text-white'/>
         </div>
-        <div className='rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex items-center justify-between'>
+        <div className='rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex items-center justify-between dark:border-slate-700 dark:bg-slate-800'>
             <div>
-                <h2 className='text-sm text-slate-500'>Total Spend</h2>
+                <h2 className='text-sm text-slate-500 dark:text-slate-400'>Total Spend</h2>
                 <h2 className='font-bold text-2xl'>฿{totalSpend.toLocaleString('th-TH')}</h2>
             </div>
             <ReceiptText 
             className='bg-amber-600 p-3 h-12 w-12 rounded-full text-white'/>
         </div>
-        <div className='rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex items-center justify-between'>
+        <div className='rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex items-center justify-between dark:border-slate-700 dark:bg-slate-800'>
             <div>
-                <h2 className='text-sm text-slate-500'>Active Budgets</h2>
+                <h2 className='text-sm text-slate-500 dark:text-slate-400'>Active Budgets</h2>
                 <h2 className='font-bold text-2xl'>{budgetList.length}</h2>
             </div>
             <Wallet 

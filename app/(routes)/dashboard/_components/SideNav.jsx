@@ -17,6 +17,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 function SideNav() {
     const menuList=[
@@ -45,12 +46,14 @@ function SideNav() {
         <Sidebar>
             <SidebarHeader className='border-b'>
                 <Link href='/dashboard' className='inline-block cursor-pointer'>
-                    <Image
-                        src='/logo-exfinit.png'
-                        alt='logo'
-                        width={160}
-                        height={100}
-                    />
+                    <div className='rounded-lg px-2 py-1 dark:bg-white'>
+                        <Image
+                            src='/logo-exfinit.png'
+                            alt='logo'
+                            width={160}
+                            height={100}
+                        />
+                    </div>
                 </Link>
             </SidebarHeader>
 
@@ -74,9 +77,12 @@ function SideNav() {
             </SidebarContent>
 
             <SidebarFooter className='border-t'>
-                <div className='flex items-center gap-2 px-1 text-sm font-semibold'>
-                    <UserButton />
-                    Profile
+                <div className='flex items-center justify-between px-1'>
+                    <div className='flex items-center gap-2 text-sm font-semibold'>
+                        <UserButton />
+                        Profile
+                    </div>
+                    <ThemeToggle />
                 </div>
             </SidebarFooter>
         </Sidebar>

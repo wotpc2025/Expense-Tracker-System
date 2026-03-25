@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.39.0",
+    "@emoji-mart/data": "^1.2.1",
+    "@emoji-mart/react": "^1.1.1",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-slot": "^1.2.4",
     "ag-grid-community": "^35.1.0",

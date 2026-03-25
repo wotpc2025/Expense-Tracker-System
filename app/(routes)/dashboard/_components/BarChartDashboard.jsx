@@ -23,7 +23,7 @@ function BarChartDashboard({budgetList}) {
   const hasData = Array.isArray(budgetList) && budgetList.length > 0
 
   return (
-    <div className='rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5'>
+    <div className='rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 dark:border-slate-700 dark:bg-slate-800'>
         <div className='mb-3'>
           <h2 className='text-lg font-bold sm:text-xl'>Budget vs Spend</h2>
           <p className='text-xs text-slate-500'>Monthly activity overview</p>

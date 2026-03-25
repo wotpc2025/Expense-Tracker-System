@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { DEFAULT_EXPENSE_CATEGORIES, getCategoryColor, normalizeCategoryName } from '@/lib/expenseCategories';
+import { useTheme } from 'next-themes';
 
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
@@ -58,6 +59,8 @@ function ExpensesListTable({
     const gridRef = useRef(null);
     const exportMenuRef = useRef(null);
     const { user } = useUser();
+    const { resolvedTheme } = useTheme();
+    const agThemeClass = resolvedTheme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz';
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -224,12 +227,12 @@ function ExpensesListTable({
     const rowHeight = effectiveDensity === 'compact' ? 40 : 44;
 
     return (
-        <div className={`mt-5 rounded-2xl border border-slate-200 bg-white shadow-sm sm:mt-6 ${effectiveDensity === 'compact' ? 'p-3 sm:p-4' : 'p-4 sm:p-5'}`}>
+        <div className={`mt-5 rounded-2xl border border-slate-200 bg-white shadow-sm sm:mt-6 dark:border-slate-700 dark:bg-slate-800 ${effectiveDensity === 'compact' ? 'p-3 sm:p-4' : 'p-4 sm:p-5'}`}>
             <div className='flex items-center justify-between gap-3 flex-wrap'>
                 <h2 className='text-lg font-bold sm:text-xl'>Latest Expenses</h2>
                 <div className='flex items-center gap-2'>
                     {showDensityToggle && onDensityChange && (
-                        <div className='inline-flex h-10 items-center rounded-md border border-slate-200 bg-white p-1'>
+                        <div className='inline-flex h-10 items-center rounded-md border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-900'>
                             <button
                                 type='button'
                                 onClick={() => onDensityChange('compact')}
@@ -282,13 +285,13 @@ function ExpensesListTable({
                             <ChevronDown className={`h-4 w-4 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
                         </Button>
                         {showExportMenu && (
-                            <div className='absolute right-0 mt-2 w-48 rounded-md border border-slate-200 bg-white shadow-lg z-20 p-1'>
+                            <div className='absolute right-0 mt-2 w-48 rounded-md border border-slate-200 bg-white shadow-lg z-20 p-1 dark:border-slate-700 dark:bg-slate-800'>
                                 <button type='button' onClick={() => handleExportLanguageSelect('th')}
-                                    className='w-full text-left px-3 py-2 text-sm rounded hover:bg-slate-100 transition-colors cursor-pointer'>
+                                    className='w-full text-left px-3 py-2 text-sm rounded hover:bg-slate-100 transition-colors cursor-pointer dark:hover:bg-slate-700'>
                                     Export ไทย (TH)
                                 </button>
                                 <button type='button' onClick={() => handleExportLanguageSelect('en')}
-                                    className='w-full text-left px-3 py-2 text-sm rounded hover:bg-slate-100 transition-colors cursor-pointer'>
+                                    className='w-full text-left px-3 py-2 text-sm rounded hover:bg-slate-100 transition-colors cursor-pointer dark:hover:bg-slate-700'>
                                     Export English (EN)
                                 </button>
                             </div>
@@ -298,15 +301,15 @@ function ExpensesListTable({
             </div>
 
             <div className='mb-4 mt-3 flex flex-wrap items-center gap-2'>
-                <div className={`flex flex-1 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 shadow-xs min-w-45 max-w-sm ${effectiveDensity === 'compact' ? 'h-9' : 'h-10'}`}>
-                    <Search className='h-4 w-4 text-slate-500 mt-0.5' />
-                    <input type='text' placeholder='Search...' className='outline-none w-full text-sm'
+                <div className={`flex flex-1 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 shadow-xs min-w-45 max-w-sm dark:border-slate-700 dark:bg-slate-900/60 ${effectiveDensity === 'compact' ? 'h-9' : 'h-10'}`}>
+                    <Search className='h-4 w-4 text-slate-500 dark:text-slate-400 mt-0.5' />
+                    <input type='text' placeholder='Search...' className='outline-none w-full text-sm bg-transparent text-slate-900 placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500'
                         value={searchInput} onChange={(event) => setSearchInput(event.target.value)} />
                 </div>
                 <select
                     value={categoryFilter}
                     onChange={(e) => setCategoryFilter(e.target.value)}
-                    className='h-10 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm'>
+                    className='h-10 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100'>
                     <option value='all'>All Categories</option>
                     {uniqueCategories.map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
@@ -359,7 +362,7 @@ function ExpensesListTable({
                 </Dialog>
             </div>
 
-            <div className='expenses-grid ag-theme-quartz overflow-hidden rounded-xl border border-slate-200'
+            <div className={`expenses-grid ${agThemeClass} overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700`}
                 style={{ width: '100%', height: gridHeight }}>
                 <AgGridReact ref={gridRef} theme='legacy' rowData={rowData} columnDefs={columnDefs}
                     defaultColDef={defaultColDef} quickFilterText={searchInput}
