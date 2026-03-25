@@ -11,7 +11,6 @@ import moment from 'moment'
 import 'moment/locale/th'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import html2canvas from 'html2canvas'
 import {
   LineChart, Line,
   BarChart, Bar,
@@ -161,106 +160,33 @@ export default function ReportsPage() {
       return `THB ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     }
 
+    const arrayBufferToBase64 = (buffer) => {
+      const bytes = new Uint8Array(buffer)
+      const chunkSize = 0x8000
+      let binary = ''
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize))
+      }
+      return btoa(binary)
+    }
+
+    const ensureThaiFont = async (doc) => {
+      if (doc.__thaiFontReady) return
+      const response = await fetch('/fonts/NotoSansThai-Regular.ttf')
+      if (!response.ok) {
+        throw new Error('Cannot load Thai font file')
+      }
+      const fontBuffer = await response.arrayBuffer()
+      const fontBase64 = arrayBufferToBase64(fontBuffer)
+      doc.addFileToVFS('NotoSansThai-Regular.ttf', fontBase64)
+      doc.addFont('NotoSansThai-Regular.ttf', 'NotoSansThai', 'normal')
+      doc.__thaiFontReady = true
+    }
+
     const userName = sanitizeFileNamePart(user?.fullName || 'user')
     const userEmail = sanitizeFileNamePart(user?.primaryEmailAddress?.emailAddress || 'no-email')
     const generatedDate = moment().format('YYYY-MM-DD HH:mm')
     const fileName = `reports-budget-performance-${userName}-${userEmail}-${selectedLanguage}-${moment().format('YYYY-MM-DD')}.pdf`
-
-    if (selectedLanguage === 'th') {
-      const rows = sortedBudgetList.map((b) => {
-        const budget = Number(b.amount)
-        const spent = Number(b.totalSpend || 0)
-        const remaining = budget - spent
-        const ratio = budget > 0 ? (spent / budget) * 100 : 0
-
-        return `
-          <tr style="background:${ratio >= 100 ? '#fef2f2' : '#ffffff'};">
-            <td style="padding: 8px 10px; border-bottom: 1px solid #e5e7eb;">${b.name || ''}</td>
-            <td style="padding: 8px 10px; border-bottom: 1px solid #e5e7eb; text-align:right;">${formatPdfCurrency(budget)}</td>
-            <td style="padding: 8px 10px; border-bottom: 1px solid #e5e7eb; text-align:right;">${formatPdfCurrency(spent)}</td>
-            <td style="padding: 8px 10px; border-bottom: 1px solid #e5e7eb; text-align:right;">${formatPdfCurrency(remaining)}</td>
-            <td style="padding: 8px 10px; border-bottom: 1px solid #e5e7eb; text-align:right; color:${ratio >= 100 ? '#dc2626' : '#111827'};">${ratio.toFixed(2)}%</td>
-          </tr>
-        `
-      }).join('')
-
-      const container = document.createElement('div')
-      container.style.position = 'fixed'
-      container.style.left = '-10000px'
-      container.style.top = '0'
-      container.style.width = '1500px'
-      container.style.background = '#ffffff'
-      container.style.padding = '24px'
-      container.innerHTML = `
-        <div style="font-family: Tahoma, 'Noto Sans Thai', sans-serif; color: #111827;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-            <div>
-              <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
-                <span style="display:inline-flex; width:26px; height:26px; border-radius:6px; align-items:center; justify-content:center; background:#0f172a; color:#fff; font-size:11px; font-weight:700;">ETS</span>
-                <h1 style="font-size: 24px; margin: 0;">รายงานประสิทธิภาพงบประมาณ</h1>
-              </div>
-              <p style="font-size: 13px; margin: 0; color:#475569;">Expense Tracker System</p>
-            </div>
-            <div style="text-align:right; font-size:12px; color:#334155; line-height:1.6;">
-              <div><strong>วันที่สร้างรายงาน:</strong> ${generatedDate}</div>
-              <div><strong>จำนวนงบทั้งหมด:</strong> ${sortedBudgetList.length} รายการ</div>
-            </div>
-          </div>
-          <table style="width: 100%; border-collapse: collapse; font-size: 13px; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden;">
-            <thead>
-              <tr style="background: #1e293b; color: #ffffff;">
-                <th style="padding: 9px 10px; text-align: left;">งบประมาณ</th>
-                <th style="padding: 9px 10px; text-align: right;">จำนวนงบประมาณ</th>
-                <th style="padding: 9px 10px; text-align: right;">ใช้จ่ายจริง</th>
-                <th style="padding: 9px 10px; text-align: right;">คงเหลือ</th>
-                <th style="padding: 9px 10px; text-align: right;">อัตราการใช้ (%)</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows}
-            </tbody>
-          </table>
-          <p style="font-size: 11px; margin-top: 10px; color: #64748b;">Generated for ${user?.fullName || 'User'} (${user?.primaryEmailAddress?.emailAddress || 'N/A'})</p>
-        </div>
-      `
-
-      document.body.appendChild(container)
-
-      try {
-        const canvas = await html2canvas(container, {
-          scale: 2,
-          backgroundColor: '#ffffff',
-          useCORS: true,
-        })
-
-        const imgData = canvas.toDataURL('image/png')
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
-        const pageWidth = doc.internal.pageSize.getWidth()
-        const pageHeight = doc.internal.pageSize.getHeight()
-        const imgWidth = pageWidth
-        const imgHeight = (canvas.height * imgWidth) / canvas.width
-
-        let heightLeft = imgHeight
-        let position = 0
-
-        doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
-        heightLeft -= pageHeight
-
-        while (heightLeft > 0) {
-          position = heightLeft - imgHeight
-          doc.addPage()
-          doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
-          heightLeft -= pageHeight
-        }
-
-        doc.save(fileName)
-      } finally {
-        document.body.removeChild(container)
-      }
-
-      setShowExportMenu(false)
-      return
-    }
 
     const rows = sortedBudgetList.map((b) => {
       const budget = Number(b.amount)
@@ -270,14 +196,19 @@ export default function ReportsPage() {
 
       return [
         b.name || '',
-        formatPdfCurrency(budget),
-        formatPdfCurrency(spent),
-        formatPdfCurrency(remaining),
+        selectedLanguage === 'th' ? formatCurrencyForLanguage(budget, 'th-TH') : formatPdfCurrency(budget),
+        selectedLanguage === 'th' ? formatCurrencyForLanguage(spent, 'th-TH') : formatPdfCurrency(spent),
+        selectedLanguage === 'th' ? formatCurrencyForLanguage(remaining, 'th-TH') : formatPdfCurrency(remaining),
         `${ratio.toFixed(2)}%`,
       ]
     })
 
     const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
+    if (selectedLanguage === 'th') {
+      await ensureThaiFont(doc)
+      doc.setFont('NotoSansThai', 'normal')
+    }
+
     doc.setFillColor(15, 23, 42)
     doc.roundedRect(40, 28, 24, 24, 4, 4, 'F')
     doc.setTextColor(255, 255, 255)
@@ -285,17 +216,25 @@ export default function ReportsPage() {
     doc.text('ETS', 46, 43)
     doc.setTextColor(17, 24, 39)
     doc.setFontSize(16)
-    doc.text('Budget Performance Report', 72, 40)
+    doc.text(selectedLanguage === 'th' ? 'รายงานประสิทธิภาพงบประมาณ' : 'Budget Performance Report', 72, 40)
     doc.setFontSize(10)
     doc.setTextColor(71, 85, 105)
-    doc.text(`Generated: ${generatedDate}`, 72, 58)
-    doc.text(`Budgets: ${sortedBudgetList.length}`, 290, 58)
+    doc.text(selectedLanguage === 'th' ? `วันที่สร้าง: ${generatedDate}` : `Generated: ${generatedDate}`, 72, 58)
+    doc.text(selectedLanguage === 'th' ? `งบประมาณ: ${sortedBudgetList.length}` : `Budgets: ${sortedBudgetList.length}`, 300, 58)
 
     autoTable(doc, {
-      head: [['Budget', 'Budget Amount', 'Actual Spent', 'Remaining', 'Usage Ratio (%)']],
+      head: [selectedLanguage === 'th'
+        ? ['งบประมาณ', 'จำนวนงบประมาณ', 'ใช้จ่ายจริง', 'คงเหลือ', 'อัตราการใช้ (%)']
+        : ['Budget', 'Budget Amount', 'Actual Spent', 'Remaining', 'Usage Ratio (%)']],
       body: rows,
       startY: 72,
-      styles: { fontSize: 8.5, cellPadding: 4.5, textColor: [31, 41, 55] },
+      styles: {
+        font: selectedLanguage === 'th' ? 'NotoSansThai' : 'helvetica',
+        fontStyle: 'normal',
+        fontSize: selectedLanguage === 'th' ? 9.5 : 8.5,
+        cellPadding: 4.5,
+        textColor: [31, 41, 55],
+      },
       headStyles: { fillColor: [30, 41, 59] },
       alternateRowStyles: { fillColor: [248, 250, 252] },
       columnStyles: {
@@ -309,7 +248,7 @@ export default function ReportsPage() {
         const pageHeight = doc.internal.pageSize.height
         doc.setFontSize(9)
         doc.setTextColor(100, 116, 139)
-        doc.text(`Expense Tracker System • ${user?.primaryEmailAddress?.emailAddress || 'N/A'}`, 40, pageHeight - 20)
+        doc.text(`Expense Tracker System - ${user?.primaryEmailAddress?.emailAddress || 'N/A'}`, 40, pageHeight - 20)
       },
     })
 
