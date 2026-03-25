@@ -6,12 +6,15 @@ import { getAllExpensesAction, getBudgetListAction } from '@/app/_actions/dbActi
 import BarChartDashboard from './_components/BarChartDashboard';
 import BudgetItem from './budgets/_components/BudgetItem';
 import ExpensesListTable from './budgets/_components/ExpensesListTable';
+import { useLanguage } from './_providers/LanguageProvider'
+import { getTranslation } from '@/lib/translations'
 
 function Dashboard() {
 
-    const [budgetList, setBudgetList] = useState([]); // สร้าง State ไว้เก็บข้อมูลที่ดึงมา
+    const [budgetList, setBudgetList] = useState([]);
     const [expensesList, setExpensesList] = useState([]);
     const { user, isLoaded } = useUser();
+    const { language } = useLanguage();
   
     useEffect(() => {
       if (isLoaded && user) {
@@ -57,9 +60,9 @@ function Dashboard() {
   return (
     <section className='mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8'>
        <div className='rounded-2xl border bg-linear-to-br from-white to-slate-50 px-4 py-4 shadow-sm sm:px-6 dark:border-slate-700 dark:from-slate-900 dark:to-slate-900'>
-         <p className='text-xs font-semibold uppercase tracking-[0.18em] text-amber-600'>Dashboard Overview</p>
-         <h1 className='mt-1 text-2xl font-bold tracking-tight sm:text-3xl'>Welcome, {user?.fullName} ✌️</h1>
-         <p className='mt-1 text-sm text-slate-500'>Here is what is happening with your money today.</p>
+         <p className='text-xs font-semibold uppercase tracking-[0.18em] text-amber-600'>{getTranslation(language, 'dashboard.title')} Overview</p>
+         <h1 className='mt-1 text-2xl font-bold tracking-tight sm:text-3xl'>{getTranslation(language, 'dashboard.welcome')}, {user?.fullName} ✌️</h1>
+         <p className='mt-1 text-sm text-slate-500'>{getTranslation(language, 'dashboard.title')}</p>
        </div>
 
        <CardInfo budgetList={budgetList}/>

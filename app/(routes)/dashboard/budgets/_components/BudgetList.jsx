@@ -4,7 +4,7 @@ import { useUser } from '@clerk/nextjs'
 import { getBudgetListAction } from '@/app/_actions/dbActions'
 import BudgetItem from './BudgetItem'
 import CreateBudget from './CreateBudget'
-import { LayoutGrid, List, MonitorCog, PlusCircle, RotateCcw } from 'lucide-react'
+import { LayoutGrid, List, MonitorCog, PiggyBank, PlusCircle, RotateCcw, ScanLine } from 'lucide-react'
 import StatCard from '../../_components/StatCard'
 import { useDashboardDensity } from '@/lib/useDashboardDensity'
 
@@ -105,9 +105,16 @@ function BudgetList() {
             <CreateBudget
               refreshData={getBudgetList}
               trigger={
-                <button className='inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-medium text-gray-600 transition-colors hover:border-amber-300 hover:bg-amber-50 hover:text-amber-600 cursor-pointer'>
-                  <PlusCircle className='h-4 w-4' />
-                  Create Budget
+                <button className='inline-flex h-10 items-center overflow-hidden rounded-xl border border-amber-400 shadow-sm cursor-pointer group transition-all hover:shadow-md dark:border-amber-600'>
+                  <span className='flex items-center gap-2 bg-amber-500 px-4 h-full text-white text-sm font-semibold group-hover:bg-amber-600 transition-colors'>
+                    <PiggyBank className='h-4 w-4 shrink-0' />
+                    Create Budget
+                  </span>
+                  <span className='w-px self-stretch bg-amber-300 dark:bg-amber-600' />
+                  <span className='flex items-center gap-2 px-4 h-full text-amber-700 dark:text-amber-300 text-sm font-medium bg-amber-50 dark:bg-amber-950/40 group-hover:bg-amber-100 dark:group-hover:bg-amber-900/40 transition-colors'>
+                    <ScanLine className='h-4 w-4 shrink-0' />
+                    Scan Receipt with AI
+                  </span>
                 </button>
               }
             />

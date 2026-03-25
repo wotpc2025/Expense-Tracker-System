@@ -80,25 +80,16 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
                 return;
             }
 
-            if (result?.expenseName) {
-                setName(result.expenseName);
-            }
-
-            if (result?.amount !== null && result?.amount !== undefined) {
-                setAmount(String(result.amount));
-            }
-
             if (Array.isArray(result?.lineItems) && result.lineItems.length > 0) {
+                // Only show line items to prevent accidental double-adding of aggregate + items
                 setScannedItems(result.lineItems);
                 setSelectedScannedIndexes(result.lineItems.map((_, index) => index));
+                toast.success(`สแกนสำเร็จ พบ ${result.lineItems.length} รายการ`);
             } else {
+                toast.error('ไม่พบรายการใดๆ จากการสแกน');
                 setScannedItems([]);
                 setSelectedScannedIndexes([]);
             }
-
-            toast.success(Array.isArray(result?.lineItems) && result.lineItems.length > 0
-                ? `สแกนสำเร็จ พบ ${result.lineItems.length} รายการ`
-                : 'สแกนใบเสร็จสำเร็จ');
         } catch (error) {
             console.error('Scan receipt error:', error);
             toast.error('สแกนใบเสร็จไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
@@ -198,9 +189,31 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
         setSelectedScannedIndexes(scannedItems.map((_, index) => index));
     }
 
+    const clearScan = () => {
+        setScannedItems([]);
+        setSelectedScannedIndexes([]);
+        setName('');
+        setAmount('');
+        setCategory(String(initialCategory || '').trim());
+        setCustomCategory('');
+    }
+
     return (
         <div className={`rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 ${density === 'compact' ? 'p-3.5 sm:p-4' : 'p-4 sm:p-5'}`}>
-            <h2 className='text-lg font-bold sm:text-xl'>Add Expense</h2>
+            <div className='flex items-center justify-between gap-2 mb-2'>
+                <h2 className='text-lg font-bold sm:text-xl'>Add Expense</h2>
+                {scannedItems.length > 0 && (
+                    <Button
+                        type='button'
+                        variant='outline'
+                        onClick={clearScan}
+                        disabled={addingScanned}
+                        className='h-8 px-3 text-xs cursor-pointer'
+                    >
+                        Clear Scan
+                    </Button>
+                )}
+            </div>
             <input
                 ref={receiptInputRef}
                 type='file'
@@ -211,12 +224,20 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
             <Button
                 type='button'
                 onClick={() => receiptInputRef.current?.click()}
-                disabled={scanLoading}
-                className={`mt-3 w-full cursor-pointer bg-linear-to-r from-fuchsia-500 to-violet-500 text-white hover:from-fuchsia-600 hover:to-violet-600 ${density === 'compact' ? 'h-9' : 'h-10'}`}
+                disabled={scanLoading || scannedItems.length > 0}
+                className={`mt-3 w-full cursor-pointer bg-linear-to-r from-fuchsia-500 to-violet-500 text-white hover:from-fuchsia-600 hover:to-violet-600 disabled:opacity-50 ${density === 'compact' ? 'h-9' : 'h-10'}`}
             >
                 {scanLoading ? <Loader className='animate-spin' /> : <ScanLine className='mr-2 h-4 w-4' />}
                 {scanLoading ? 'Scanning Receipt...' : 'Scan Receipt with AI'}
             </Button>
+
+            {scannedItems.length > 0 && (
+                <div className='mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/30 dark:bg-emerald-900/20'>
+                    <p className='text-sm text-emerald-700 dark:text-emerald-300 font-medium'>
+                        ✓ สแกนสำเร็จ กรุณาเลือกรายการและกด "Add Selected" เพื่อเพิ่มข้อมูล
+                    </p>
+                </div>
+            )}
 
             {scannedItems.length > 0 && (
                 <div className='mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50'>
@@ -263,59 +284,63 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
                 </div>
             )}
 
-            <div className={density === 'compact' ? 'mt-2.5' : 'mt-3'}>
-                <h2 className='text-black font-medium my-1 dark:text-white'>Expense Name</h2>
-                <Input placeholder="e.g. Home Decor"
-                    autoComplete="on"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)} />
-            </div>
-            <div className={density === 'compact' ? 'mt-2.5' : 'mt-3'}>
-                <h2 className='text-black font-medium my-1 dark:text-white'>Expense Amount</h2>
-                <Input placeholder="e.g. 1000$"
-                    autoComplete="on"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)} />
-            </div>
-            <div className={density === 'compact' ? 'mt-2.5' : 'mt-3'}>
-                <h2 className='text-black font-medium my-1 dark:text-white'>
-                    Category <span className='text-slate-400 text-xs font-normal'>(optional)</span>
-                </h2>
-                <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className={`w-full rounded-md border border-input bg-transparent px-3 text-sm dark:bg-slate-800 dark:text-slate-100 dark:border-slate-600 ${density === 'compact' ? 'h-9' : 'h-10'}`}
-                >
-                    <option value=''>Select category</option>
-                    {categoryOptions.map((cat) => (
-                        <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                </select>
+            {scannedItems.length === 0 && (
+                <>
+                    <div className={density === 'compact' ? 'mt-2.5' : 'mt-3'}>
+                        <h2 className='text-black font-medium my-1 dark:text-white'>Expense Name</h2>
+                        <Input placeholder="e.g. Home Decor"
+                            autoComplete="on"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)} />
+                    </div>
+                    <div className={density === 'compact' ? 'mt-2.5' : 'mt-3'}>
+                        <h2 className='text-black font-medium my-1 dark:text-white'>Expense Amount</h2>
+                        <Input placeholder="e.g. 1000$"
+                            autoComplete="on"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)} />
+                    </div>
+                    <div className={density === 'compact' ? 'mt-2.5' : 'mt-3'}>
+                        <h2 className='text-black font-medium my-1 dark:text-white'>
+                            Category <span className='text-slate-400 text-xs font-normal'>(optional)</span>
+                        </h2>
+                        <select
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value)}
+                            className={`w-full rounded-md border border-input bg-transparent px-3 text-sm dark:bg-slate-800 dark:text-slate-100 dark:border-slate-600 ${density === 'compact' ? 'h-9' : 'h-10'}`}
+                        >
+                            <option value=''>Select category</option>
+                            {categoryOptions.map((cat) => (
+                                <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                        </select>
 
-                <div className='mt-2 flex flex-wrap gap-2 sm:flex-nowrap'>
-                    <Input
-                        placeholder='Add new category'
-                        autoComplete='off'
-                        value={customCategory}
-                        onChange={(e) => setCustomCategory(e.target.value)}
-                    />
-                    <Button
-                        type='button'
-                        variant='outline'
-                        onClick={addCustomCategory}
-                        className='cursor-pointer whitespace-nowrap'
-                    >
-                        Add Category
+                        <div className='mt-2 flex flex-wrap gap-2 sm:flex-nowrap'>
+                            <Input
+                                placeholder='Add new category'
+                                autoComplete='off'
+                                value={customCategory}
+                                onChange={(e) => setCustomCategory(e.target.value)}
+                            />
+                            <Button
+                                type='button'
+                                variant='outline'
+                                onClick={addCustomCategory}
+                                className='cursor-pointer whitespace-nowrap'
+                            >
+                                Add Category
+                            </Button>
+                        </div>
+                    </div>
+                    <Button disabled={!(name && amount) || loading || scanLoading}
+                        onClick={() => addNewExpense()}
+                        className={`mt-4 w-full bg-amber-600 hover:bg-amber-700 cursor-pointer ${density === 'compact' ? 'h-9' : 'h-10'}`}>
+                        {loading ?
+                            <Loader className='animate-spin' /> : "Add New Expense"
+                        }
                     </Button>
-                </div>
-            </div>
-            <Button disabled={!(name && amount) || loading || scanLoading}
-                onClick={() => addNewExpense()}
-                className={`mt-4 w-full bg-amber-600 hover:bg-amber-700 cursor-pointer ${density === 'compact' ? 'h-9' : 'h-10'}`}>
-                {loading ?
-                    <Loader className='animate-spin' /> : "Add New Expense"
-                }
-            </Button>
+                </>
+            )}
         </div>
     )
 }

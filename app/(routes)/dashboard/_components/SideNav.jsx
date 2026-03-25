@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Image from 'next/image'
-import { LayoutGrid, PiggyBank, ReceiptText } from 'lucide-react'
+import { LayoutGrid, PiggyBank, ReceiptText, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import { UserButton } from '@clerk/nextjs'
 import { usePathname } from 'next/navigation'
@@ -18,26 +18,36 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { LanguageToggle } from '@/components/LanguageToggle'
+import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
+import { getTranslation } from '@/lib/translations'
 
 function SideNav() {
+    const { language } = useLanguage()
     const menuList=[
         {
             id:1,
-            name:'Dashboard',
+            name: getTranslation(language, 'nav.dashboard'),
             icon:LayoutGrid,
             path:'/dashboard'
         },
         {
             id:2,
-            name:'Budgets',
+            name: getTranslation(language, 'nav.budgets'),
             icon:PiggyBank,
             path:'/dashboard/budgets'
         },
         {
             id:3,
-            name:'Expenses',
+            name: getTranslation(language, 'nav.expenses'),
             icon:ReceiptText,
             path:'/dashboard/expenses'
+        },
+        {
+            id:4,
+            name: getTranslation(language, 'nav.reports'),
+            icon:TrendingUp,
+            path:'/dashboard/reports'
         },
     ]
     const path=usePathname();
@@ -80,9 +90,12 @@ function SideNav() {
                 <div className='flex items-center justify-between px-1'>
                     <div className='flex items-center gap-2 text-sm font-semibold'>
                         <UserButton />
-                        Profile
+                        {getTranslation(language, 'profile')}
                     </div>
-                    <ThemeToggle />
+                    <div className='flex items-center gap-1'>
+                        <LanguageToggle />
+                        <ThemeToggle />
+                    </div>
                 </div>
             </SidebarFooter>
         </Sidebar>

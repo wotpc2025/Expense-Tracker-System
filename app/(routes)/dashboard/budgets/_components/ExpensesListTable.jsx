@@ -1,10 +1,10 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronDown, Download, LayoutGrid, List, MonitorCog, RotateCcw, Search, Trash } from 'lucide-react'
+import { ChevronDown, Download, LayoutGrid, List, MonitorCog, Pencil, RotateCcw, Search, Trash } from 'lucide-react'
 import moment from 'moment';
 import { useUser } from '@clerk/nextjs';
-import { deleteExpenseAction } from '@/app/_actions/dbActions';
+import { deleteExpenseAction, updateExpenseAction } from '@/app/_actions/dbActions';
 import { toast } from 'sonner';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
@@ -56,11 +56,19 @@ function ExpensesListTable({
     const [customCategories, setCustomCategories] = useState([]);
     const [addCategoryOpen, setAddCategoryOpen] = useState(false);
     const [newCategory, setNewCategory] = useState('');
+    const [mounted, setMounted] = useState(false);
+    const [editingExpense, setEditingExpense] = useState(null);
+    const [editForm, setEditForm] = useState({ name: '', amount: '', category: '', createdAt: '' });
+    const [editSaving, setEditSaving] = useState(false);
     const gridRef = useRef(null);
     const exportMenuRef = useRef(null);
     const { user } = useUser();
     const { resolvedTheme } = useTheme();
-    const agThemeClass = resolvedTheme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz';
+    const agThemeClass = mounted && resolvedTheme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz';
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -79,6 +87,45 @@ function ExpensesListTable({
             refreshData && refreshData();
         }
     }, [refreshData]);
+
+    const openEdit = useCallback((expense) => {
+        // Convert DD/MM/YYYY → YYYY-MM-DD for <input type="date">
+        const raw = expense.createdAt || '';
+        const m = moment(raw, ['DD/MM/YYYY', 'YYYY-MM-DD', moment.ISO_8601], true);
+        setEditForm({
+            name: expense.name || '',
+            amount: String(expense.amount || ''),
+            category: expense.category || '',
+            createdAt: m.isValid() ? m.format('YYYY-MM-DD') : '',
+        });
+        setEditingExpense(expense);
+    }, []);
+
+    const saveEdit = async () => {
+        if (!editingExpense) return;
+        if (!editForm.name.trim() || !editForm.amount || Number(editForm.amount) <= 0) {
+            toast.error('Please fill in a valid name and amount.');
+            return;
+        }
+        // Convert YYYY-MM-DD → DD/MM/YYYY for storage
+        const m = moment(editForm.createdAt, 'YYYY-MM-DD', true);
+        const storedDate = m.isValid() ? m.format('DD/MM/YYYY') : editForm.createdAt;
+        setEditSaving(true);
+        const result = await updateExpenseAction(editingExpense.id, {
+            name: editForm.name.trim(),
+            amount: editForm.amount,
+            category: editForm.category || null,
+            createdAt: storedDate,
+        });
+        setEditSaving(false);
+        if (result) {
+            toast.success('Expense updated!');
+            setEditingExpense(null);
+            refreshData && refreshData();
+        } else {
+            toast.error('Failed to update expense.');
+        }
+    };
 
     const exportToCSV = useCallback((selectedLanguage) => {
         if (!gridRef.current?.api) return;
@@ -204,17 +251,24 @@ function ExpensesListTable({
             valueFormatter: (params) => formatExpenseDate(params.value),
         },
         {
-            headerName: 'Action', field: 'action', minWidth: 90, sortable: false,
+            headerName: 'Action', field: 'action', minWidth: 110, sortable: false,
             filter: false, suppressCsvExport: true,
             cellRenderer: (params) => (
-                <button type='button' onClick={() => deleteExpense(params.data)}
-                    className='text-red-600 hover:text-red-800 transition-colors cursor-pointer'
-                    aria-label='Delete expense'>
-                    <Trash className='h-4 w-4' />
-                </button>
+                <div className='flex items-center gap-2 h-full'>
+                    <button type='button' onClick={() => openEdit(params.data)}
+                        className='text-slate-500 hover:text-amber-600 transition-colors cursor-pointer'
+                        aria-label='Edit expense'>
+                        <Pencil className='h-4 w-4' />
+                    </button>
+                    <button type='button' onClick={() => deleteExpense(params.data)}
+                        className='text-slate-500 hover:text-red-600 transition-colors cursor-pointer'
+                        aria-label='Delete expense'>
+                        <Trash className='h-4 w-4' />
+                    </button>
+                </div>
             ),
         },
-    ], [deleteExpense, formatCurrencyTHB, formatExpenseDate]);
+    ], [deleteExpense, openEdit, formatCurrencyTHB, formatExpenseDate]);
 
     const defaultColDef = useMemo(() => ({
         sortable: true, resizable: true, filter: true, suppressHeaderMenuButton: false,
@@ -372,6 +426,66 @@ function ExpensesListTable({
                     overlayNoRowsTemplate='<span style="padding: 10px; color: #64748b;">No expenses found</span>'
                 />
             </div>
+
+            {/* ── Edit Expense Dialog ── */}
+            <Dialog open={!!editingExpense} onOpenChange={(v) => { if (!v) setEditingExpense(null); }}>
+                <DialogContent className='max-w-md'>
+                    <DialogHeader>
+                        <DialogTitle>Edit Expense</DialogTitle>
+                        <DialogDescription>Update the details for this expense entry.</DialogDescription>
+                    </DialogHeader>
+                    <div className='space-y-3 py-1'>
+                        <div>
+                            <label className='text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block'>Name</label>
+                            <Input
+                                value={editForm.name}
+                                onChange={(e) => setEditForm(f => ({ ...f, name: e.target.value }))}
+                                placeholder='e.g. Coffee'
+                            />
+                        </div>
+                        <div>
+                            <label className='text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block'>Amount (฿)</label>
+                            <Input
+                                type='number'
+                                min='0'
+                                step='any'
+                                value={editForm.amount}
+                                onChange={(e) => setEditForm(f => ({ ...f, amount: e.target.value }))}
+                                placeholder='0'
+                            />
+                        </div>
+                        <div>
+                            <label className='text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block'>Category</label>
+                            <select
+                                value={editForm.category}
+                                onChange={(e) => setEditForm(f => ({ ...f, category: e.target.value }))}
+                                className='w-full h-9 rounded-md border border-slate-200 bg-white px-3 py-1 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 cursor-pointer'
+                            >
+                                <option value=''>— No Category —</option>
+                                {uniqueCategories.map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className='text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block'>Date</label>
+                            <Input
+                                type='date'
+                                value={editForm.createdAt}
+                                onChange={(e) => setEditForm(f => ({ ...f, createdAt: e.target.value }))}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button type='button' variant='outline' onClick={() => setEditingExpense(null)} className='cursor-pointer'>
+                            Cancel
+                        </Button>
+                        <Button type='button' onClick={saveEdit} disabled={editSaving} className='cursor-pointer'>
+                            {editSaving ? 'Saving…' : 'Save Changes'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

@@ -13,9 +13,10 @@ import {
 import { Input } from '@/components/ui/input';
 import EmojiPicker from 'emoji-picker-react';
 import { PenBox } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { syncBudgetCategoryToExpensesAction, updateBudgetAction } from '@/app/_actions/dbActions';
 import { toast } from 'sonner';
+import { DEFAULT_EXPENSE_CATEGORIES } from '@/lib/expenseCategories';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,7 +30,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 
-function EditBudget({budgetInfo, refreshData}) {
+function EditBudget({budgetInfo, refreshData, expensesList = []}) {
   const [emojiIcon,setEmojiIcon]=useState(budgetInfo?.icon || '😀');
     const [openEmojiPicker,setOpenEmojiPicker]=useState(false);
 
@@ -37,6 +38,14 @@ function EditBudget({budgetInfo, refreshData}) {
   const [amount,setAmount]=useState(budgetInfo?.amount || '');
   const [category,setCategory]=useState(budgetInfo?.category || '');
   const [syncingCategory, setSyncingCategory] = useState(false);
+
+  const uniqueCategories = useMemo(() => {
+    const cats = new Set([
+      ...DEFAULT_EXPENSE_CATEGORIES,
+      ...expensesList.map(e => e.category).filter(Boolean),
+    ])
+    return Array.from(cats).sort()
+  }, [expensesList])
 
     useEffect(() => {
       if (!budgetInfo) return;
@@ -127,13 +136,20 @@ function EditBudget({budgetInfo, refreshData}) {
                           </div>
 
                           <div className='mt-2'>
-                            <h2 className='text-black font-medium my-1 dark:text-white'>Default Category (optional)</h2>
-                            <Input
-                              placeholder='e.g. Food'
+                            <h2 className='text-black font-medium my-1 dark:text-white'>Category (optional)</h2>
+                            {budgetInfo?.category && (
+                              <p className='text-xs text-slate-500 dark:text-slate-400 mb-1'>Current: <span className='font-semibold text-slate-700 dark:text-slate-300'>{budgetInfo.category}</span></p>
+                            )}
+                            <select
                               value={category}
-                              autoComplete='on'
                               onChange={(e)=>setCategory(e.target.value)}
-                            />
+                              className='w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 cursor-pointer'
+                            >
+                              <option value=''>-- Select category --</option>
+                              {uniqueCategories.map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                              ))}
+                            </select>
                           </div>
 
                           <div className='mt-3'>

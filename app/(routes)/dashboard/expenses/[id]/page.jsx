@@ -25,12 +25,15 @@ import { toast } from 'sonner';
 import EditBudget from '../../_components/EditBudget';
 import StatCard from '../../_components/StatCard';
 import { useDashboardDensity } from '@/lib/useDashboardDensity';
+import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
+import { getTranslation } from '@/lib/translations'
 
 
 
 function ExpensesScreen({ params }) {
     const unwrappedParams = use(params);
     const { user, isLoaded } = useUser();
+    const { language } = useLanguage()
     const [budgetInfo, setBudgetInfo] = useState(null);
     const [expensesList, setExpensesList] = useState([]);
     const [isLoadingBudget, setIsLoadingBudget] = useState(false);
@@ -113,9 +116,9 @@ function ExpensesScreen({ params }) {
                  <div className='rounded-2xl border bg-linear-to-br from-white to-slate-50 px-4 py-4 shadow-sm sm:px-6 dark:border-slate-700 dark:from-slate-900 dark:to-slate-900'>
                      <div className='flex flex-wrap items-center justify-between gap-3'>
                          <div>
-                             <p className='text-xs font-semibold uppercase tracking-[0.18em] text-amber-600'>Expense Detail</p>
-                             <h1 className='mt-1 text-2xl font-bold tracking-tight sm:text-3xl'>My Expenses</h1>
-                             <p className='mt-1 text-sm text-slate-500'>Manage budget detail, add expenses, and keep entries clean.</p>
+                             <p className='text-xs font-semibold uppercase tracking-[0.18em] text-amber-600'>{getTranslation(language, 'expensesDetailPage.label')}</p>
+                             <h1 className='mt-1 text-2xl font-bold tracking-tight sm:text-3xl'>{getTranslation(language, 'expensesDetailPage.heading')}</h1>
+                             <p className='mt-1 text-sm text-slate-500'>{getTranslation(language, 'expensesDetailPage.subtitle')}</p>
                          </div>
                                     <div className='flex gap-2 items-center'>
                 <div className='inline-flex h-10 items-center rounded-md border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-900'>
@@ -124,14 +127,14 @@ function ExpensesScreen({ params }) {
                         onClick={() => setDensity('compact')}
                         className={`rounded px-2 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${density === 'compact' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'}`}
                     >
-                        Compact
+                        {getTranslation(language, 'density.compact')}
                     </button>
                     <button
                         type='button'
                         onClick={() => setDensity('comfortable')}
                         className={`rounded px-2 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${density === 'comfortable' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'}`}
                     >
-                        Comfort
+                        {getTranslation(language, 'density.comfort')}
                     </button>
                     <button
                         type='button'
@@ -141,7 +144,7 @@ function ExpensesScreen({ params }) {
                     >
                         <span className='inline-flex items-center gap-1'>
                           <MonitorCog className='h-3.5 w-3.5' />
-                          Auto
+                          {getTranslation(language, 'density.auto')}
                         </span>
                     </button>
                     <button
@@ -156,7 +159,7 @@ function ExpensesScreen({ params }) {
                         </span>
                     </button>
                 </div>
-        {budgetInfo && <EditBudget budgetInfo={budgetInfo} refreshData={refreshData} />}
+        {budgetInfo && <EditBudget budgetInfo={budgetInfo} refreshData={refreshData} expensesList={expensesList} />}
               
               <AlertDialog>
                   <AlertDialogTrigger asChild>

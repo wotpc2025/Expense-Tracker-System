@@ -150,6 +150,22 @@ export async function deleteExpenseAction(expenseId) {
     }
 }
 
+// ✅ ฟังก์ชันสำหรับแก้ไข Expense
+export async function updateExpenseAction(expenseId, data) {
+    try {
+        const result = await db.update(Expenses).set({
+            name: data.name,
+            amount: String(data.amount),
+            category: data.category || null,
+            createdAt: data.createdAt,
+        }).where(eq(Expenses.id, expenseId)).returning();
+        return result;
+    } catch (error) {
+        console.error("Error updating expense:", error);
+        return null;
+    }
+}
+
 // ✅ ฟังก์ชันสำหรับลบ Budget
 export async function deleteBudgetAction(budgetId) {
     try {

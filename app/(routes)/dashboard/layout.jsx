@@ -9,6 +9,7 @@ import { useUser } from '@clerk/nextjs'
 import { checkUserBudgetsAction } from '@/app/_actions/dbActions' // [!code ++] Import ตัวนี้มาแทน
 import { useRouter } from 'next/navigation'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import { LanguageProvider } from './_providers/LanguageProvider'
 
 function DashboardLayout({children}) {
   const { user } = useUser();
@@ -29,13 +30,15 @@ function DashboardLayout({children}) {
   }
 
   return (
-    <SidebarProvider>
-      <SideNav />
-      <SidebarInset>
-        <DashboardHeader />
-        {children}
-      </SidebarInset>
-    </SidebarProvider>
+    <LanguageProvider>
+      <SidebarProvider>
+        <SideNav />
+        <SidebarInset>
+          <DashboardHeader />
+          {children}
+        </SidebarInset>
+      </SidebarProvider>
+    </LanguageProvider>
   )
 }
 export default DashboardLayout

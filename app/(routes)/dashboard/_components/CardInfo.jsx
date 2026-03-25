@@ -1,10 +1,15 @@
+"use client"
+
 import { PiggyBank, ReceiptText, Wallet } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
+import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
+import { getTranslation } from '@/lib/translations'
 
 function CardInfo({ budgetList }) {
 
     const[totalBudget, setTotalBudget]=useState(0);
     const[totalSpend, setTotalSpend]=useState(0);
+    const { language } = useLanguage();
 
     useEffect(() => {
         CalculateCardInfo();
@@ -30,7 +35,7 @@ function CardInfo({ budgetList }) {
       
        <div className='rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex items-center justify-between dark:border-slate-700 dark:bg-slate-800'>
             <div>
-                <h2 className='text-sm text-slate-500 dark:text-slate-400'>Total Budget</h2>
+                <h2 className='text-sm text-slate-500 dark:text-slate-400'>{getTranslation(language, 'cardInfo.totalBudget')}</h2>
                 <h2 className='font-bold text-2xl'>฿{totalBudget.toLocaleString('th-TH')}</h2>
             </div>
             <PiggyBank 
@@ -38,7 +43,7 @@ function CardInfo({ budgetList }) {
         </div>
         <div className='rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex items-center justify-between dark:border-slate-700 dark:bg-slate-800'>
             <div>
-                <h2 className='text-sm text-slate-500 dark:text-slate-400'>Total Spend</h2>
+                <h2 className='text-sm text-slate-500 dark:text-slate-400'>{getTranslation(language, 'cardInfo.totalSpending')}</h2>
                 <h2 className='font-bold text-2xl'>฿{totalSpend.toLocaleString('th-TH')}</h2>
             </div>
             <ReceiptText 
@@ -46,7 +51,7 @@ function CardInfo({ budgetList }) {
         </div>
         <div className='rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex items-center justify-between dark:border-slate-700 dark:bg-slate-800'>
             <div>
-                <h2 className='text-sm text-slate-500 dark:text-slate-400'>Active Budgets</h2>
+                <h2 className='text-sm text-slate-500 dark:text-slate-400'>{getTranslation(language, 'cardInfo.activeBudgets')}</h2>
                 <h2 className='font-bold text-2xl'>{budgetList.length}</h2>
             </div>
             <Wallet 
