@@ -1,13 +1,17 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useTheme } from 'next-themes'
 import { getBudgetListAction, getAllExpensesAction } from '@/app/_actions/dbActions'
 import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
 import { getTranslation } from '@/lib/translations'
+import { EXPORT_LANGUAGE_OPTIONS, exportRowsToCsv, formatCurrencyForLanguage, sanitizeFileNamePart } from '@/lib/csvExport'
 import moment from 'moment'
 import 'moment/locale/th'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import html2canvas from 'html2canvas'
 import {
   LineChart, Line,
   BarChart, Bar,
@@ -15,7 +19,8 @@ import {
   XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
-import { Wallet, Receipt, CalendarDays, Tag, TrendingUp, TrendingDown, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { Wallet, Receipt, CalendarDays, Tag, TrendingUp, TrendingDown, ChevronUp, ChevronDown, ChevronsUpDown, Download } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 moment.locale('th')
 
@@ -44,6 +49,8 @@ export default function ReportsPage() {
 
   const [sortKey, setSortKey] = useState('pct')
   const [sortDir, setSortDir] = useState('desc')
+  const [showExportMenu, setShowExportMenu] = useState(false)
+  const exportMenuRef = useRef(null)
 
   const handleSort = (key) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -76,6 +83,16 @@ export default function ReportsPage() {
     if (email) fetchData(email)
   }, [user])
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target)) {
+        setShowExportMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   const fetchData = async (email) => {
     setLoading(true)
     const [budgets, expenses] = await Promise.all([
@@ -85,6 +102,198 @@ export default function ReportsPage() {
     setBudgetList(budgets || [])
     setExpensesList(expenses || [])
     setLoading(false)
+  }
+
+  const exportBudgetPerformanceCSV = (selectedLanguage) => {
+    const languageConfig = EXPORT_LANGUAGE_OPTIONS[selectedLanguage] || EXPORT_LANGUAGE_OPTIONS.th
+    const headers = selectedLanguage === 'th'
+      ? {
+        name: 'งบประมาณ',
+        amount: 'จำนวนงบประมาณ',
+        spent: 'ใช้จ่ายจริง',
+        remaining: 'คงเหลือ',
+        ratio: 'อัตราการใช้ (%)',
+      }
+      : {
+        name: 'Budget',
+        amount: 'Budget Amount',
+        spent: 'Actual Spent',
+        remaining: 'Remaining',
+        ratio: 'Usage Ratio (%)',
+      }
+
+    const rows = sortedBudgetList.map((b) => {
+      const budget = Number(b.amount)
+      const spent = Number(b.totalSpend || 0)
+      const remaining = budget - spent
+      const ratio = budget > 0 ? (spent / budget) * 100 : 0
+
+      return {
+        name: b.name || '',
+        amount: budget,
+        spent,
+        remaining,
+        ratio,
+      }
+    })
+
+    const userName = sanitizeFileNamePart(user?.fullName || 'user')
+    const userEmail = sanitizeFileNamePart(user?.primaryEmailAddress?.emailAddress || 'no-email')
+
+    exportRowsToCsv({
+      rows,
+      columns: [
+        { key: 'name', header: headers.name },
+        { key: 'amount', header: headers.amount, formatter: (value) => formatCurrencyForLanguage(value, languageConfig.locale) },
+        { key: 'spent', header: headers.spent, formatter: (value) => formatCurrencyForLanguage(value, languageConfig.locale) },
+        { key: 'remaining', header: headers.remaining, formatter: (value) => formatCurrencyForLanguage(value, languageConfig.locale) },
+        { key: 'ratio', header: headers.ratio, formatter: (value) => `${Number(value || 0).toFixed(2)}%` },
+      ],
+      fileName: `reports-budget-performance-${userName}-${userEmail}-${selectedLanguage}-${moment().format('YYYY-MM-DD')}.csv`,
+    })
+
+    setShowExportMenu(false)
+  }
+
+  const exportBudgetPerformancePDF = async (selectedLanguage) => {
+    const formatPdfCurrency = (value) => {
+      const amount = Number(value || 0)
+      return `THB ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    }
+
+    const userName = sanitizeFileNamePart(user?.fullName || 'user')
+    const userEmail = sanitizeFileNamePart(user?.primaryEmailAddress?.emailAddress || 'no-email')
+    const generatedDate = moment().format('YYYY-MM-DD HH:mm')
+    const fileName = `reports-budget-performance-${userName}-${userEmail}-${selectedLanguage}-${moment().format('YYYY-MM-DD')}.pdf`
+
+    if (selectedLanguage === 'th') {
+      const rows = sortedBudgetList.map((b) => {
+        const budget = Number(b.amount)
+        const spent = Number(b.totalSpend || 0)
+        const remaining = budget - spent
+        const ratio = budget > 0 ? (spent / budget) * 100 : 0
+
+        return `
+          <tr>
+            <td>${b.name || ''}</td>
+            <td style="text-align:right;">${formatPdfCurrency(budget)}</td>
+            <td style="text-align:right;">${formatPdfCurrency(spent)}</td>
+            <td style="text-align:right;">${formatPdfCurrency(remaining)}</td>
+            <td style="text-align:right;">${ratio.toFixed(2)}%</td>
+          </tr>
+        `
+      }).join('')
+
+      const container = document.createElement('div')
+      container.style.position = 'fixed'
+      container.style.left = '-10000px'
+      container.style.top = '0'
+      container.style.width = '1600px'
+      container.style.background = '#ffffff'
+      container.style.padding = '32px'
+      container.innerHTML = `
+        <div style="font-family: Tahoma, 'Noto Sans Thai', sans-serif; color: #111827;">
+          <h1 style="font-size: 28px; margin: 0 0 8px 0;">รายงานประสิทธิภาพงบประมาณ</h1>
+          <p style="font-size: 16px; margin: 0 0 16px 0;">วันที่สร้างรายงาน: ${generatedDate}</p>
+          <table style="width: 100%; border-collapse: collapse; font-size: 16px;">
+            <thead>
+              <tr style="background: #1e293b; color: #ffffff;">
+                <th style="padding: 10px; text-align: left;">งบประมาณ</th>
+                <th style="padding: 10px; text-align: right;">จำนวนงบประมาณ</th>
+                <th style="padding: 10px; text-align: right;">ใช้จ่ายจริง</th>
+                <th style="padding: 10px; text-align: right;">คงเหลือ</th>
+                <th style="padding: 10px; text-align: right;">อัตราการใช้ (%)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+          <p style="font-size: 12px; margin-top: 16px; color: #475569;">Expense Tracker System</p>
+        </div>
+      `
+
+      document.body.appendChild(container)
+
+      try {
+        const canvas = await html2canvas(container, {
+          scale: 2,
+          backgroundColor: '#ffffff',
+          useCORS: true,
+        })
+
+        const imgData = canvas.toDataURL('image/png')
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
+        const pageWidth = doc.internal.pageSize.getWidth()
+        const pageHeight = doc.internal.pageSize.getHeight()
+        const imgWidth = pageWidth
+        const imgHeight = (canvas.height * imgWidth) / canvas.width
+
+        let heightLeft = imgHeight
+        let position = 0
+
+        doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+        heightLeft -= pageHeight
+
+        while (heightLeft > 0) {
+          position = heightLeft - imgHeight
+          doc.addPage()
+          doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+          heightLeft -= pageHeight
+        }
+
+        doc.save(fileName)
+      } finally {
+        document.body.removeChild(container)
+      }
+
+      setShowExportMenu(false)
+      return
+    }
+
+    const rows = sortedBudgetList.map((b) => {
+      const budget = Number(b.amount)
+      const spent = Number(b.totalSpend || 0)
+      const remaining = budget - spent
+      const ratio = budget > 0 ? (spent / budget) * 100 : 0
+
+      return [
+        b.name || '',
+        formatPdfCurrency(budget),
+        formatPdfCurrency(spent),
+        formatPdfCurrency(remaining),
+        `${ratio.toFixed(2)}%`,
+      ]
+    })
+
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
+    doc.setFontSize(16)
+    doc.text('Budget Performance Report', 40, 40)
+    doc.setFontSize(10)
+    doc.text(`Generated: ${generatedDate}`, 40, 60)
+
+    autoTable(doc, {
+      head: [['Budget', 'Budget Amount', 'Actual Spent', 'Remaining', 'Usage Ratio (%)']],
+      body: rows,
+      startY: 78,
+      styles: { fontSize: 9, cellPadding: 6 },
+      headStyles: { fillColor: [30, 41, 59] },
+      columnStyles: {
+        0: { cellWidth: 190 },
+        1: { halign: 'right' },
+        2: { halign: 'right' },
+        3: { halign: 'right' },
+        4: { halign: 'right' },
+      },
+      didDrawPage: () => {
+        const pageHeight = doc.internal.pageSize.height
+        doc.setFontSize(9)
+        doc.text('Expense Tracker System', 40, pageHeight - 20)
+      },
+    })
+
+    doc.save(fileName)
+    setShowExportMenu(false)
   }
 
   // ── Date parsing helper ──────────────────────────────────────────────────────
@@ -212,13 +421,60 @@ export default function ReportsPage() {
     <div className='p-5 space-y-5'>
 
       {/* ── Header ── */}
-      <div>
-        <h2 className='text-2xl font-bold text-slate-800 dark:text-slate-100'>
-          {getTranslation(language, 'reports.title')}
-        </h2>
-        <p className='text-sm text-slate-500 dark:text-slate-400 mt-1'>
-          {getTranslation(language, 'reports.subtitle')} — {getTranslation(language, 'reports.lastUpdated')} {moment().format('D MMMM YYYY')}
-        </p>
+      <div className='flex items-start justify-between gap-3 flex-wrap'>
+        <div>
+          <h2 className='text-2xl font-bold text-slate-800 dark:text-slate-100'>
+            {getTranslation(language, 'reports.title')}
+          </h2>
+          <p className='text-sm text-slate-500 dark:text-slate-400 mt-1'>
+            {getTranslation(language, 'reports.subtitle')} — {getTranslation(language, 'reports.lastUpdated')} {moment().format('D MMMM YYYY')}
+          </p>
+        </div>
+        <div className='relative' ref={exportMenuRef}>
+          <Button
+            type='button'
+            variant='outline'
+            onClick={() => setShowExportMenu((prev) => !prev)}
+            className='h-10 cursor-pointer gap-2'
+          >
+            <Download className='h-4 w-4' />
+            Export CSV
+            <ChevronDown className={`h-4 w-4 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
+          </Button>
+          {showExportMenu && (
+            <div className='absolute right-0 mt-2 w-48 rounded-md border border-slate-200 bg-white shadow-lg z-20 p-1 dark:border-slate-700 dark:bg-slate-800'>
+              <button
+                type='button'
+                onClick={() => exportBudgetPerformanceCSV('th')}
+                className='w-full text-left px-3 py-2 text-sm rounded hover:bg-slate-100 transition-colors cursor-pointer dark:hover:bg-slate-700'
+              >
+                Export ไทย (TH)
+              </button>
+              <button
+                type='button'
+                onClick={() => exportBudgetPerformanceCSV('en')}
+                className='w-full text-left px-3 py-2 text-sm rounded hover:bg-slate-100 transition-colors cursor-pointer dark:hover:bg-slate-700'
+              >
+                Export English (EN)
+              </button>
+              <div className='my-1 border-t border-slate-200 dark:border-slate-700' />
+              <button
+                type='button'
+                onClick={() => exportBudgetPerformancePDF('th')}
+                className='w-full text-left px-3 py-2 text-sm rounded hover:bg-slate-100 transition-colors cursor-pointer dark:hover:bg-slate-700'
+              >
+                Export PDF ไทย (TH)
+              </button>
+              <button
+                type='button'
+                onClick={() => exportBudgetPerformancePDF('en')}
+                className='w-full text-left px-3 py-2 text-sm rounded hover:bg-slate-100 transition-colors cursor-pointer dark:hover:bg-slate-700'
+              >
+                Export PDF English (EN)
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── KPI Cards ── */}
