@@ -21,16 +21,23 @@ import {
 import { Input } from '@/components/ui/input';
 import { DEFAULT_EXPENSE_CATEGORIES, getCategoryColor, normalizeCategoryName } from '@/lib/expenseCategories';
 import { useTheme } from 'next-themes';
-import { EXPORT_LANGUAGE_OPTIONS, formatCurrencyForLanguage, formatDateForLanguage, sanitizeFileNamePart } from '@/lib/csvExport';
 
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-const EXPORT_HEADERS = {
-    th: { name: 'ชื่อรายการ', category: 'หมวดหมู่', amount: 'จำนวนเงิน', createdAt: 'วันที่' },
-    en: { name: 'Name', category: 'Category', amount: 'Amount', createdAt: 'Date' },
+const EXPORT_LANGUAGE_OPTIONS = {
+    th: {
+        label: 'TH',
+        locale: 'th-TH',
+        headers: { name: 'ชื่อรายการ', category: 'หมวดหมู่', amount: 'จำนวนเงิน', createdAt: 'วันที่' },
+    },
+    en: {
+        label: 'English',
+        locale: 'en-US',
+        headers: { name: 'Name', category: 'Category', amount: 'Amount', createdAt: 'Date' },
+    },
 };
 
 function ExpensesListTable({
@@ -123,17 +130,34 @@ function ExpensesListTable({
     const exportToCSV = useCallback((selectedLanguage) => {
         if (!gridRef.current?.api) return;
 
+        const sanitizeFileNamePart = (value) => {
+            return String(value || '').toLowerCase().trim()
+                .replace(/[^a-z0-9@._-]+/g, '-')
+                .replace(/-+/g, '-').replace(/^-|-$/g, '');
+        };
+
         const userName = sanitizeFileNamePart(user?.fullName || 'user');
         const userEmail = sanitizeFileNamePart(user?.primaryEmailAddress?.emailAddress || 'no-email');
         const languageConfig = EXPORT_LANGUAGE_OPTIONS[selectedLanguage] || EXPORT_LANGUAGE_OPTIONS.th;
-        const headerConfig = EXPORT_HEADERS[selectedLanguage] || EXPORT_HEADERS.th;
+
+        const formatCurrencyForLanguage = (value, locale) => {
+            const amount = Number(value || 0);
+            return amount.toLocaleString(locale, { style: 'currency', currency: 'THB', minimumFractionDigits: 2 });
+        };
+
+        const formatDateForLanguage = (value, locale) => {
+            if (!value) return '-';
+            const parsedDate = moment(value, [moment.ISO_8601, 'YYYY-MM-DD', 'DD/MM/YYYY', 'MM/DD/YYYY'], true);
+            if (!parsedDate.isValid()) return value;
+            return locale === 'th-TH' ? parsedDate.format('DD/MM/YYYY') : parsedDate.format('MM/DD/YYYY');
+        };
 
         gridRef.current.api.exportDataAsCsv({
             fileName: `expenses-${userName}-${userEmail}-${selectedLanguage}-${moment().format('YYYY-MM-DD')}.csv`,
             columnKeys: ['name', 'category', 'amount', 'createdAt'],
             processHeaderCallback: (params) => {
                 const colId = params.column.getColId();
-                return headerConfig[colId] || colId;
+                return languageConfig.headers[colId] || colId;
             },
             processCellCallback: (params) => {
                 if (params.column.getColId() === 'amount')

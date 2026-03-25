@@ -1,16 +1,13 @@
 "use client"
 
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useTheme } from 'next-themes'
 import { getBudgetListAction, getAllExpensesAction } from '@/app/_actions/dbActions'
 import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
 import { getTranslation } from '@/lib/translations'
-import { EXPORT_LANGUAGE_OPTIONS, exportRowsToCsv, formatCurrencyForLanguage, sanitizeFileNamePart } from '@/lib/csvExport'
 import moment from 'moment'
 import 'moment/locale/th'
-import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import {
   LineChart, Line,
   BarChart, Bar,
@@ -18,42 +15,9 @@ import {
   XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
-import { Wallet, Receipt, CalendarDays, Tag, TrendingUp, TrendingDown, ChevronUp, ChevronDown, ChevronsUpDown, Download } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Wallet, Receipt, CalendarDays, Tag, TrendingUp, TrendingDown, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 
 moment.locale('th')
-
-let thaiPdfFontCachePromise = null
-
-const arrayBufferToBinaryString = (buffer) => {
-  const bytes = new Uint8Array(buffer)
-  const chunkSize = 0x8000
-  let binary = ''
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize))
-  }
-  return binary
-}
-
-const loadThaiPdfFonts = async () => {
-  if (!thaiPdfFontCachePromise) {
-    thaiPdfFontCachePromise = Promise.all([
-      fetch('/fonts/THSarabunNew.ttf').then((res) => {
-        if (!res.ok) throw new Error('Failed to load THSarabunNew.ttf')
-        return res.arrayBuffer()
-      }),
-      fetch('/fonts/THSarabunNew-Bold.ttf').then((res) => {
-        if (!res.ok) throw new Error('Failed to load THSarabunNew-Bold.ttf')
-        return res.arrayBuffer()
-      }),
-    ]).then(([normal, bold]) => ({
-      normal: arrayBufferToBinaryString(normal),
-      bold: arrayBufferToBinaryString(bold),
-    }))
-  }
-
-  return thaiPdfFontCachePromise
-}
 
 const PIE_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#3b82f6', '#ec4899', '#8b5cf6', '#14b8a6']
 
@@ -80,8 +44,6 @@ export default function ReportsPage() {
 
   const [sortKey, setSortKey] = useState('pct')
   const [sortDir, setSortDir] = useState('desc')
-  const [showExportMenu, setShowExportMenu] = useState(false)
-  const exportMenuRef = useRef(null)
 
   const handleSort = (key) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -114,16 +76,6 @@ export default function ReportsPage() {
     if (email) fetchData(email)
   }, [user])
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target)) {
-        setShowExportMenu(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
   const fetchData = async (email) => {
     setLoading(true)
     const [budgets, expenses] = await Promise.all([
@@ -133,127 +85,6 @@ export default function ReportsPage() {
     setBudgetList(budgets || [])
     setExpensesList(expenses || [])
     setLoading(false)
-  }
-
-  const exportBudgetPerformanceCSV = (selectedLanguage) => {
-    const languageConfig = EXPORT_LANGUAGE_OPTIONS[selectedLanguage] || EXPORT_LANGUAGE_OPTIONS.th
-    const headers = selectedLanguage === 'th'
-      ? {
-        name: 'งบประมาณ',
-        amount: 'จำนวนงบประมาณ',
-        spent: 'ใช้จ่ายจริง',
-        remaining: 'คงเหลือ',
-        ratio: 'อัตราการใช้ (%)',
-      }
-      : {
-        name: 'Budget',
-        amount: 'Budget Amount',
-        spent: 'Actual Spent',
-        remaining: 'Remaining',
-        ratio: 'Usage Ratio (%)',
-      }
-
-    const rows = sortedBudgetList.map((b) => {
-      const budget = Number(b.amount)
-      const spent = Number(b.totalSpend || 0)
-      const remaining = budget - spent
-      const ratio = budget > 0 ? (spent / budget) * 100 : 0
-
-      return {
-        name: b.name || '',
-        amount: budget,
-        spent,
-        remaining,
-        ratio,
-      }
-    })
-
-    const userName = sanitizeFileNamePart(user?.fullName || 'user')
-    const userEmail = sanitizeFileNamePart(user?.primaryEmailAddress?.emailAddress || 'no-email')
-
-    exportRowsToCsv({
-      rows,
-      columns: [
-        { key: 'name', header: headers.name },
-        { key: 'amount', header: headers.amount, formatter: (value) => formatCurrencyForLanguage(value, languageConfig.locale) },
-        { key: 'spent', header: headers.spent, formatter: (value) => formatCurrencyForLanguage(value, languageConfig.locale) },
-        { key: 'remaining', header: headers.remaining, formatter: (value) => formatCurrencyForLanguage(value, languageConfig.locale) },
-        { key: 'ratio', header: headers.ratio, formatter: (value) => `${Number(value || 0).toFixed(2)}%` },
-      ],
-      fileName: `reports-budget-performance-${userName}-${userEmail}-${selectedLanguage}-${moment().format('YYYY-MM-DD')}.csv`,
-    })
-
-    setShowExportMenu(false)
-  }
-
-  const exportBudgetPerformancePDF = async (selectedLanguage) => {
-    const isThai = selectedLanguage === 'th'
-    const languageConfig = EXPORT_LANGUAGE_OPTIONS[selectedLanguage] || EXPORT_LANGUAGE_OPTIONS.th
-    const headers = isThai
-      ? ['งบประมาณ', 'จำนวนงบประมาณ', 'ใช้จ่ายจริง', 'คงเหลือ', 'อัตราการใช้ (%)']
-      : ['Budget', 'Budget Amount', 'Actual Spent', 'Remaining', 'Usage Ratio (%)']
-
-    const reportTitle = isThai ? 'รายงานประสิทธิภาพงบประมาณ' : 'Budget Performance Report'
-    const generatedLabel = isThai ? 'สร้างเมื่อ' : 'Generated'
-    const footerLabel = isThai ? 'Expense Tracker System' : 'Expense Tracker System'
-
-    const rows = sortedBudgetList.map((b) => {
-      const budget = Number(b.amount)
-      const spent = Number(b.totalSpend || 0)
-      const remaining = budget - spent
-      const ratio = budget > 0 ? (spent / budget) * 100 : 0
-
-      return [
-        b.name || '',
-        formatCurrencyForLanguage(budget, languageConfig.locale),
-        formatCurrencyForLanguage(spent, languageConfig.locale),
-        formatCurrencyForLanguage(remaining, languageConfig.locale),
-        `${ratio.toFixed(2)}%`,
-      ]
-    })
-
-    const userName = sanitizeFileNamePart(user?.fullName || 'user')
-    const userEmail = sanitizeFileNamePart(user?.primaryEmailAddress?.emailAddress || 'no-email')
-    const generatedDate = moment().format('YYYY-MM-DD HH:mm')
-
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
-
-    if (isThai) {
-      const thaiFonts = await loadThaiPdfFonts()
-      doc.addFileToVFS('THSarabunNew.ttf', thaiFonts.normal)
-      doc.addFont('THSarabunNew.ttf', 'THSarabunNew', 'normal')
-      doc.addFileToVFS('THSarabunNew-Bold.ttf', thaiFonts.bold)
-      doc.addFont('THSarabunNew-Bold.ttf', 'THSarabunNew', 'bold')
-      doc.setFont('THSarabunNew', 'normal')
-    }
-
-    doc.setFontSize(isThai ? 20 : 16)
-    doc.text(reportTitle, 40, 40)
-    doc.setFontSize(isThai ? 14 : 10)
-    doc.text(`${generatedLabel}: ${generatedDate}`, 40, 62)
-
-    autoTable(doc, {
-      head: [headers],
-      body: rows,
-      startY: 78,
-      styles: { font: isThai ? 'THSarabunNew' : 'helvetica', fontStyle: 'normal', fontSize: isThai ? 12 : 9, cellPadding: 6 },
-      headStyles: { font: isThai ? 'THSarabunNew' : 'helvetica', fontStyle: 'bold', fillColor: [30, 41, 59] },
-      columnStyles: {
-        0: { cellWidth: 190 },
-        1: { halign: 'right' },
-        2: { halign: 'right' },
-        3: { halign: 'right' },
-        4: { halign: 'right' },
-      },
-      didDrawPage: () => {
-        const pageHeight = doc.internal.pageSize.height
-        doc.setFontSize(isThai ? 12 : 9)
-        doc.text(footerLabel, 40, pageHeight - 20)
-      },
-    })
-
-    doc.save(`reports-budget-performance-${userName}-${userEmail}-${selectedLanguage}-${moment().format('YYYY-MM-DD')}.pdf`)
-    setShowExportMenu(false)
   }
 
   // ── Date parsing helper ──────────────────────────────────────────────────────
@@ -381,60 +212,13 @@ export default function ReportsPage() {
     <div className='p-5 space-y-5'>
 
       {/* ── Header ── */}
-      <div className='flex items-start justify-between gap-3 flex-wrap'>
-        <div>
-          <h2 className='text-2xl font-bold text-slate-800 dark:text-slate-100'>
-            {getTranslation(language, 'reports.title')}
-          </h2>
-          <p className='text-sm text-slate-500 dark:text-slate-400 mt-1'>
-            {getTranslation(language, 'reports.subtitle')} — {getTranslation(language, 'reports.lastUpdated')} {moment().format('D MMMM YYYY')}
-          </p>
-        </div>
-        <div className='relative' ref={exportMenuRef}>
-          <Button
-            type='button'
-            variant='outline'
-            onClick={() => setShowExportMenu((prev) => !prev)}
-            className='h-10 cursor-pointer gap-2'
-          >
-            <Download className='h-4 w-4' />
-            Export CSV
-            <ChevronDown className={`h-4 w-4 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
-          </Button>
-          {showExportMenu && (
-            <div className='absolute right-0 mt-2 w-48 rounded-md border border-slate-200 bg-white shadow-lg z-20 p-1 dark:border-slate-700 dark:bg-slate-800'>
-              <button
-                type='button'
-                onClick={() => exportBudgetPerformanceCSV('th')}
-                className='w-full text-left px-3 py-2 text-sm rounded hover:bg-slate-100 transition-colors cursor-pointer dark:hover:bg-slate-700'
-              >
-                Export ไทย (TH)
-              </button>
-              <button
-                type='button'
-                onClick={() => exportBudgetPerformanceCSV('en')}
-                className='w-full text-left px-3 py-2 text-sm rounded hover:bg-slate-100 transition-colors cursor-pointer dark:hover:bg-slate-700'
-              >
-                Export English (EN)
-              </button>
-              <div className='my-1 border-t border-slate-200 dark:border-slate-700' />
-              <button
-                type='button'
-                onClick={() => exportBudgetPerformancePDF('th')}
-                className='w-full text-left px-3 py-2 text-sm rounded hover:bg-slate-100 transition-colors cursor-pointer dark:hover:bg-slate-700'
-              >
-                Export PDF ไทย (TH)
-              </button>
-              <button
-                type='button'
-                onClick={() => exportBudgetPerformancePDF('en')}
-                className='w-full text-left px-3 py-2 text-sm rounded hover:bg-slate-100 transition-colors cursor-pointer dark:hover:bg-slate-700'
-              >
-                Export PDF English (EN)
-              </button>
-            </div>
-          )}
-        </div>
+      <div>
+        <h2 className='text-2xl font-bold text-slate-800 dark:text-slate-100'>
+          {getTranslation(language, 'reports.title')}
+        </h2>
+        <p className='text-sm text-slate-500 dark:text-slate-400 mt-1'>
+          {getTranslation(language, 'reports.subtitle')} — {getTranslation(language, 'reports.lastUpdated')} {moment().format('D MMMM YYYY')}
+        </p>
       </div>
 
       {/* ── KPI Cards ── */}
