@@ -29,7 +29,7 @@ function Hero() {
                   </div>
               </div>
           </div>
-          <Image src='/dashboard-test.png' alt='dashboard'
+          <Image src='/dashboard.png' alt='dashboard'
           width={1000} 
           height={1000}
           className='mt-5 rounded-xl border-2'

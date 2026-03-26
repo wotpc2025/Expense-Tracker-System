@@ -9,7 +9,7 @@ export default function Page() {
           >
             <div className="h-full w-full bg-amber-900 bg-opacity-40">
               <Image 
-                  src='/bg-test.png' 
+                  src='/bg-latest.png' 
                   alt='bg' 
                   width={1000} 
                   height={1000}
