@@ -17,3 +17,21 @@ export const Expenses=pgTable('expenses',{
     category:varchar('category'),
     createdAt:varchar('createdAt').notNull()
 })
+
+export const AdminAlerts = pgTable('admin_alerts', {
+    id: serial('id').primaryKey(),
+    alertKey: varchar('alertKey').notNull(),
+    status: varchar('status').notNull(),
+    acknowledgedAt: varchar('acknowledgedAt'),
+    acknowledgedBy: varchar('acknowledgedBy'),
+})
+
+export const AdminAuditLogs = pgTable('admin_audit_logs', {
+    id: serial('id').primaryKey(),
+    action: varchar('action').notNull(),
+    targetType: varchar('targetType').notNull(),
+    targetCount: integer('targetCount').notNull(),
+    message: varchar('message').notNull(),
+    actorEmail: varchar('actorEmail'),
+    createdAt: varchar('createdAt').notNull(),
+})

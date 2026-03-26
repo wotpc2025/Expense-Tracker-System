@@ -7,17 +7,23 @@ import { useUser } from '@clerk/nextjs'
 // [!code --] import { Budgets } from '@/utils/schema' <-- ลบทิ้ง!!
 // [!code --] import { eq } from 'drizzle-orm' <-- ลบทิ้ง!!
 import { checkUserBudgetsAction } from '@/app/_actions/dbActions' // [!code ++] Import ตัวนี้มาแทน
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { LanguageProvider } from './_providers/LanguageProvider'
+import { isAdminUser } from '@/lib/adminAccess'
 
 function DashboardLayout({children}) {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
+    if (!isLoaded || !user) return;
+    if (isAdminUser(user, process.env.NEXT_PUBLIC_ADMIN_EMAILS)) return;
+    if (pathname !== '/dashboard') return;
+
     user && getUserBudgets();
-  }, [user])
+  }, [isLoaded, user, pathname])
 
   const getUserBudgets = async () => {
     // เรียกผ่าน Action ที่เราสร้างไว้ Error จะไม่โผล่มาที่หน้าเว็บครับ

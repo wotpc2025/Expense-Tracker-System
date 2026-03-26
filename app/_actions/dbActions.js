@@ -1,8 +1,30 @@
 "use server" // บอก Next.js ว่าให้รันโค้ดนี้ที่ Server เท่านั้น
 
 import { db } from '@/utils/dbConfig'
-import { Budgets, Expenses } from '@/utils/schema'
-import { eq, sql, desc } from 'drizzle-orm'
+import { AdminAlerts, AdminAuditLogs, Budgets, Expenses } from '@/utils/schema'
+import { currentUser } from '@clerk/nextjs/server'
+import { eq, sql, desc, inArray } from 'drizzle-orm'
+
+const getCurrentActorEmail = async () => {
+    const user = await currentUser();
+    return String(user?.primaryEmailAddress?.emailAddress || '').toLowerCase() || null;
+}
+
+const createAdminAuditLogEntry = async ({ action, targetType, targetCount, message }) => {
+    try {
+        const actorEmail = await getCurrentActorEmail();
+        await db.insert(AdminAuditLogs).values({
+            action,
+            targetType,
+            targetCount: Number(targetCount || 0),
+            message,
+            actorEmail,
+            createdAt: new Date().toISOString(),
+        });
+    } catch (error) {
+        console.error('Error creating admin audit log:', error);
+    }
+}
 
 
 
@@ -26,6 +48,14 @@ export async function createBudgetAction(data) {
                 category: data.category || null,
             })
             .returning({insertedId:Budgets.id}); // ส่งค่าที่บันทึกสำเร็จกลับมา
+
+        await createAdminAuditLogEntry({
+            action: 'create_budget',
+            targetType: 'budget',
+            targetCount: result.length,
+            message: `Created budget ${data.name}`,
+        });
+
         return result;
     } catch (error) {
         console.error("Error creating budget:", error);
@@ -73,6 +103,13 @@ export async function addNewExpenseAction(data) {
             createdAt: data.createdAt // หรือใช้คำสั่ง sql`now()` ถ้าอยากได้เวลาปัจจุบันจาก DB
         }).returning({ insertedId: Expenses.id });
 
+        await createAdminAuditLogEntry({
+            action: 'create_expense',
+            targetType: 'expense',
+            targetCount: result.length,
+            message: `Created expense ${data.name}`,
+        });
+
         return result;
     } catch (error) {
         console.error("Error adding expense:", error);
@@ -111,6 +148,14 @@ export async function addBulkExpensesAction(payload) {
         }
 
         const inserted = await db.insert(Expenses).values(values).returning({ id: Expenses.id });
+
+        await createAdminAuditLogEntry({
+            action: 'bulk_create_expense',
+            targetType: 'expense',
+            targetCount: inserted.length,
+            message: `Created ${inserted.length} expenses from receipt scan`,
+        });
+
         return { success: true, count: inserted.length };
     } catch (error) {
         console.error('Error adding bulk expenses:', error);
@@ -143,6 +188,13 @@ export async function deleteExpenseAction(expenseId) {
             .where(eq(Expenses.id, expenseId))
             .returning();
 
+        await createAdminAuditLogEntry({
+            action: 'delete_expense',
+            targetType: 'expense',
+            targetCount: result.length,
+            message: `Deleted ${result.length} expense record`,
+        });
+
         return result;
     } catch (error) {
         console.error("Error deleting expense:", error);
@@ -159,6 +211,14 @@ export async function updateExpenseAction(expenseId, data) {
             category: data.category || null,
             createdAt: data.createdAt,
         }).where(eq(Expenses.id, expenseId)).returning();
+
+        await createAdminAuditLogEntry({
+            action: 'update_expense',
+            targetType: 'expense',
+            targetCount: result.length,
+            message: `Updated expense ${data.name}`,
+        });
+
         return result;
     } catch (error) {
         console.error("Error updating expense:", error);
@@ -170,7 +230,7 @@ export async function updateExpenseAction(expenseId, data) {
 export async function deleteBudgetAction(budgetId) {
     try {
         // ลบ Expenses ที่เกี่ยวข้องกับ Budget นี้ก่อน
-        await db.delete(Expenses)
+        const deletedExpenses = await db.delete(Expenses)
             .where(eq(Expenses.budgetId, budgetId))
             .returning();
 
@@ -178,6 +238,13 @@ export async function deleteBudgetAction(budgetId) {
         const result = await db.delete(Budgets)
             .where(eq(Budgets.id, budgetId))
             .returning();
+
+        await createAdminAuditLogEntry({
+            action: 'delete_budget',
+            targetType: 'budget',
+            targetCount: result.length,
+            message: `Deleted budget ${budgetId} and ${deletedExpenses.length} related expenses`,
+        });
         
         return result;
     } catch (error) {
@@ -196,6 +263,13 @@ export async function updateBudgetAction(budgetInfo, name, amount, emojiIcon, ca
             category: category || null,
         }).where(eq(Budgets.id, budgetInfo.id))
         .returning();
+
+        await createAdminAuditLogEntry({
+            action: 'update_budget',
+            targetType: 'budget',
+            targetCount: result.length,
+            message: `Updated budget ${name}`,
+        });
 
         return result;
     } catch (error) {
@@ -262,6 +336,440 @@ export const getBudgetListAction = async (email) => {
     console.error("Error fetching budget list:", error);
     return [];
   }
+}
+
+export async function getAdminMonitoringDashboardAction() {
+    try {
+        const [storedAlerts, auditRows] = await Promise.all([
+            db.select().from(AdminAlerts).orderBy(desc(AdminAlerts.id)),
+            db.select().from(AdminAuditLogs).orderBy(desc(AdminAuditLogs.id)),
+        ]);
+
+        const rows = await db.select({
+            budgetId: Budgets.id,
+            budgetName: Budgets.name,
+            budgetAmount: Budgets.amount,
+            createdBy: Budgets.createdBy,
+            expenseId: Expenses.id,
+            expenseName: Expenses.name,
+            expenseAmount: Expenses.amount,
+            expenseCategory: Expenses.category,
+            expenseDate: Expenses.createdAt,
+        })
+        .from(Budgets)
+        .leftJoin(Expenses, eq(Budgets.id, Expenses.budgetId))
+        .orderBy(desc(Budgets.id), desc(Expenses.id));
+
+        const uniqueBudgetIds = new Set();
+        const uniqueUsers = new Set();
+        const expenseRows = [];
+        const budgetSpendById = new Map();
+        const budgetAmountById = new Map();
+
+        for (const row of rows) {
+            if (row.budgetId) uniqueBudgetIds.add(row.budgetId);
+            if (row.createdBy) uniqueUsers.add(String(row.createdBy).toLowerCase());
+
+            const budgetAmount = Number(row.budgetAmount || 0);
+            if (row.budgetId && !budgetAmountById.has(row.budgetId)) {
+                budgetAmountById.set(row.budgetId, budgetAmount);
+            }
+
+            if (row.expenseId) {
+                const amount = Number(row.expenseAmount || 0);
+                expenseRows.push({
+                    id: row.expenseId,
+                    name: row.expenseName,
+                    amount,
+                    category: row.expenseCategory,
+                    createdAt: row.expenseDate,
+                    budgetId: row.budgetId,
+                    createdBy: row.createdBy,
+                });
+                const prev = budgetSpendById.get(row.budgetId) || 0;
+                budgetSpendById.set(row.budgetId, prev + amount);
+            }
+        }
+
+        const totalSpend = expenseRows.reduce((sum, row) => sum + row.amount, 0);
+        const totalExpenses = expenseRows.length;
+        const avgExpense = totalExpenses > 0 ? totalSpend / totalExpenses : 0;
+
+        const missingCategory = expenseRows.filter((row) => !String(row.category || '').trim()).length;
+        const invalidAmount = expenseRows.filter((row) => Number(row.amount || 0) <= 0).length;
+
+        const duplicateTracker = new Map();
+        let duplicateCount = 0;
+        for (const row of expenseRows) {
+            const key = [
+                String(row.name || '').trim().toLowerCase(),
+                Number(row.amount || 0).toFixed(2),
+                String(row.createdAt || '').trim(),
+                Number(row.budgetId || 0),
+            ].join('|');
+            const seen = duplicateTracker.get(key) || 0;
+            duplicateTracker.set(key, seen + 1);
+            if (seen >= 1) duplicateCount += 1;
+        }
+
+        let budgetsOverLimit = 0;
+        for (const [budgetId, amount] of budgetAmountById.entries()) {
+            const spent = budgetSpendById.get(budgetId) || 0;
+            if (spent > amount) budgetsOverLimit += 1;
+        }
+
+        const thisMonthKey = new Date().toISOString().slice(0, 7);
+        const txThisMonth = expenseRows.filter((row) => {
+            const d = String(row.createdAt || '');
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(d)) {
+                const [dd, mm, yyyy] = d.split('/');
+                return `${yyyy}-${mm}` === thisMonthKey;
+            }
+            if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+                return d.slice(0, 7) === thisMonthKey;
+            }
+            return false;
+        }).length;
+
+        const alertStates = storedAlerts.reduce((acc, row) => {
+            const key = String(row.alertKey || '').trim();
+            if (!key || acc[key]) return acc;
+            acc[key] = row.status === 'acknowledged';
+            return acc;
+        }, {});
+
+        return {
+            overview: {
+                totalUsers: uniqueUsers.size,
+                totalBudgets: uniqueBudgetIds.size,
+                totalExpenses,
+                totalSpend,
+                avgExpense,
+            },
+            monitoring: {
+                missingCategory,
+                invalidAmount,
+                duplicateCount,
+                budgetsOverLimit,
+                txThisMonth,
+            },
+            budgetRows: rows
+                .filter((row) => row.budgetId)
+                .reduce((acc, row) => {
+                    if (!acc.some((item) => item.id === row.budgetId)) {
+                        acc.push({
+                            id: row.budgetId,
+                            name: row.budgetName,
+                            amount: Number(row.budgetAmount || 0),
+                            createdBy: row.createdBy,
+                        });
+                    }
+                    return acc;
+                }, []),
+            expenseRows,
+            alertStates,
+            auditRows: auditRows.slice(0, 20),
+            recentExpenses: expenseRows.slice(0, 10),
+        };
+    } catch (error) {
+        console.error('Error fetching admin monitoring dashboard:', error);
+        return {
+            overview: { totalUsers: 0, totalBudgets: 0, totalExpenses: 0, totalSpend: 0, avgExpense: 0 },
+            monitoring: { missingCategory: 0, invalidAmount: 0, duplicateCount: 0, budgetsOverLimit: 0, txThisMonth: 0 },
+            budgetRows: [],
+            expenseRows: [],
+            alertStates: {},
+            auditRows: [],
+            recentExpenses: [],
+        };
+    }
+}
+
+export async function setAdminAlertStatusAction(alertKey, acknowledged) {
+    try {
+        const normalizedKey = String(alertKey || '').trim();
+        if (!normalizedKey) {
+            return { success: false, error: 'Missing alert key' };
+        }
+
+        const actorEmail = await getCurrentActorEmail();
+        const existing = await db.select()
+            .from(AdminAlerts)
+            .where(eq(AdminAlerts.alertKey, normalizedKey))
+            .orderBy(desc(AdminAlerts.id));
+
+        const status = acknowledged ? 'acknowledged' : 'active';
+        const payload = {
+            status,
+            acknowledgedAt: acknowledged ? new Date().toISOString() : null,
+            acknowledgedBy: acknowledged ? actorEmail : null,
+        };
+
+        if (existing[0]) {
+            await db.update(AdminAlerts)
+                .set(payload)
+                .where(eq(AdminAlerts.id, existing[0].id));
+        } else {
+            await db.insert(AdminAlerts).values({
+                alertKey: normalizedKey,
+                ...payload,
+            });
+        }
+
+        await createAdminAuditLogEntry({
+            action: acknowledged ? 'alert_acknowledged' : 'alert_reopened',
+            targetType: 'alert',
+            targetCount: 1,
+            message: `${acknowledged ? 'Acknowledged' : 'Re-opened'} alert ${normalizedKey}`,
+        });
+
+        return { success: true };
+    } catch (error) {
+        console.error('Error setting admin alert status:', error);
+        return { success: false, error: 'Failed to update alert status' };
+    }
+}
+
+export async function getAdminUsersSummaryAction() {
+    try {
+        const rows = await db.select({
+            createdBy: Budgets.createdBy,
+            budgetId: Budgets.id,
+            budgetAmount: Budgets.amount,
+            expenseId: Expenses.id,
+            expenseAmount: Expenses.amount,
+        })
+        .from(Budgets)
+        .leftJoin(Expenses, eq(Budgets.id, Expenses.budgetId));
+
+        const userMap = new Map();
+
+        for (const row of rows) {
+            const email = String(row.createdBy || '').toLowerCase();
+            if (!email) continue;
+
+            if (!userMap.has(email)) {
+                userMap.set(email, {
+                    email,
+                    budgets: new Set(),
+                    expenses: 0,
+                    totalBudget: 0,
+                    totalSpend: 0,
+                });
+            }
+
+            const entry = userMap.get(email);
+
+            if (row.budgetId && !entry.budgets.has(row.budgetId)) {
+                entry.budgets.add(row.budgetId);
+                entry.totalBudget += Number(row.budgetAmount || 0);
+            }
+
+            if (row.expenseId) {
+                entry.expenses += 1;
+                entry.totalSpend += Number(row.expenseAmount || 0);
+            }
+        }
+
+        return Array.from(userMap.values())
+            .map((entry) => ({
+                email: entry.email,
+                budgets: entry.budgets.size,
+                expenses: entry.expenses,
+                totalBudget: entry.totalBudget,
+                totalSpend: entry.totalSpend,
+            }))
+            .sort((a, b) => b.totalSpend - a.totalSpend);
+    } catch (error) {
+        console.error('Error fetching admin users summary:', error);
+        return [];
+    }
+}
+
+export async function getAdminUserDetailAction(email) {
+    try {
+        const normalizedEmail = String(email || '').trim().toLowerCase();
+        if (!normalizedEmail) return null;
+
+        const budgets = await db.select()
+            .from(Budgets)
+            .where(eq(Budgets.createdBy, normalizedEmail))
+            .orderBy(desc(Budgets.id));
+
+        const expenses = await db.select({
+            id: Expenses.id,
+            name: Expenses.name,
+            amount: Expenses.amount,
+            category: Expenses.category,
+            createdAt: Expenses.createdAt,
+            budgetId: Expenses.budgetId,
+            budgetName: Budgets.name,
+        })
+        .from(Budgets)
+        .rightJoin(Expenses, eq(Budgets.id, Expenses.budgetId))
+        .where(eq(Budgets.createdBy, normalizedEmail))
+        .orderBy(desc(Expenses.id));
+
+        const totalBudget = budgets.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+        const totalSpend = expenses.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+
+        return {
+            email: normalizedEmail,
+            summary: {
+                budgets: budgets.length,
+                expenses: expenses.length,
+                totalBudget,
+                totalSpend,
+            },
+            recentExpenses: expenses.slice(0, 12),
+        };
+    } catch (error) {
+        console.error('Error fetching admin user detail:', error);
+        return null;
+    }
+}
+
+export async function getAdminDatabaseManagementAction() {
+    try {
+        const [budgetRows, expenseRows, alertRows, auditRows] = await Promise.all([
+            db.select({
+                id: Budgets.id,
+                name: Budgets.name,
+                amount: Budgets.amount,
+                icon: Budgets.icon,
+                category: Budgets.category,
+                createdBy: Budgets.createdBy,
+                totalSpend: sql`coalesce(sum(CAST(${Expenses.amount} AS NUMERIC)), 0)`.mapWith(Number),
+                totalItem: sql`coalesce(count(${Expenses.id}), 0)`.mapWith(Number),
+            })
+            .from(Budgets)
+            .leftJoin(Expenses, eq(Budgets.id, Expenses.budgetId))
+            .groupBy(Budgets.id)
+            .orderBy(desc(Budgets.id)),
+
+            db.select({
+                id: Expenses.id,
+                name: Expenses.name,
+                amount: Expenses.amount,
+                category: Expenses.category,
+                createdAt: Expenses.createdAt,
+                budgetId: Expenses.budgetId,
+                budgetName: Budgets.name,
+                createdBy: Budgets.createdBy,
+            })
+            .from(Budgets)
+            .rightJoin(Expenses, eq(Budgets.id, Expenses.budgetId))
+            .orderBy(desc(Expenses.id)),
+
+            db.select().from(AdminAlerts).orderBy(desc(AdminAlerts.id)),
+            db.select().from(AdminAuditLogs).orderBy(desc(AdminAuditLogs.id)),
+        ]);
+
+        const uniqueUsers = new Set(
+            budgetRows.map((row) => String(row.createdBy || '').toLowerCase()).filter(Boolean)
+        );
+
+        const activeAlerts = alertRows.filter((row) => row.status !== 'acknowledged').length;
+
+        return {
+            summary: {
+                users: uniqueUsers.size,
+                budgets: budgetRows.length,
+                expenses: expenseRows.length,
+                activeAlerts,
+                auditEvents: auditRows.length,
+            },
+            tableCounts: {
+                budgets: budgetRows.length,
+                expenses: expenseRows.length,
+                alerts: alertRows.length,
+                audit: auditRows.length,
+            },
+            budgets: budgetRows,
+            expenses: expenseRows,
+            alerts: alertRows,
+            auditLogs: auditRows,
+        };
+    } catch (error) {
+        console.error('Error fetching admin database management data:', error);
+        return {
+            summary: {
+                users: 0,
+                budgets: 0,
+                expenses: 0,
+                activeAlerts: 0,
+                auditEvents: 0,
+            },
+            tableCounts: {
+                budgets: 0,
+                expenses: 0,
+                alerts: 0,
+                audit: 0,
+            },
+            budgets: [],
+            expenses: [],
+            alerts: [],
+            auditLogs: [],
+        };
+    }
+}
+
+export async function adminBulkSetCategoryAction(expenseIds, categoryName) {
+    try {
+        const ids = Array.isArray(expenseIds)
+            ? expenseIds.map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0)
+            : [];
+
+        const category = String(categoryName || '').trim();
+        if (ids.length === 0 || !category) {
+            return { success: false, count: 0, error: 'Missing update parameters' };
+        }
+
+        const updated = await db.update(Expenses)
+            .set({ category })
+            .where(inArray(Expenses.id, ids))
+            .returning({ id: Expenses.id });
+
+        await createAdminAuditLogEntry({
+            action: 'bulk_set_category',
+            targetType: 'expense',
+            targetCount: updated.length,
+            message: `Set category to ${category} for ${updated.length} expense records`,
+        });
+
+        return { success: true, count: updated.length };
+    } catch (error) {
+        console.error('Error bulk setting category:', error);
+        return { success: false, count: 0, error: 'Failed to update categories' };
+    }
+}
+
+export async function adminBulkDeleteExpensesAction(expenseIds) {
+    try {
+        const ids = Array.isArray(expenseIds)
+            ? expenseIds.map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0)
+            : [];
+
+        if (ids.length === 0) {
+            return { success: false, count: 0, error: 'No expense ids provided' };
+        }
+
+        const deleted = await db.delete(Expenses)
+            .where(inArray(Expenses.id, ids))
+            .returning({ id: Expenses.id });
+
+        await createAdminAuditLogEntry({
+            action: 'bulk_delete_expenses',
+            targetType: 'expense',
+            targetCount: deleted.length,
+            message: `Deleted ${deleted.length} expense records from admin workbench`,
+        });
+
+        return { success: true, count: deleted.length };
+    } catch (error) {
+        console.error('Error bulk deleting expenses:', error);
+        return { success: false, count: 0, error: 'Failed to delete expenses' };
+    }
 }
 
 

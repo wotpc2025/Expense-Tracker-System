@@ -8,22 +8,34 @@ import BudgetItem from './budgets/_components/BudgetItem';
 import ExpensesListTable from './budgets/_components/ExpensesListTable';
 import { useLanguage } from './_providers/LanguageProvider'
 import { getTranslation } from '@/lib/translations'
+import { useRouter } from 'next/navigation';
+import { isAdminUser } from '@/lib/adminAccess';
 
 function Dashboard() {
 
     const [budgetList, setBudgetList] = useState([]);
     const [expensesList, setExpensesList] = useState([]);
     const { user, isLoaded } = useUser();
+    const router = useRouter();
     const { language } = useLanguage();
+
+    useEffect(() => {
+      if (!isLoaded || !user) return;
+
+      const isAdmin = isAdminUser(user, process.env.NEXT_PUBLIC_ADMIN_EMAILS);
+      if (isAdmin) {
+        router.replace('/dashboard/admin');
+      }
+    }, [isLoaded, user, router]);
   
     useEffect(() => {
-      if (isLoaded && user) {
+      if (isLoaded && user && !isAdminUser(user, process.env.NEXT_PUBLIC_ADMIN_EMAILS)) {
         getBudgetList();
       }
     }, [isLoaded, user])
 
     useEffect(() => {
-      if (isLoaded && user) {
+      if (isLoaded && user && !isAdminUser(user, process.env.NEXT_PUBLIC_ADMIN_EMAILS)) {
         getAllExpenses();
       }
     }, [isLoaded, user])

@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Image from 'next/image'
-import { LayoutGrid, PiggyBank, ReceiptText, TrendingUp } from 'lucide-react'
+import { Database, LayoutGrid, PiggyBank, ReceiptText, Shield, TrendingUp, Users } from 'lucide-react'
 import Link from 'next/link'
 import { UserButton } from '@clerk/nextjs'
 import { usePathname } from 'next/navigation'
@@ -21,10 +21,36 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { LanguageToggle } from '@/components/LanguageToggle'
 import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
 import { getTranslation } from '@/lib/translations'
+import { useUser } from '@clerk/nextjs'
+import { isAdminUser } from '@/lib/adminAccess'
 
 function SideNav() {
     const { language } = useLanguage()
-    const menuList=[
+    const { user } = useUser()
+    const isAdmin = isAdminUser(user, process.env.NEXT_PUBLIC_ADMIN_EMAILS)
+
+    const adminMenuList = [
+        {
+            id: 1,
+            name: getTranslation(language, 'nav.adminMonitoring'),
+            icon: Shield,
+            path: '/dashboard/admin',
+        },
+        {
+            id: 2,
+            name: getTranslation(language, 'nav.adminUsers'),
+            icon: Users,
+            path: '/dashboard/admin/users',
+        },
+        {
+            id: 3,
+            name: getTranslation(language, 'nav.adminDatabase'),
+            icon: Database,
+            path: '/dashboard/admin/database',
+        },
+    ]
+
+    const userMenuList=[
         {
             id:1,
             name: getTranslation(language, 'nav.dashboard'),
@@ -50,6 +76,8 @@ function SideNav() {
             path:'/dashboard/reports'
         },
     ]
+
+    const menuList = isAdmin ? adminMenuList : userMenuList
     const path=usePathname();
 
   return (
