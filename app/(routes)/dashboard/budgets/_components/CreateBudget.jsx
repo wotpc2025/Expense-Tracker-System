@@ -12,6 +12,7 @@ import Picker from '@emoji-mart/react'
 import data from '@emoji-mart/data'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@radix-ui/react-checkbox'
 import { useUser } from '@clerk/nextjs'
 import { createBudgetAction } from '@/app/_actions/dbActions'
 import { toast } from 'sonner'
@@ -27,6 +28,7 @@ function CreateBudget({ refreshData, trigger }) {
     const [openEmojiPicker, setOpenEmojiPicker] = useState(false)
     const [name, setName] = useState('')
     const [amount, setAmount] = useState('')
+    const [autoAmount, setAutoAmount] = useState(false) // true = ใช้ยอดจาก AI
     const [loading, setLoading] = useState(false)
     const [scanLoading, setScanLoading] = useState(false)
     const [initialScanResult, setInitialScanResult] = useState(null)
@@ -203,13 +205,32 @@ function CreateBudget({ refreshData, trigger }) {
                             </div>
                             <div className='mt-2'>
                                 <h2 className='text-black font-medium my-1 dark:text-white'>Budget Amount</h2>
+                                <div className='flex items-center gap-2 mb-2'>
+                                    <Checkbox
+                                        id='auto-amount'
+                                        checked={autoAmount}
+                                        onCheckedChange={(checked) => {
+                                            setAutoAmount(checked);
+                                            if (checked && initialScanResult && Array.isArray(initialScanResult.lineItems)) {
+                                                const total = initialScanResult.lineItems.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+                                                setAmount(total ? String(total) : '');
+                                            }
+                                        }}
+                                        disabled={!initialScanResult || !Array.isArray(initialScanResult.lineItems) || initialScanResult.lineItems.length === 0}
+                                    />
+                                    <label htmlFor='auto-amount' className='text-sm select-none'>Auto fill from scanned receipt</label>
+                                </div>
                                 <Input
                                     type="number"
                                     placeholder="e.g. 5000฿"
                                     autoComplete="on"
                                     value={amount}
                                     onChange={(e) => setAmount(e.target.value)}
+                                    disabled={autoAmount}
                                 />
+                                {autoAmount && (!initialScanResult || !Array.isArray(initialScanResult.lineItems) || initialScanResult.lineItems.length === 0) && (
+                                    <div className='text-xs text-amber-600 mt-1'>Please scan a receipt to use this option.</div>
+                                )}
                             </div>
                         </div>
 

@@ -28,6 +28,9 @@ function CardInfo({ budgetList }) {
         setTotalSpend(totalSpend_);
     }
 
+    // เลือก locale ตามภาษา
+    const currencyLocale = language === 'th' ? 'th-TH' : 'en-US';
+
   return (
      <div>
     {budgetList?.length > 0 ?
@@ -36,7 +39,7 @@ function CardInfo({ budgetList }) {
        <div className='rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex items-center justify-between dark:border-slate-700 dark:bg-slate-800'>
             <div>
                 <h2 className='text-sm text-slate-500 dark:text-slate-400'>{getTranslation(language, 'cardInfo.totalBudget')}</h2>
-                <h2 className='font-bold text-2xl'>฿{totalBudget.toLocaleString('th-TH')}</h2>
+                <h2 className='font-bold text-2xl'>฿{totalBudget.toLocaleString(currencyLocale)}</h2>
             </div>
             <PiggyBank 
             className='bg-amber-600 p-3 h-12 w-12 rounded-full text-white'/>
@@ -44,7 +47,7 @@ function CardInfo({ budgetList }) {
         <div className='rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex items-center justify-between dark:border-slate-700 dark:bg-slate-800'>
             <div>
                 <h2 className='text-sm text-slate-500 dark:text-slate-400'>{getTranslation(language, 'cardInfo.totalSpending')}</h2>
-                <h2 className='font-bold text-2xl'>฿{totalSpend.toLocaleString('th-TH')}</h2>
+                <h2 className='font-bold text-2xl'>฿{totalSpend.toLocaleString(currencyLocale)}</h2>
             </div>
             <ReceiptText 
             className='bg-amber-600 p-3 h-12 w-12 rounded-full text-white'/>

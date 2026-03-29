@@ -7,26 +7,32 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart'
+import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
+import { getTranslation } from '@/lib/translations'
 
-const chartConfig = {
-  totalSpend: {
-    label: 'Spend',
-    color: 'var(--chart-1)',
-  },
-  amount: {
-    label: 'Budget',
-    color: 'var(--chart-2)',
-  },
+function getChartConfig(language, getTranslation) {
+  return {
+    totalSpend: {
+      label: getTranslation(language, 'dashboard.totalSpend'),
+      color: 'var(--chart-1)',
+    },
+    amount: {
+      label: getTranslation(language, 'dashboard.totalBudget'),
+      color: 'var(--chart-2)',
+    },
+  }
 }
 
 function BarChartDashboard({budgetList}) {
-  const hasData = Array.isArray(budgetList) && budgetList.length > 0
-
+  const { language } = useLanguage();
+  const hasData = Array.isArray(budgetList) && budgetList.length > 0;
+  const chartConfig = getChartConfig(language, getTranslation);
+  const currencyLocale = language === 'th' ? 'th-TH' : 'en-US';
   return (
     <div className='rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 dark:border-slate-700 dark:bg-slate-800'>
         <div className='mb-3'>
-          <h2 className='text-lg font-bold sm:text-xl'>Budget vs Spend</h2>
-          <p className='text-xs text-slate-500'>Monthly activity overview</p>
+          <h2 className='text-lg font-bold sm:text-xl'>{getTranslation(language, 'dashboard.budgetVsSpend')}</h2>
+          <p className='text-xs text-slate-500'>{getTranslation(language, 'dashboard.monthlyOverview')}</p>
         </div>
 
         <ChartContainer config={chartConfig} className='h-80 w-full'>
@@ -54,9 +60,9 @@ function BarChartDashboard({budgetList}) {
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
-                  tickFormatter={(value) => `฿${Number(value).toLocaleString('th-TH')}`}
+                  tickFormatter={(value) => `฿${Number(value).toLocaleString(currencyLocale)}`}
                 />
-                <ChartTooltip content={<ChartTooltipContent formatter={(value) => `฿${Number(value || 0).toLocaleString('th-TH')}`} />} />
+                <ChartTooltip content={<ChartTooltipContent formatter={(value) => `฿${Number(value || 0).toLocaleString(currencyLocale)}`} />} />
                 <ChartLegend content={<ChartLegendContent />} />
                 <Bar dataKey='amount' fill='var(--color-amount)' radius={[6, 6, 0, 0]} />
                 <Bar dataKey='totalSpend' fill='var(--color-totalSpend)' radius={[6, 6, 0, 0]} />
@@ -64,7 +70,7 @@ function BarChartDashboard({budgetList}) {
             </ResponsiveContainer>
           ) : (
             <div className='flex h-full items-center justify-center rounded-xl border border-dashed border-slate-200 text-sm text-slate-500'>
-              No budget data to display yet.
+              {getTranslation(language, 'dashboard.noBudgetData')}
             </div>
           )}
         </ChartContainer>

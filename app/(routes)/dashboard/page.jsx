@@ -93,7 +93,7 @@ function Dashboard() {
 
           </div>
           <div className='flex flex-col gap-5 self-start'>
-            <h2 className='text-lg font-bold'>Latest Budgets</h2>
+            <h2 className='text-lg font-bold'>{getTranslation(language, 'dashboard.latestBudgets')}</h2>
             {budgetList.slice(0, 4).map((budget,index) => (
                <BudgetItem key={index} budget={budget}/>
             ))}

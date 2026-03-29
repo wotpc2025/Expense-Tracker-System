@@ -447,10 +447,10 @@ export default function ReportsPage() {
   // ── KPI cards config ──────────────────────────────────────────────────────────
   const kpiCards = [
     {
-      title: 'ใช้จ่ายเดือนนี้',
+      title: getTranslation(language, 'expensesStats.thisMonth'),
       value: fmt(totalThisMonth),
       sub: monthChange !== null
-        ? `${monthChange > 0 ? '▲' : '▼'} ${Math.abs(monthChange).toFixed(1)}% จากเดือนก่อน`
+        ? `${monthChange > 0 ? '▲' : '▼'} ${Math.abs(monthChange).toFixed(1)}% ${getTranslation(language, 'reports.fromLastMonth')}`
         : `${moment().format('MMMM YYYY')}`,
       positive: monthChange !== null ? monthChange <= 0 : true,
       showTrend: monthChange !== null,
@@ -459,25 +459,25 @@ export default function ReportsPage() {
       bg: 'bg-violet-50 dark:bg-violet-900/30',
     },
     {
-      title: 'ค่าใช้จ่ายทั้งหมด',
+      title: getTranslation(language, 'expensesStats.totalAmount'),
       value: fmt(totalAllTime),
-      sub: `${expensesList.length} รายการทั้งหมด`,
+      sub: `${expensesList.length} ${getTranslation(language, 'reports.allTransactions')}`,
       Icon: Receipt,
       color: 'text-blue-600 dark:text-blue-400',
       bg: 'bg-blue-50 dark:bg-blue-900/30',
     },
     {
-      title: 'เฉลี่ยต่อวัน',
+      title: getTranslation(language, 'expensesStats.avgPerDay'),
       value: fmt(avgPerDay),
-      sub: `${daysElapsed} วันในเดือนนี้`,
+      sub: `${daysElapsed} ${getTranslation(language, 'reports.daysInMonth')}`,
       Icon: CalendarDays,
       color: 'text-emerald-600 dark:text-emerald-400',
       bg: 'bg-emerald-50 dark:bg-emerald-900/30',
     },
     {
-      title: 'หมวดหมู่สูงสุด',
-      value: topCategory ? topCategory[0] : '—',
-      sub: topCategory ? fmt(topCategory[1]) : 'ยังไม่มีข้อมูล',
+      title: getTranslation(language, 'expensesStats.topCategory'),
+      value: topCategory ? getTranslation(language, `categories.${topCategory[0]}`) ?? topCategory[0] : '—',
+      sub: topCategory ? fmt(topCategory[1]) : getTranslation(language, 'reports.noExpenseData'),
       Icon: Tag,
       color: 'text-amber-600 dark:text-amber-400',
       bg: 'bg-amber-50 dark:bg-amber-900/30',

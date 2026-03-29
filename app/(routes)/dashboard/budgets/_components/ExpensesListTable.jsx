@@ -147,7 +147,7 @@ function ExpensesListTable({
 
         const formatDateForLanguage = (value, locale) => {
             if (!value) return '-';
-            const parsedDate = moment(value, [moment.ISO_8601, 'YYYY-MM-DD', 'DD/MM/YYYY', 'MM/DD/YYYY'], true);
+            const parsedDate = moment(value, ['DD/MM/YYYY', 'YYYY-MM-DD', moment.ISO_8601], true);
             if (!parsedDate.isValid()) return value;
             return locale === 'th-TH' ? parsedDate.format('DD/MM/YYYY') : parsedDate.format('MM/DD/YYYY');
         };
