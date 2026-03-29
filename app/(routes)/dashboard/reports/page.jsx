@@ -476,7 +476,14 @@ export default function ReportsPage() {
     },
     {
       title: getTranslation(language, 'expensesStats.topCategory'),
-      value: topCategory ? getTranslation(language, `categories.${topCategory[0]}`) ?? topCategory[0] : '—',
+      value: topCategory ? (() => {
+        const translated = getTranslation(language, `categories.${topCategory[0]}`)
+        // If translation returns the key itself, fallback to just the category name
+        if (translated === `categories.${topCategory[0]}`) {
+          return topCategory[0]
+        }
+        return translated
+      })() : '—',
       sub: topCategory ? fmt(topCategory[1]) : getTranslation(language, 'reports.noExpenseData'),
       Icon: Tag,
       color: 'text-amber-600 dark:text-amber-400',
