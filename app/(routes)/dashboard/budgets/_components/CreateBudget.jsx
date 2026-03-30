@@ -1,4 +1,7 @@
+
 "use client"
+
+
 
 import React, { useEffect, useRef, useState } from 'react'
 import {
@@ -12,15 +15,26 @@ import Picker from '@emoji-mart/react'
 import data from '@emoji-mart/data'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Checkbox } from '@radix-ui/react-checkbox'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useUser } from '@clerk/nextjs'
 import { createBudgetAction } from '@/app/_actions/dbActions'
 import { toast } from 'sonner'
 import { CheckCircle2, Loader, ScanLine, Sparkles } from 'lucide-react'
 import AddExpense from '../../expenses/_components/AddExpense'
 import { suggestEmoji } from '@/lib/budgetEmojiSuggest'
+import { getTranslation } from '@/lib/translations'
+import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
 
 function CreateBudget({ refreshData, trigger }) {
+        // Toggle autoAmount and set amount from scan result if enabled
+        const handleAutoAmountChange = (checked) => {
+            setAutoAmount(checked);
+            if (checked && initialScanResult && Array.isArray(initialScanResult.lineItems)) {
+                const total = initialScanResult.lineItems.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+                setAmount(total ? String(total) : '');
+            }
+        };
+    const { language } = useLanguage();
     const [open, setOpen] = useState(false)
     const [step, setStep] = useState('create') // 'create' | 'addExpense'
     const [emojiIcon, setEmojiIcon] = useState('😀')
@@ -132,7 +146,7 @@ function CreateBudget({ refreshData, trigger }) {
                 {trigger ? trigger : (
                     <div className='bg-slate-100 p-10 rounded-md items-center flex flex-col border-2 border-dashed cursor-pointer hover:shadow-md'>
                         <h2 className='text-3xl'>+</h2>
-                        <h2 className='font-bold'>Create New Budget</h2>
+                        <h2 className='font-bold'>{getTranslation(language, 'createBudget.title')}</h2>
                     </div>
                 )}
             </DialogTrigger>
@@ -158,7 +172,7 @@ function CreateBudget({ refreshData, trigger }) {
                 {step === 'create' && (
                     <>
                         <DialogHeader>
-                            <DialogTitle>Create New Budget</DialogTitle>
+                            <DialogTitle>{getTranslation(language, 'createBudget.title')}</DialogTitle>
                         </DialogHeader>
                         <div className='mt-1'>
                             {/* Emoji button with auto-suggest badge */}
@@ -167,7 +181,7 @@ function CreateBudget({ refreshData, trigger }) {
                                     variant="outline"
                                     className="cursor-pointer text-2xl h-12 w-12 p-0 relative"
                                     onClick={() => setOpenEmojiPicker(!openEmojiPicker)}
-                                    title={emojiAutoSet ? 'Auto-suggested — click to change' : 'Click to pick emoji'}
+                                    title={emojiAutoSet ? getTranslation(language, 'createBudget.emojiAutoSuggested') : getTranslation(language, 'createBudget.emojiPick')}
                                 >
                                     {emojiIcon}
                                 </Button>
@@ -195,41 +209,40 @@ function CreateBudget({ refreshData, trigger }) {
                                 </div>
                             )}
                             <div className='mt-3'>
-                                <h2 className='text-black font-medium my-1 dark:text-white'>Budget Name</h2>
+                                <h2 className='text-black font-medium my-1 dark:text-white'>{getTranslation(language, 'createBudget.budgetName')}</h2>
                                 <Input
-                                    placeholder="e.g. Home Decor"
+                                    placeholder={getTranslation(language, 'placeholder.budgetName')}
                                     autoComplete="on"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                 />
                             </div>
                             <div className='mt-2'>
-                                <h2 className='text-black font-medium my-1 dark:text-white'>Budget Amount</h2>
+                                <h2 className='text-black font-medium my-1 dark:text-white'>{language === 'th' ? 'เป้าหมายงบประมาณ' : getTranslation(language, 'createBudget.budgetAmount')}</h2>
                                 <div className='flex items-center gap-2 mb-2'>
                                     <Checkbox
-                                        id='auto-amount'
+                                        id="autoAmount"
                                         checked={autoAmount}
-                                        onCheckedChange={(checked) => {
-                                            setAutoAmount(checked);
-                                            if (checked && initialScanResult && Array.isArray(initialScanResult.lineItems)) {
-                                                const total = initialScanResult.lineItems.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-                                                setAmount(total ? String(total) : '');
-                                            }
-                                        }}
-                                        disabled={!initialScanResult || !Array.isArray(initialScanResult.lineItems) || initialScanResult.lineItems.length === 0}
+                                        onCheckedChange={handleAutoAmountChange}
+                                        className={
+                                            autoAmount
+                                                ? "mr-1 cursor-pointer bg-amber-500 border-amber-500 text-white !data-[state=checked]:bg-amber-500 !data-[state=checked]:border-amber-500"
+                                                : "mr-1 cursor-pointer"
+                                        }
                                     />
-                                    <label htmlFor='auto-amount' className='text-sm select-none'>Auto fill from scanned receipt</label>
+                                    <span className='text-sm select-none'>{getTranslation(language, 'createBudget.autoFillFromScan')}</span>
                                 </div>
                                 <Input
                                     type="number"
-                                    placeholder="e.g. 5000฿"
+                                    placeholder={getTranslation(language, 'placeholder.budgetAmount')}
                                     autoComplete="on"
                                     value={amount}
                                     onChange={(e) => setAmount(e.target.value)}
                                     disabled={autoAmount}
+                                    className={autoAmount ? 'opacity-60 pointer-events-none' : ''}
                                 />
                                 {autoAmount && (!initialScanResult || !Array.isArray(initialScanResult.lineItems) || initialScanResult.lineItems.length === 0) && (
-                                    <div className='text-xs text-amber-600 mt-1'>Please scan a receipt to use this option.</div>
+                                    <div className='text-xs text-amber-600 mt-1'>โปรดสแกนใบเสร็จด้วย AI เพื่อดำเนินการสร้างงบประมาณ</div>
                                 )}
                             </div>
                         </div>
@@ -249,8 +262,8 @@ function CreateBudget({ refreshData, trigger }) {
                             className='w-full cursor-pointer bg-linear-to-r from-fuchsia-500 to-violet-500 text-white hover:from-fuchsia-600 hover:to-violet-600'
                         >
                             {scanLoading
-                                ? <><Loader className='animate-spin mr-2 h-4 w-4' />Scanning Receipt...</>
-                                : <><ScanLine className='mr-2 h-4 w-4' />Scan Receipt with AI</>}
+                                ? <><Loader className='animate-spin mr-2 h-4 w-4' />{getTranslation(language, 'addExpense.scanning')}</>
+                                : <><ScanLine className='mr-2 h-4 w-4' />{getTranslation(language, 'addExpense.scanReceipt')}</>}
                         </Button>
 
                         {/* Scan success badge */}
@@ -272,7 +285,9 @@ function CreateBudget({ refreshData, trigger }) {
                         >
                             {loading
                                 ? <Loader className='animate-spin' />
-                                : initialScanResult ? 'Create Budget & Review Expenses →' : 'Create Budget'}
+                                : initialScanResult
+                                    ? getTranslation(language, 'createBudget.createAndReviewButton')
+                                    : getTranslation(language, 'createBudget.createButton')}
                         </Button>
                     </>
                 )}
@@ -283,7 +298,7 @@ function CreateBudget({ refreshData, trigger }) {
                         <DialogHeader>
                             <DialogTitle className='flex items-center gap-2'>
                                 <CheckCircle2 className='h-5 w-5 text-emerald-500 shrink-0' />
-                                Budget Created!
+                                {getTranslation(language, 'createBudget.toasts.createSuccess')}
                             </DialogTitle>
                             <p className='text-sm text-slate-500 mt-0.5'>
                                 <span className='mr-1'>{createdBudget.icon}</span>

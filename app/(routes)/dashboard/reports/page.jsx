@@ -116,8 +116,8 @@ export default function ReportsPage() {
       : {
         name: 'Budget',
         amount: 'Budget Amount',
-        spent: 'Actual Spent',
-        remaining: 'Remaining',
+        spent: getTranslation(language, 'reports.actualSpent'),
+        remaining: getTranslation(language, 'reports.remaining'),
         ratio: 'Usage Ratio (%)',
       }
 
@@ -219,8 +219,8 @@ export default function ReportsPage() {
     const columnsEN = [
       { key: 'name', label: 'Budget', render: (row) => row.name },
       { key: 'budget', label: 'Budget Amount', render: (row) => formatPdfCurrency(row.budget) },
-      { key: 'spent', label: 'Actual Spent', render: (row) => formatPdfCurrency(row.spent) },
-      { key: 'remaining', label: 'Remaining', render: (row) => formatPdfCurrency(row.remaining) },
+      { key: 'spent', label: getTranslation(language, 'reports.actualSpent'), render: (row) => formatPdfCurrency(row.spent) },
+      { key: 'remaining', label: getTranslation(language, 'reports.remaining'), render: (row) => formatPdfCurrency(row.remaining) },
       { key: 'ratio', label: 'Usage Ratio (%)', render: (row) => `${row.ratio.toFixed(2)}%` },
     ]
 

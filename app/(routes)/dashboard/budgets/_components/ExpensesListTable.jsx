@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { DEFAULT_EXPENSE_CATEGORIES, getCategoryColor, normalizeCategoryName } from '@/lib/expenseCategories';
+import { getTranslation } from '@/lib/translations';
 import { useTheme } from 'next-themes';
 
 import 'ag-grid-community/styles/ag-grid.css';
@@ -40,6 +41,8 @@ const EXPORT_LANGUAGE_OPTIONS = {
     },
 };
 
+import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider';
+
 function ExpensesListTable({
     expensesList,
     refreshData,
@@ -51,6 +54,7 @@ function ExpensesListTable({
 }) {
 
     const [searchInput, setSearchInput] = useState('');
+    const { language } = useLanguage();
     const [showExportMenu, setShowExportMenu] = useState(false);
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [customCategories, setCustomCategories] = useState([]);
@@ -305,7 +309,7 @@ function ExpensesListTable({
                                 }`}
                             >
                                 <LayoutGrid className='h-3.5 w-3.5' />
-                                Comfort
+                                {getTranslation(language, 'density.comfort')}
                             </button>
                             <button
                                 type='button'
@@ -313,19 +317,19 @@ function ExpensesListTable({
                                 className={`inline-flex items-center gap-1 rounded px-2 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
                                     selectedDensityMode === 'auto' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:bg-slate-100'
                                 }`}
-                                title={`Auto mode is currently ${effectiveDensity}`}
+                                title={getTranslation(language, 'density.autoModeTooltip') + effectiveDensity}
                             >
                                 <MonitorCog className='h-3.5 w-3.5' />
-                                Auto
+                                {getTranslation(language, 'density.auto')}
                             </button>
                             <button
                                 type='button'
                                 onClick={() => onDensityChange('comfortable')}
                                 className='inline-flex items-center gap-1 rounded px-2 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100 cursor-pointer'
-                                title='Reset density to default'
+                                title={getTranslation(language, 'density.resetTooltip')}
                             >
                                 <RotateCcw className='h-3.5 w-3.5' />
-                                Reset
+                                {getTranslation(language, 'density.reset')}
                             </button>
                         </div>
                     )}

@@ -21,7 +21,7 @@ function BudgetItem({ budget, density = 'comfortable' }) {
             </h2>
             <div className='font-bold min-w-0'>
               <h2 className='font-bold truncate max-w-36 sm:max-w-48'>{budget?.name}</h2>
-              <h2 className='text-sm text-gray-500'>{budget?.totalItem} {getTranslation(language, 'expensesTable.items')}</h2>
+              <h2 className='text-sm text-gray-500'>{budget?.totalItem ? `${budget.totalItem} ${getTranslation(language, 'budgetItem.items')}` : ''}</h2>
             </div>
           </div>
           <h2 className='font-bold text-emerald-500 text-base sm:text-lg'>฿{budget?.amount?.toLocaleString(currencyLocale)}</h2>
@@ -37,7 +37,9 @@ function BudgetItem({ budget, density = 'comfortable' }) {
             </div>
           </div>
           <div className='flex justify-end mt-1'>
-            <h2 className='text-xs font-semibold text-slate-500 dark:text-slate-400'>{calculateProgressPercentage().toFixed(1)}% {getTranslation(language, 'budgetItem.percentUsed')}</h2>
+            {calculateProgressPercentage() <= 100 && (
+              <h2 className='text-xs font-semibold text-slate-500 dark:text-slate-400'>{calculateProgressPercentage().toFixed(1)} {getTranslation(language, 'budgetItem.percentUsed')}</h2>
+            )}
           </div>
         </div>
       </div>

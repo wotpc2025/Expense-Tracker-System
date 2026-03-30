@@ -37,7 +37,7 @@ function DashboardHeader() {
         {isClient && isSignedIn && (
           <span className='text-lg font-semibold flex items-center gap-2'>
             <span role="img" aria-label="wave">👋</span>
-            {greeting}, {user?.firstName || user?.lastName || 'User'}!
+            {greeting}, {user?.firstName || ''}{user?.lastName ? ` ${user.lastName}` : ''}!
           </span>
         )}
         <UserButton />
