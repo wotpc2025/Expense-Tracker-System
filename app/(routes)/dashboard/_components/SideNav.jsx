@@ -29,6 +29,11 @@ function SideNav() {
     const { user } = useUser()
     const isAdmin = isAdminUser(user, process.env.NEXT_PUBLIC_ADMIN_EMAILS)
 
+    // Get user's first and last name (fallback to email if not available)
+    const userFirstName = user?.firstName || ''
+    const userLastName = user?.lastName || ''
+    const userFullName = (userFirstName || userLastName) ? `${userFirstName} ${userLastName}`.trim() : (user?.emailAddresses?.[0]?.emailAddress || '')
+
     const adminMenuList = [
         {
             id: 1,
@@ -118,7 +123,7 @@ function SideNav() {
                 <div className='flex items-center justify-between px-1'>
                     <div className='flex items-center gap-2 text-sm font-semibold'>
                         <UserButton />
-                        {getTranslation(language, 'profile')}
+                        {userFullName}
                     </div>
                     <div className='flex items-center gap-1'>
                         <LanguageToggle />
