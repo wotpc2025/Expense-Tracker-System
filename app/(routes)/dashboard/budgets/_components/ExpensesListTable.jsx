@@ -84,6 +84,8 @@ function ExpensesListTable({
         return () => { document.removeEventListener('mousedown', handleClickOutside); };
     }, []);
 
+    // (Removed duplicate declaration at line 227)
+
     const deleteExpense = useCallback(async (expense) => {
         const result = await deleteExpenseAction(expense.id);
         if (result) {
@@ -231,42 +233,75 @@ function ExpensesListTable({
             }));
     }, [expensesList, categoryFilter]);
 
-    const columnDefs = useMemo(() => [
-        { headerName: 'Name', field: 'name', minWidth: 200, flex: 1, filter: true },
+        const columnDefs = useMemo(() => [
+                { headerName: language === 'th' ? 'ชื่อรายการ' : 'Name', field: 'name', minWidth: 200, flex: 1, filter: true },
+                {
+                        headerName: language === 'th' ? 'หมวดหมู่' : 'Category', field: 'category', minWidth: 145,
+                        cellRenderer: (params) => {
+                                if (!params.value) return <span className='text-slate-400 text-xs'>—</span>;
+                                const color = getCategoryColor(params.value);
+                                let label = params.value;
+                                if (language === 'th') {
+                                    // Always show Thai for known and custom categories
+                                    // Try translation first
+                                    const thLabel = getTranslation('th', `categories.${params.value.toLowerCase()}`);
+                                    if (thLabel !== `categories.${params.value.toLowerCase()}`) {
+                                        label = thLabel;
+                                    } else {
+                                        // Fallback: map common English names to Thai manually
+                                        const manualMap = {
+                                            'books': 'หนังสือ',
+                                            'travel': 'การเดินทาง',
+                                            'pets': 'สัตว์เลี้ยง',
+                                            'food': 'อาหาร',
+                                            'shopping': 'ช้อปปิ้ง',
+                                            'entertainment': 'บันเทิง',
+                                            'health': 'สุขภาพ',
+                                            'education': 'การศึกษา',
+                                            'beauty': 'ความงาม',
+                                            'technology': 'เทคโนโลยี',
+                                            'finance': 'การเงิน',
+                                            'baby': 'เด็ก',
+                                            'gifts': 'ของขวัญ',
+                                            'work': 'งาน',
+                                            'uncategorized': 'ไม่ระบุหมวดหมู่',
+                                        };
+                                        const lower = params.value.toLowerCase();
+                                        if (manualMap[lower]) label = manualMap[lower];
+                                    }
+                                } else {
+                                    const enLabel = getTranslation('en', `categories.${params.value.toLowerCase()}`);
+                                    if (enLabel !== `categories.${params.value.toLowerCase()}`) label = enLabel;
+                                }
+                                return (
+                                    <span style={{ backgroundColor: color, color: '#fff' }}
+                                        className='px-2 py-0.5 rounded-full text-xs font-semibold'>
+                                        {label}
+                                    </span>
+                                );
+                        },
+                },
         {
-            headerName: 'Category', field: 'category', minWidth: 145,
-            cellRenderer: (params) => {
-                if (!params.value) return <span className='text-slate-400 text-xs'>—</span>;
-                const color = getCategoryColor(params.value);
-                return (
-                    <span style={{ backgroundColor: color, color: '#fff' }}
-                        className='px-2 py-0.5 rounded-full text-xs font-semibold'>
-                        {params.value}
-                    </span>
-                );
-            },
-        },
-        {
-            headerName: 'Amount', field: 'amount', minWidth: 150, initialSort: 'desc',
+            headerName: language === 'th' ? 'จำนวนเงิน' : 'Amount', field: 'amount', minWidth: 150, initialSort: 'desc',
             valueFormatter: (params) => formatCurrencyTHB(params.value),
         },
         {
-            headerName: 'Date', field: 'createdAt', minWidth: 140, filter: true,
+            headerName: language === 'th' ? 'วันที่ (วัน/เดือน/ปี)' : 'Date (DD/MM/YYYY)', field: 'createdAt', minWidth: 140, filter: true,
             valueFormatter: (params) => formatExpenseDate(params.value),
         },
         {
-            headerName: 'Action', field: 'action', minWidth: 110, sortable: false,
+            headerName: language === 'th' ? 'แก้ไข / ลบ' : 'Edit / Delete', field: 'action', minWidth: 110, sortable: false,
             filter: false, suppressCsvExport: true,
             cellRenderer: (params) => (
                 <div className='flex items-center gap-2 h-full'>
                     <button type='button' onClick={() => openEdit(params.data)}
                         className='text-slate-500 hover:text-amber-600 transition-colors cursor-pointer'
-                        aria-label='Edit expense'>
+                        aria-label={language === 'th' ? 'แก้ไขรายการ' : 'Edit expense'}>
                         <Pencil className='h-4 w-4' />
                     </button>
                     <button type='button' onClick={() => deleteExpense(params.data)}
                         className='text-slate-500 hover:text-red-600 transition-colors cursor-pointer'
-                        aria-label='Delete expense'>
+                        aria-label={language === 'th' ? 'ลบรายการ' : 'Delete expense'}>
                         <Trash className='h-4 w-4' />
                     </button>
                 </div>
@@ -287,7 +322,7 @@ function ExpensesListTable({
     return (
         <div className={`mt-5 rounded-2xl border border-slate-200 bg-white shadow-sm sm:mt-6 dark:border-slate-700 dark:bg-slate-800 ${effectiveDensity === 'compact' ? 'p-3 sm:p-4' : 'p-4 sm:p-5'}`}>
             <div className='flex items-center justify-between gap-3 flex-wrap'>
-                <h2 className='text-lg font-bold sm:text-xl'>Latest Expenses</h2>
+                <h2 className='text-lg font-bold sm:text-xl'>{language === 'th' ? 'ค่าใช้จ่ายล่าสุด' : 'Latest Expenses'}</h2>
                 <div className='flex items-center gap-2'>
                     {showDensityToggle && onDensityChange && (
                         <div className='inline-flex h-10 items-center rounded-md border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-900'>
@@ -299,7 +334,7 @@ function ExpensesListTable({
                                 }`}
                             >
                                 <List className='h-3.5 w-3.5' />
-                                Compact
+                                {language === 'th' ? 'กะทัดรัด' : 'Compact'}
                             </button>
                             <button
                                 type='button'
@@ -309,7 +344,7 @@ function ExpensesListTable({
                                 }`}
                             >
                                 <LayoutGrid className='h-3.5 w-3.5' />
-                                {getTranslation(language, 'density.comfort')}
+                                {language === 'th' ? 'สะดวกสบาย' : getTranslation(language, 'density.comfort')}
                             </button>
                             <button
                                 type='button'
@@ -320,7 +355,7 @@ function ExpensesListTable({
                                 title={getTranslation(language, 'density.autoModeTooltip') + effectiveDensity}
                             >
                                 <MonitorCog className='h-3.5 w-3.5' />
-                                {getTranslation(language, 'density.auto')}
+                                {language === 'th' ? 'อัตโนมัติ' : getTranslation(language, 'density.auto')}
                             </button>
                             <button
                                 type='button'
@@ -329,7 +364,7 @@ function ExpensesListTable({
                                 title={getTranslation(language, 'density.resetTooltip')}
                             >
                                 <RotateCcw className='h-3.5 w-3.5' />
-                                {getTranslation(language, 'density.reset')}
+                                {language === 'th' ? 'รีเซ็ต' : getTranslation(language, 'density.reset')}
                             </button>
                         </div>
                     )}
@@ -361,14 +396,14 @@ function ExpensesListTable({
             <div className='mb-4 mt-3 flex flex-wrap items-center gap-2'>
                 <div className={`flex flex-1 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 shadow-xs min-w-45 max-w-sm dark:border-slate-700 dark:bg-slate-900/60 ${effectiveDensity === 'compact' ? 'h-9' : 'h-10'}`}>
                     <Search className='h-4 w-4 text-slate-500 dark:text-slate-400 mt-0.5' />
-                    <input type='text' placeholder='Search...' className='outline-none w-full text-sm bg-transparent text-slate-900 placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500'
+                    <input type='text' placeholder={language === 'th' ? 'ค้นหา...' : 'Search...'} className='outline-none w-full text-sm bg-transparent text-slate-900 placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500'
                         value={searchInput} onChange={(event) => setSearchInput(event.target.value)} />
                 </div>
                 <select
                     value={categoryFilter}
                     onChange={(e) => setCategoryFilter(e.target.value)}
                     className='h-10 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100'>
-                    <option value='all'>All Categories</option>
+                    <option value='all'>{language === 'th' ? 'ทุกหมวดหมู่' : 'All Categories'}</option>
                     {uniqueCategories.map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
                     ))}
@@ -380,18 +415,18 @@ function ExpensesListTable({
                             variant='outline'
                             className='h-10 px-3 text-sm cursor-pointer'
                         >
-                            Add Category
+                            {language === 'th' ? 'เพิ่มหมวดหมู่' : 'Add Category'}
                         </Button>
                     </DialogTrigger>
                     <DialogContent className='max-w-md'>
                         <DialogHeader>
-                            <DialogTitle>Add Category</DialogTitle>
+                            <DialogTitle>{language === 'th' ? 'เพิ่มหมวดหมู่' : 'Add Category'}</DialogTitle>
                             <DialogDescription>
-                                Add a new category option for filtering expenses.
+                                {language === 'th' ? 'เพิ่มตัวเลือกหมวดหมู่ใหม่สำหรับกรองค่าใช้จ่าย' : 'Add a new category option for filtering expenses.'}
                             </DialogDescription>
                         </DialogHeader>
                         <Input
-                            placeholder='e.g. Pets'
+                            placeholder={language === 'th' ? 'เช่น สัตว์เลี้ยง' : 'e.g. Pets'}
                             value={newCategory}
                             onChange={(e) => setNewCategory(e.target.value)}
                             autoFocus
@@ -406,14 +441,14 @@ function ExpensesListTable({
                                 }}
                                 className='cursor-pointer'
                             >
-                                Cancel
+                                {language === 'th' ? 'ยกเลิก' : 'Cancel'}
                             </Button>
                             <Button
                                 type='button'
                                 onClick={addCategoryOption}
                                 className='cursor-pointer'
                             >
-                                Add
+                                {language === 'th' ? 'เพิ่ม' : 'Add'}
                             </Button>
                         </DialogFooter>
                     </DialogContent>

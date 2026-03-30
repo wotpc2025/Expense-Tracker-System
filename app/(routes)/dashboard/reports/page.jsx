@@ -429,14 +429,18 @@ export default function ReportsPage() {
     const spend = expensesList
       .filter(e => parseDate(e.createdAt).format('YYYY-MM') === key)
       .reduce((s, e) => s + Number(e.amount), 0)
-    return { month: m.format('MMM YY'), spend }
+    // Localize month name
+    const monthLabel = m.locale(language === 'en' ? 'en' : 'th').format('MMM YY')
+    return { month: monthLabel, spend }
   })
 
-  // Budget vs Actual (all budgets)
+  // Budget vs Actual (all budgets) - localized keys
+  const budgetKey = getTranslation(language, 'reports.budget')
+  const spentKey = getTranslation(language, 'reports.actualSpent')
   const budgetVsActual = budgetList.map(b => ({
     name: b.name.length > 11 ? b.name.slice(0, 10) + '…' : b.name,
-    งบประมาณ: Number(b.amount),
-    ใช้จ่ายจริง: b.totalSpend || 0,
+    [budgetKey]: Number(b.amount),
+    [spentKey]: b.totalSpend || 0,
   }))
 
   // ── Chart style helpers ───────────────────────────────────────────────────────
@@ -451,7 +455,7 @@ export default function ReportsPage() {
       value: fmt(totalThisMonth),
       sub: monthChange !== null
         ? `${monthChange > 0 ? '▲' : '▼'} ${Math.abs(monthChange).toFixed(1)}% ${getTranslation(language, 'reports.fromLastMonth')}`
-        : `${moment().format('MMMM YYYY')}`,
+        : `${moment().locale(language === 'en' ? 'en' : 'th').format('MMMM YYYY')}`,
       positive: monthChange !== null ? monthChange <= 0 : true,
       showTrend: monthChange !== null,
       Icon: Wallet,
@@ -693,8 +697,8 @@ export default function ReportsPage() {
                 cursor={{ fill: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' }}
               />
               <Legend wrapperStyle={{ fontSize: 12, color: axisColor }} />
-              <Bar dataKey='งบประมาณ' fill='#10b981' radius={[5, 5, 0, 0]} />
-              <Bar dataKey='ใช้จ่ายจริง' fill='#6366f1' radius={[5, 5, 0, 0]} />
+              <Bar dataKey={budgetKey} fill='#10b981' radius={[5, 5, 0, 0]} />
+              <Bar dataKey={spentKey} fill='#6366f1' radius={[5, 5, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         ) : (
