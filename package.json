@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "db:push": "npx drizzle-kit push",
-    "db:studio": "npx drizzle-kit studio"
+    "db:studio": "npx drizzle-kit studio --host 0.0.0.0 --port 4983"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.39.0",
