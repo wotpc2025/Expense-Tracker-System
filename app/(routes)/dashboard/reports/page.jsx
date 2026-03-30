@@ -531,7 +531,7 @@ export default function ReportsPage() {
             className='h-10 cursor-pointer gap-2'
           >
             <Download className='h-4 w-4' />
-            Export CSV
+            Export CSV/PDF
             <ChevronDown className={`h-4 w-4 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
           </Button>
           {showExportMenu && (
@@ -541,14 +541,14 @@ export default function ReportsPage() {
                 onClick={() => exportBudgetPerformanceCSV('th')}
                 className='w-full text-left px-3 py-2 text-sm rounded hover:bg-slate-100 transition-colors cursor-pointer dark:hover:bg-slate-700'
               >
-                Export ไทย (TH)
+                Export CSV ไทย (TH)
               </button>
               <button
                 type='button'
                 onClick={() => exportBudgetPerformanceCSV('en')}
                 className='w-full text-left px-3 py-2 text-sm rounded hover:bg-slate-100 transition-colors cursor-pointer dark:hover:bg-slate-700'
               >
-                Export English (EN)
+                Export CSV English (EN)
               </button>
               <div className='my-1 border-t border-slate-200 dark:border-slate-700' />
               <button

@@ -342,11 +342,11 @@ function ExpensesListTable({
                             <div className='absolute right-0 mt-2 w-48 rounded-md border border-slate-200 bg-white shadow-lg z-20 p-1 dark:border-slate-700 dark:bg-slate-800'>
                                 <button type='button' onClick={() => handleExportLanguageSelect('th')}
                                     className='w-full text-left px-3 py-2 text-sm rounded hover:bg-slate-100 transition-colors cursor-pointer dark:hover:bg-slate-700'>
-                                    Export ไทย (TH)
+                                    Export CSV ไทย (TH)
                                 </button>
                                 <button type='button' onClick={() => handleExportLanguageSelect('en')}
                                     className='w-full text-left px-3 py-2 text-sm rounded hover:bg-slate-100 transition-colors cursor-pointer dark:hover:bg-slate-700'>
-                                    Export English (EN)
+                                    Export CSV English (EN)
                                 </button>
                             </div>
                         )}
