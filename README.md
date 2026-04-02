@@ -102,7 +102,8 @@ npm run dev
 - npm run start: รัน production server
 - npm run db:push: push schema ด้วย drizzle-kit
 - npm run db:migrate:types: migrate ชนิดคอลัมน์เดิม (text) ไปเป็น numeric/timestamp
-- npm run db:studio: เปิด Drizzle Studio
+- npm run db:studio: เปิด Drizzle Studio แบบปลอดภัย (localhost เท่านั้น และ block ใน production)
+- npm run db:studio:unsafe: เปิด Drizzle Studio แบบไม่แนะนำ (0.0.0.0)
 - npm run test: รัน unit tests (Vitest)
 - npm run test:watch: รัน tests แบบ watch mode
 
@@ -134,6 +135,23 @@ docker compose down
 - มีไฟล์ deploy.sh สำหรับ flow deploy ด้วย Docker (stop, pull, build, up)
 - ตรวจสอบค่า environment ให้ครบก่อน deploy โดยเฉพาะ Clerk และ Database
 - ถ้าใช้งาน AI scan บน production ต้องตั้งค่า OPENROUTER_API_KEY ด้วย
+
+## Drizzle Studio Safety (Basic)
+
+- `npm run db:studio` ถูกตั้งให้ปลอดภัยเป็นค่าเริ่มต้น:
+	- bind ที่ `127.0.0.1:4983`
+	- block อัตโนมัติเมื่อ `NODE_ENV=production`
+- ถ้าจำเป็นต้องเปิดใน production ชั่วคราว (ไม่แนะนำ):
+
+```bash
+ALLOW_DB_STUDIO_IN_PROD=true npm run db:studio
+```
+
+- สามารถปรับ host/port ได้ในเครื่อง dev:
+
+```bash
+DB_STUDIO_HOST=127.0.0.1 DB_STUDIO_PORT=4983 npm run db:studio
+```
 
 ## Testing
 

@@ -8,7 +8,8 @@
     "start": "next start",
     "db:push": "npx drizzle-kit push",
     "db:migrate:types": "node scripts/migrate-column-types.mjs",
-    "db:studio": "npx drizzle-kit studio --host 0.0.0.0 --port 4983",
+    "db:studio": "node scripts/run-drizzle-studio-safe.mjs",
+    "db:studio:unsafe": "npx drizzle-kit studio --host 0.0.0.0 --port 4983",
     "test": "vitest run",
     "test:watch": "vitest"
   },
