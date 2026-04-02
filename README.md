@@ -47,7 +47,7 @@
 
 ```env
 # Database
-NEXT_PUBLIC_DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DB_NAME
+DATABASE_URL=mysql://USER:PASSWORD@HOST:3306/DB_NAME
 
 # Clerk
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxx
@@ -65,7 +65,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 หมายเหตุ:
 
-- NEXT_PUBLIC_DATABASE_URL ถูกใช้งานทั้งฝั่งแอปและ Drizzle config ในโปรเจกต์นี้
+- DATABASE_URL ถูกใช้งานบนเซิร์ฟเวอร์เท่านั้น (ไม่ expose ให้ browser เห็น) สำหรับ Drizzle config
 - ถ้าไม่ใส่ OPENROUTER_API_KEY ระบบส่วนอื่นยังทำงานได้ แต่ฟีเจอร์สแกนใบเสร็จจะใช้งานไม่ได้
 
 ## Installation (Local)
