@@ -70,27 +70,6 @@ export default function ReportsPage() {
     else { setSortKey(key); setSortDir('desc') }
   }
 
-  const sortedBudgetList = useMemo(() => {
-    const getValue = (b) => {
-      const budget = Number(b.amount)
-      const spent  = b.totalSpend || 0
-      switch (sortKey) {
-        case 'name':      return b.name?.toLowerCase() || ''
-        case 'amount':    return budget
-        case 'spent':     return spent
-        case 'remaining': return budget - spent
-        case 'pct':       return budget > 0 ? (spent / budget) * 100 : 0
-        default:          return 0
-      }
-    }
-    return [...budgetList].sort((a, b) => {
-      const av = getValue(a), bv = getValue(b)
-      if (av < bv) return sortDir === 'asc' ? -1 : 1
-      if (av > bv) return sortDir === 'asc' ? 1 : -1
-      return 0
-    })
-  }, [budgetList, sortKey, sortDir])
-
   useEffect(() => {
     const email = user?.primaryEmailAddress?.emailAddress
     if (email) fetchData(email)
@@ -399,14 +378,14 @@ export default function ReportsPage() {
   // ── Date parsing helper ──────────────────────────────────────────────────────
 
   const parseDate = (dateStr) => {
-    if (!dateStr) return moment()
+    if (!dateStr) return null
     const formats = ['DD/MM/YYYY', 'YYYY-MM-DD', 'MM/DD/YYYY', 'YYYY/MM/DD', 'DD-MM-YYYY']
     for (const fmt of formats) {
       const m = moment(dateStr, fmt, true)
       if (m.isValid()) return m
     }
     const m = moment(dateStr)
-    return m.isValid() ? m : moment()
+    return m.isValid() ? m : null
   }
 
   // ── Derived data ─────────────────────────────────────────────────────────────
@@ -415,7 +394,10 @@ export default function ReportsPage() {
     if (dateFilterMode === 'all') return expensesList
 
     if (dateFilterMode === 'month') {
-      return expensesList.filter((e) => parseDate(e.createdAt).format('YYYY-MM') === selectedMonth)
+      return expensesList.filter((e) => {
+        const parsed = parseDate(e.createdAt)
+        return parsed && parsed.format('YYYY-MM') === selectedMonth
+      })
     }
 
     const from = startDate ? moment(startDate, 'YYYY-MM-DD', true).startOf('day') : null
@@ -423,11 +405,64 @@ export default function ReportsPage() {
 
     return expensesList.filter((e) => {
       const m = parseDate(e.createdAt)
+      if (!m) return false
       if (from && m.isBefore(from)) return false
       if (to && m.isAfter(to)) return false
       return true
     })
   }, [expensesList, dateFilterMode, selectedMonth, startDate, endDate])
+
+  const budgetSpendById = useMemo(() => {
+    const map = {}
+    filteredExpenses.forEach((expense) => {
+      const budgetId = Number(expense?.budgetId)
+      if (!budgetId) return
+      map[budgetId] = (map[budgetId] || 0) + Number(expense?.amount || 0)
+    })
+    return map
+  }, [filteredExpenses])
+
+  const activeBudgetIds = useMemo(() => {
+    return new Set(
+      filteredExpenses
+        .map((expense) => Number(expense?.budgetId))
+        .filter((id) => Number.isInteger(id) && id > 0)
+    )
+  }, [filteredExpenses])
+
+  const filteredBudgetList = useMemo(() => {
+    const baseBudgets = dateFilterMode === 'all'
+      ? budgetList
+      : budgetList.filter((budget) => activeBudgetIds.has(Number(budget.id)))
+
+    return baseBudgets.map((budget) => ({
+      ...budget,
+      totalSpend: Number(budgetSpendById[budget.id] || 0),
+    }))
+  }, [budgetList, budgetSpendById, activeBudgetIds, dateFilterMode])
+
+  const sortedBudgetList = useMemo(() => {
+    const getValue = (b) => {
+      const budget = Number(b.amount)
+      const spent = Number(b.totalSpend || 0)
+      switch (sortKey) {
+        case 'name':      return b.name?.toLowerCase() || ''
+        case 'amount':    return budget
+        case 'spent':     return spent
+        case 'remaining': return budget - spent
+        case 'pct':       return budget > 0 ? (spent / budget) * 100 : 0
+        default:          return 0
+      }
+    }
+
+    return [...filteredBudgetList].sort((a, b) => {
+      const av = getValue(a)
+      const bv = getValue(b)
+      if (av < bv) return sortDir === 'asc' ? -1 : 1
+      if (av > bv) return sortDir === 'asc' ? 1 : -1
+      return 0
+    })
+  }, [filteredBudgetList, sortKey, sortDir])
 
   const periodLabel = useMemo(() => {
     if (dateFilterMode === 'all') return language === 'th' ? 'ทุกช่วงเวลา' : 'All time'
@@ -468,13 +503,19 @@ export default function ReportsPage() {
         return Math.max(to.diff(from, 'days') + 1, 1)
       }
       const uniqueDays = new Set(
-        filteredExpenses.map((e) => parseDate(e.createdAt).format('YYYY-MM-DD'))
+        filteredExpenses
+          .map((e) => parseDate(e.createdAt))
+          .filter(Boolean)
+          .map((d) => d.format('YYYY-MM-DD'))
       )
       return Math.max(uniqueDays.size, 1)
     }
 
     const uniqueDays = new Set(
-      filteredExpenses.map((e) => parseDate(e.createdAt).format('YYYY-MM-DD'))
+      filteredExpenses
+        .map((e) => parseDate(e.createdAt))
+        .filter(Boolean)
+        .map((d) => d.format('YYYY-MM-DD'))
     )
     return Math.max(uniqueDays.size, 1)
   }, [dateFilterMode, selectedMonth, startDate, endDate, filteredExpenses])
@@ -485,7 +526,10 @@ export default function ReportsPage() {
     if (dateFilterMode === 'month') {
       const prevMonthKey = moment(selectedMonth, 'YYYY-MM', true).subtract(1, 'month').format('YYYY-MM')
       return expensesList
-        .filter((e) => parseDate(e.createdAt).format('YYYY-MM') === prevMonthKey)
+        .filter((e) => {
+          const parsed = parseDate(e.createdAt)
+          return parsed && parsed.format('YYYY-MM') === prevMonthKey
+        })
         .reduce((sum, e) => sum + Number(e.amount || 0), 0)
     }
 
@@ -499,6 +543,7 @@ export default function ReportsPage() {
       return expensesList
         .filter((e) => {
           const d = parseDate(e.createdAt)
+          if (!d) return false
           return !d.isBefore(prevFrom) && !d.isAfter(prevTo)
         })
         .reduce((sum, e) => sum + Number(e.amount || 0), 0)
@@ -511,14 +556,19 @@ export default function ReportsPage() {
     ? ((periodTotal - previousPeriodTotal) / previousPeriodTotal) * 100
     : null
 
+  const getCategoryLabel = (categoryKey) => {
+    const translated = getTranslation(language, `categories.${categoryKey}`)
+    return translated === `categories.${categoryKey}` ? categoryKey : translated
+  }
+
   const categoryTotals = {}
   filteredExpenses.forEach((e) => {
-    const cat = e.category || 'ไม่ระบุหมวดหมู่'
+    const cat = e.category || 'uncategorized'
     categoryTotals[cat] = (categoryTotals[cat] || 0) + Number(e.amount || 0)
   })
   const topCategory = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0]
   const categoryPieData = Object.entries(categoryTotals)
-    .map(([name, value]) => ({ name, value }))
+    .map(([name, value]) => ({ name: getCategoryLabel(name), value }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 8)
 
@@ -530,7 +580,10 @@ export default function ReportsPage() {
     const m = trendBase.clone().subtract(5 - i, 'months')
     const key = m.format('YYYY-MM')
     const spend = expensesList
-      .filter((e) => parseDate(e.createdAt).format('YYYY-MM') === key)
+      .filter((e) => {
+        const parsed = parseDate(e.createdAt)
+        return parsed && parsed.format('YYYY-MM') === key
+      })
       .reduce((s, e) => s + Number(e.amount || 0), 0)
     const monthLabel = m.locale(language === 'en' ? 'en' : 'th').format('MMM YY')
     return { month: monthLabel, spend }
@@ -539,10 +592,10 @@ export default function ReportsPage() {
   // Budget vs Actual (all budgets) - localized keys
   const budgetKey = getTranslation(language, 'reports.budget')
   const spentKey = getTranslation(language, 'reports.actualSpent')
-  const budgetVsActual = budgetList.map(b => ({
+  const budgetVsActual = filteredBudgetList.map(b => ({
     name: b.name.length > 11 ? b.name.slice(0, 10) + '…' : b.name,
     [budgetKey]: Number(b.amount),
-    [spentKey]: b.totalSpend || 0,
+    [spentKey]: Number(b.totalSpend || 0),
   }))
 
   // ── Chart style helpers ───────────────────────────────────────────────────────
@@ -582,14 +635,7 @@ export default function ReportsPage() {
     },
     {
       title: getTranslation(language, 'expensesStats.topCategory'),
-      value: topCategory ? (() => {
-        const translated = getTranslation(language, `categories.${topCategory[0]}`)
-        // If translation returns the key itself, fallback to just the category name
-        if (translated === `categories.${topCategory[0]}`) {
-          return topCategory[0]
-        }
-        return translated
-      })() : '—',
+      value: topCategory ? getCategoryLabel(topCategory[0]) : '—',
       sub: topCategory ? fmt(topCategory[1]) : getTranslation(language, 'reports.noExpenseData'),
       Icon: Tag,
       color: 'text-amber-600 dark:text-amber-400',
@@ -861,7 +907,7 @@ export default function ReportsPage() {
                 tickFormatter={v => v >= 1000 ? `฿${(v / 1000).toFixed(0)}K` : `฿${v}`}
               />
               <Tooltip
-                formatter={(v) => [fmt(v), 'ใช้จ่าย']}
+                formatter={(v) => [fmt(v), getTranslation(language, 'reports.actualSpent')]}
                 contentStyle={ttStyle}
                 cursor={{ stroke: isDark ? '#475569' : '#cbd5e1', strokeWidth: 1 }}
               />
@@ -910,7 +956,7 @@ export default function ReportsPage() {
             </ResponsiveContainer>
           ) : (
             <div className='flex items-center justify-center h-55 text-slate-400 dark:text-slate-500 text-sm'>
-              ยังไม่มีข้อมูลค่าใช้จ่าย
+              {getTranslation(language, 'reports.noExpenseData')}
             </div>
           )}
         </div>
@@ -946,13 +992,13 @@ export default function ReportsPage() {
           </ResponsiveContainer>
         ) : (
           <div className='flex items-center justify-center h-65 text-slate-400 dark:text-slate-500 text-sm'>
-            ยังไม่มีข้อมูล Budget
+            {getTranslation(language, 'reports.noBudgetData')}
           </div>
         )}
       </div>
 
       {/* ── Budget Performance Table ── */}
-      {budgetList.length > 0 && (
+      {filteredBudgetList.length > 0 && (
         <div className='border rounded-2xl p-5 bg-white dark:border-slate-700 dark:bg-slate-800'>
           <h3 className='font-semibold text-slate-700 dark:text-slate-200 mb-4'>{getTranslation(language, 'reports.budgetPerformance')}</h3>
           <div className='overflow-x-auto'>
@@ -978,7 +1024,7 @@ export default function ReportsPage() {
               <tbody>
                 {sortedBudgetList.map((b) => {
                   const budget  = Number(b.amount)
-                  const spent   = b.totalSpend || 0
+                  const spent   = Number(b.totalSpend || 0)
                   const remain  = budget - spent
                   const pct     = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0
                   const over    = spent > budget
@@ -1015,6 +1061,14 @@ export default function ReportsPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {filteredBudgetList.length === 0 && (
+        <div className='border rounded-2xl p-5 bg-white dark:border-slate-700 dark:bg-slate-800'>
+          <div className='flex items-center justify-center h-28 text-slate-400 dark:text-slate-500 text-sm'>
+            {language === 'th' ? 'ไม่พบข้อมูลงบประมาณในช่วงเวลาที่เลือก' : 'No budget data found for the selected period'}
           </div>
         </div>
       )}
