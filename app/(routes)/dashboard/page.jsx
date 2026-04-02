@@ -1,6 +1,6 @@
 "use client"
 import { useUser } from '@clerk/nextjs'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import CardInfo from './_components/CardInfo';
 import { getAllExpensesAction, getBudgetListAction } from '@/app/_actions/dbActions';
 import BarChartDashboard from './_components/BarChartDashboard';
@@ -10,14 +10,43 @@ import { useLanguage } from './_providers/LanguageProvider'
 import { getTranslation } from '@/lib/translations'
 import { useRouter } from 'next/navigation';
 import { isAdminUser } from '@/lib/adminAccess';
+import { useDashboardDateFilter } from '@/lib/useDashboardDateFilter'
+import moment from 'moment'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Button } from '@/components/ui/button'
+import { CalendarDays } from 'lucide-react'
 
 function Dashboard() {
 
     const [budgetList, setBudgetList] = useState([]);
     const [expensesList, setExpensesList] = useState([]);
+  const [isBudgetLoading, setIsBudgetLoading] = useState(true);
     const { user, isLoaded } = useUser();
     const router = useRouter();
     const { language } = useLanguage();
+    const {
+      dateFilterMode,
+      setDateFilterMode,
+      selectedMonth,
+      setSelectedMonth,
+      startDate,
+      setStartDate,
+      endDate,
+      setEndDate,
+    } = useDashboardDateFilter(moment().format('YYYY-MM'))
+    const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false)
+
+    const parseDate = (dateStr) => {
+      if (!dateStr) return null
+      const formats = ['DD/MM/YYYY', 'YYYY-MM-DD', 'MM/DD/YYYY', 'YYYY/MM/DD', 'DD-MM-YYYY']
+      for (const fmt of formats) {
+        const m = moment(dateStr, fmt, true)
+        if (m.isValid()) return m
+      }
+      const m = moment(dateStr)
+      return m.isValid() ? m : null
+    }
 
     useEffect(() => {
       if (!isLoaded || !user) return;
@@ -41,18 +70,24 @@ function Dashboard() {
     }, [isLoaded, user])
   
     const getBudgetList = async () => {
+      setIsBudgetLoading(true);
       // เรียกใช้ Server Action แทนการเขียน db.select ตรงนี้
       const email = user?.primaryEmailAddress?.emailAddress;
       if (!email) {
         console.warn("Email not available");
+        setIsBudgetLoading(false);
         return;
       }
-  
-      const result = await getBudgetListAction(email);
-      if (result && result.length > 0) {
-        setBudgetList(result);
-      } else {
-        setBudgetList([]);
+
+      try {
+        const result = await getBudgetListAction(email);
+        if (result && result.length > 0) {
+          setBudgetList(result);
+        } else {
+          setBudgetList([]);
+        }
+      } finally {
+        setIsBudgetLoading(false);
       }
   
       // log ข้อมูลที่ได้มาเพื่อเช็คว่า Server Action ทำงานถูกต้องหรือไม่
@@ -69,24 +104,239 @@ function Dashboard() {
       // console.log("All Expenses:", result);
     }
 
+    const filteredExpenses = useMemo(() => {
+      if (dateFilterMode === 'all') return expensesList
+
+      if (dateFilterMode === 'month') {
+        return expensesList.filter((e) => {
+          const m = parseDate(e.createdAt)
+          return m && m.format('YYYY-MM') === selectedMonth
+        })
+      }
+
+      const from = startDate ? moment(startDate, 'YYYY-MM-DD', true).startOf('day') : null
+      const to = endDate ? moment(endDate, 'YYYY-MM-DD', true).endOf('day') : null
+
+      return expensesList.filter((e) => {
+        const m = parseDate(e.createdAt)
+        if (!m) return false
+        if (from && m.isBefore(from)) return false
+        if (to && m.isAfter(to)) return false
+        return true
+      })
+    }, [expensesList, dateFilterMode, selectedMonth, startDate, endDate])
+
+    const periodLabel = useMemo(() => {
+      if (dateFilterMode === 'all') return language === 'th' ? 'ทุกช่วงเวลา' : 'All time'
+
+      if (dateFilterMode === 'month') {
+        return moment(selectedMonth, 'YYYY-MM', true)
+          .locale(language === 'th' ? 'th' : 'en')
+          .format('MMMM YYYY')
+      }
+
+      if (!startDate && !endDate) return language === 'th' ? 'ช่วงวันที่ทั้งหมด' : 'Any date range'
+      if (startDate && endDate) {
+        const from = moment(startDate, 'YYYY-MM-DD', true).locale(language === 'th' ? 'th' : 'en').format('D MMM YYYY')
+        const to = moment(endDate, 'YYYY-MM-DD', true).locale(language === 'th' ? 'th' : 'en').format('D MMM YYYY')
+        return `${from} - ${to}`
+      }
+      if (startDate) {
+        const from = moment(startDate, 'YYYY-MM-DD', true).locale(language === 'th' ? 'th' : 'en').format('D MMM YYYY')
+        return `${language === 'th' ? 'ตั้งแต่' : 'From'} ${from}`
+      }
+      const to = moment(endDate, 'YYYY-MM-DD', true).locale(language === 'th' ? 'th' : 'en').format('D MMM YYYY')
+      return `${language === 'th' ? 'ถึง' : 'Until'} ${to}`
+    }, [dateFilterMode, selectedMonth, startDate, endDate, language])
+
+    const budgetSpendById = useMemo(() => {
+      const map = {}
+      filteredExpenses.forEach((expense) => {
+        const budgetId = Number(expense?.budgetId)
+        if (!budgetId) return
+        map[budgetId] = (map[budgetId] || 0) + Number(expense?.amount || 0)
+      })
+      return map
+    }, [filteredExpenses])
+
+    const activeBudgetIds = useMemo(() => {
+      return new Set(
+        filteredExpenses
+          .map((expense) => Number(expense?.budgetId))
+          .filter((id) => Number.isInteger(id) && id > 0)
+      )
+    }, [filteredExpenses])
+
+    const filteredBudgetList = useMemo(() => {
+      const baseList = dateFilterMode === 'all'
+        ? budgetList
+        : budgetList.filter((budget) => activeBudgetIds.has(Number(budget.id)))
+
+      return baseList.map((budget) => ({
+        ...budget,
+        totalSpend: Number(budgetSpendById[budget.id] || 0),
+      }))
+    }, [budgetList, budgetSpendById, activeBudgetIds, dateFilterMode])
+
   return (
     <section className='mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8'>
        <div className='rounded-2xl border bg-linear-to-br from-white to-slate-50 px-4 py-4 shadow-sm sm:px-6 dark:border-slate-700 dark:from-slate-900 dark:to-slate-900'>
          <p className='text-xs font-semibold uppercase tracking-[0.18em] text-amber-600'>{getTranslation(language, 'dashboard.title')} Overview</p>
          <h1 className='mt-1 text-2xl font-bold tracking-tight sm:text-3xl'>{getTranslation(language, 'dashboard.welcome')}, {user?.fullName} ✌️</h1>
-         <p className='mt-1 text-sm text-slate-500'>{getTranslation(language, 'dashboard.title')}</p>
+         <p className='mt-1 text-sm text-slate-500'>{getTranslation(language, 'dashboard.title')} - {periodLabel}</p>
        </div>
 
-       <CardInfo budgetList={budgetList}/>
+       <div className='mt-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900'>
+        <div className='flex flex-wrap items-end gap-3'>
+          <div className='w-full min-w-37.5 sm:w-auto'>
+            <label className='mb-1 block text-xs font-medium text-slate-500'>
+              {language === 'th' ? 'โหมดวันที่' : 'Date mode'}
+            </label>
+            <select
+              value={dateFilterMode}
+              onChange={(e) => setDateFilterMode(e.target.value)}
+              className='h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-amber-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'
+            >
+              <option value='month'>{language === 'th' ? 'รายเดือน' : 'By month'}</option>
+              <option value='range'>{language === 'th' ? 'ช่วงวันที่' : 'Date range'}</option>
+              <option value='all'>{language === 'th' ? 'ทุกช่วงเวลา' : 'All time'}</option>
+            </select>
+          </div>
+
+          {dateFilterMode === 'month' && (
+            <div className='w-full min-w-37.5 sm:w-auto'>
+              <label className='mb-1 block text-xs font-medium text-slate-500'>
+                {language === 'th' ? 'เลือกเดือน' : 'Select month'}
+              </label>
+              <Popover open={isMonthPickerOpen} onOpenChange={setIsMonthPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    className='h-10 w-full justify-between border-slate-300 bg-white px-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'
+                  >
+                    <span>
+                      {moment(`${selectedMonth}-01`, 'YYYY-MM-DD', true)
+                        .locale(language === 'th' ? 'th' : 'en')
+                        .format('MMMM YYYY')}
+                    </span>
+                    <CalendarDays className='h-4 w-4 opacity-70' />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className='w-auto p-0' align='start'>
+                  <Calendar
+                    mode='single'
+                    selected={moment(`${selectedMonth}-01`, 'YYYY-MM-DD', true).toDate()}
+                    month={moment(`${selectedMonth}-01`, 'YYYY-MM-DD', true).toDate()}
+                    captionLayout='dropdown'
+                    fromYear={2018}
+                    toYear={moment().year() + 2}
+                    onMonthChange={(date) => {
+                      setSelectedMonth(moment(date).format('YYYY-MM'))
+                    }}
+                    onSelect={(date) => {
+                      if (!date) return
+                      setSelectedMonth(moment(date).format('YYYY-MM'))
+                      setIsMonthPickerOpen(false)
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
+          {dateFilterMode === 'range' && (
+            <>
+              <div className='w-full min-w-37.5 sm:w-auto'>
+                <label className='mb-1 block text-xs font-medium text-slate-500'>
+                  {language === 'th' ? 'จากวันที่' : 'From'}
+                </label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type='button'
+                      variant='outline'
+                      className='h-10 w-full justify-between border-slate-300 bg-white px-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'
+                    >
+                      <span>
+                        {startDate
+                          ? moment(startDate, 'YYYY-MM-DD', true).locale(language === 'th' ? 'th' : 'en').format('D MMM YYYY')
+                          : (language === 'th' ? 'เลือกวันที่เริ่มต้น' : 'Select start date')}
+                      </span>
+                      <CalendarDays className='h-4 w-4 opacity-70' />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className='w-auto p-0' align='start'>
+                    <Calendar
+                      mode='single'
+                      selected={startDate ? moment(startDate, 'YYYY-MM-DD', true).toDate() : undefined}
+                      onSelect={(date) => {
+                        if (!date) return
+                        const next = moment(date).format('YYYY-MM-DD')
+                        setStartDate(next)
+                        if (endDate && moment(endDate).isBefore(moment(next))) {
+                          setEndDate(next)
+                        }
+                      }}
+                      disabled={(date) => Boolean(endDate && moment(date).isAfter(moment(endDate, 'YYYY-MM-DD', true).toDate()))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className='w-full min-w-37.5 sm:w-auto'>
+                <label className='mb-1 block text-xs font-medium text-slate-500'>
+                  {language === 'th' ? 'ถึงวันที่' : 'To'}
+                </label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type='button'
+                      variant='outline'
+                      className='h-10 w-full justify-between border-slate-300 bg-white px-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'
+                    >
+                      <span>
+                        {endDate
+                          ? moment(endDate, 'YYYY-MM-DD', true).locale(language === 'th' ? 'th' : 'en').format('D MMM YYYY')
+                          : (language === 'th' ? 'เลือกวันที่สิ้นสุด' : 'Select end date')}
+                      </span>
+                      <CalendarDays className='h-4 w-4 opacity-70' />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className='w-auto p-0' align='start'>
+                    <Calendar
+                      mode='single'
+                      selected={endDate ? moment(endDate, 'YYYY-MM-DD', true).toDate() : undefined}
+                      onSelect={(date) => {
+                        if (!date) return
+                        const next = moment(date).format('YYYY-MM-DD')
+                        setEndDate(next)
+                        if (startDate && moment(startDate).isAfter(moment(next))) {
+                          setStartDate(next)
+                        }
+                      }}
+                      disabled={(date) => Boolean(startDate && moment(date).isBefore(moment(startDate, 'YYYY-MM-DD', true).toDate()))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      <CardInfo budgetList={filteredBudgetList} isLoading={isBudgetLoading}/>
        <div className='mt-6 grid grid-cols-1 gap-5 xl:grid-cols-3'>
           <div className='xl:col-span-2'>
             <BarChartDashboard
-              budgetList={budgetList}
+              budgetList={filteredBudgetList}
             />
 
           
           <ExpensesListTable
-            expensesList={expensesList}
+            expensesList={filteredExpenses}
             gridHeight='clamp(420px, calc(100vh - 260px), 820px)'
             refreshData={getAllExpenses}
           />  
@@ -94,7 +344,7 @@ function Dashboard() {
           </div>
           <div className='flex flex-col gap-5 self-start'>
             <h2 className='text-lg font-bold'>{getTranslation(language, 'dashboard.latestBudgets')}</h2>
-            {budgetList.slice(0, 4).map((budget,index) => (
+            {filteredBudgetList.slice(0, 4).map((budget,index) => (
                <BudgetItem key={index} budget={budget}/>
             ))}
           </div>
