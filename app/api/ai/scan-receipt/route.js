@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { checkAndTrackReceiptScanRateLimit } from '@/lib/securityTelemetry';
 
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'qwen/qwen2.5-vl-72b-instruct';
 
@@ -65,8 +67,53 @@ function extractJson(text) {
   return null;
 }
 
+function getRequestIp(request) {
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) {
+    return forwarded.split(',')[0]?.trim() || 'unknown';
+  }
+
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) return realIp.trim();
+
+  return 'unknown';
+}
+
 export async function POST(request) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', userMessage: 'กรุณาเข้าสู่ระบบก่อนใช้งาน' },
+        { status: 401 }
+      );
+    }
+
+    const contentType = String(request.headers.get('content-type') || '').toLowerCase();
+    if (!contentType.includes('multipart/form-data')) {
+      return NextResponse.json(
+        { error: 'Invalid content type', userMessage: 'รูปแบบข้อมูลไม่ถูกต้อง' },
+        { status: 415 }
+      );
+    }
+
+    const ipAddress = getRequestIp(request);
+    const rateLimit = checkAndTrackReceiptScanRateLimit(ipAddress);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Rate limit exceeded',
+          userMessage: `มีการใช้งานถี่เกินไป กรุณาลองใหม่ใน ${rateLimit.retryAfterSeconds} วินาที`,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimit.retryAfterSeconds),
+          },
+        }
+      );
+    }
+
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
       return NextResponse.json(

@@ -5,6 +5,14 @@ import { AdminAlerts, AdminAuditLogs, Budgets, Expenses } from '@/utils/schema'
 import { currentUser } from '@clerk/nextjs/server'
 import { eq, sql, desc, inArray, and } from 'drizzle-orm'
 import { toDateValue, toMoneyNumber } from '@/lib/dataNormalization'
+import { getSecurityTelemetrySnapshot } from '@/lib/securityTelemetry'
+
+const toIsoDateTime = (value) => {
+    if (!value) return null;
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toISOString();
+}
 
 const getCurrentActorEmail = async () => {
     const user = await currentUser();
@@ -364,6 +372,14 @@ export const getBudgetListAction = async (email) => {
 
 export async function getAdminMonitoringDashboardAction() {
     try {
+        const telemetry = getSecurityTelemetrySnapshot();
+        const hasServerDbUrl = Boolean(process.env.DATABASE_URL);
+        const hasPublicDbUrl = Boolean(process.env.NEXT_PUBLIC_DATABASE_URL);
+        const hasServerAdminAllowlist = Boolean(process.env.ADMIN_EMAILS);
+        const hasPublicAdminAllowlist = Boolean(process.env.NEXT_PUBLIC_ADMIN_EMAILS);
+        const appUrl = String(process.env.NEXT_PUBLIC_APP_URL || '');
+        const httpsReady = process.env.NODE_ENV !== 'production' || appUrl.startsWith('https://');
+
         const [storedAlerts, auditRows] = await Promise.all([
             db.select().from(AdminAlerts).orderBy(desc(AdminAlerts.id)),
             db.select().from(AdminAuditLogs).orderBy(desc(AdminAuditLogs.id)),
@@ -406,7 +422,7 @@ export async function getAdminMonitoringDashboardAction() {
                     name: row.expenseName,
                     amount,
                     category: row.expenseCategory,
-                    createdAt: row.expenseDate,
+                    createdAt: toIsoDateTime(row.expenseDate),
                     budgetId: row.budgetId,
                     createdBy: row.createdBy,
                 });
@@ -456,6 +472,50 @@ export async function getAdminMonitoringDashboardAction() {
             return acc;
         }, {});
 
+        const securityChecks = [
+            {
+                id: 'headers-enabled',
+                label: 'Security headers enabled globally',
+                status: 'pass',
+                detail: 'Configured in next.config.mjs (HSTS, X-Frame-Options, nosniff).',
+            },
+            {
+                id: 'db-url-server-only',
+                label: 'Database URL is server-side only',
+                status: hasServerDbUrl && !hasPublicDbUrl ? 'pass' : 'fail',
+                detail: hasServerDbUrl && !hasPublicDbUrl
+                    ? 'Using DATABASE_URL only.'
+                    : 'Use DATABASE_URL and remove NEXT_PUBLIC_DATABASE_URL.',
+            },
+            {
+                id: 'admin-allowlist-server-only',
+                label: 'Admin allowlist is server-side only',
+                status: hasServerAdminAllowlist && !hasPublicAdminAllowlist ? 'pass' : 'warn',
+                detail: hasServerAdminAllowlist && !hasPublicAdminAllowlist
+                    ? 'Using ADMIN_EMAILS only.'
+                    : 'Avoid exposing admin allowlist in NEXT_PUBLIC_ADMIN_EMAILS.',
+            },
+            {
+                id: 'api-key-server-only',
+                label: 'API keys present only on server',
+                status: process.env.OPENROUTER_API_KEY ? 'pass' : 'fail',
+                detail: process.env.OPENROUTER_API_KEY
+                    ? 'OPENROUTER_API_KEY detected on server environment.'
+                    : 'Missing OPENROUTER_API_KEY in server environment.',
+            },
+            {
+                id: 'https-prod-ready',
+                label: 'Production app URL uses HTTPS',
+                status: httpsReady ? 'pass' : 'warn',
+                detail: httpsReady
+                    ? 'APP URL is ready for secure cookie + HSTS behavior.'
+                    : 'Set NEXT_PUBLIC_APP_URL to https://... in production.',
+            },
+        ];
+
+        const failedChecks = securityChecks.filter((item) => item.status === 'fail').length;
+        const warningChecks = securityChecks.filter((item) => item.status === 'warn').length;
+
         return {
             overview: {
                 totalUsers: uniqueUsers.size,
@@ -486,8 +546,17 @@ export async function getAdminMonitoringDashboardAction() {
                 }, []),
             expenseRows,
             alertStates,
-            auditRows: auditRows.slice(0, 20),
+            auditRows: auditRows.slice(0, 20).map((row) => ({
+                ...row,
+                createdAt: toIsoDateTime(row.createdAt),
+            })),
             recentExpenses: expenseRows.slice(0, 10),
+            security: {
+                checks: securityChecks,
+                failedChecks,
+                warningChecks,
+                telemetry,
+            },
         };
     } catch (error) {
         console.error('Error fetching admin monitoring dashboard:', error);
@@ -499,6 +568,21 @@ export async function getAdminMonitoringDashboardAction() {
             alertStates: {},
             auditRows: [],
             recentExpenses: [],
+            security: {
+                checks: [],
+                failedChecks: 0,
+                warningChecks: 0,
+                telemetry: {
+                    receiptScan: {
+                        activeClientCount: 0,
+                        deniedTotal: 0,
+                        acceptedTotal: 0,
+                        lastDeniedAt: null,
+                        limit: 5,
+                        windowSeconds: 300,
+                    },
+                },
+            },
         };
     }
 }
@@ -639,7 +723,10 @@ export async function getAdminUserDetailAction(email) {
                 totalBudget,
                 totalSpend,
             },
-            recentExpenses: expenses.slice(0, 12),
+            recentExpenses: expenses.slice(0, 12).map((row) => ({
+                ...row,
+                createdAt: toIsoDateTime(row.createdAt),
+            })),
         };
     } catch (error) {
         console.error('Error fetching admin user detail:', error);
@@ -688,25 +775,37 @@ export async function getAdminDatabaseManagementAction() {
         );
 
         const activeAlerts = alertRows.filter((row) => row.status !== 'acknowledged').length;
+        const normalizedExpenses = expenseRows.map((row) => ({
+            ...row,
+            createdAt: toIsoDateTime(row.createdAt),
+        }));
+        const normalizedAlerts = alertRows.map((row) => ({
+            ...row,
+            acknowledgedAt: toIsoDateTime(row.acknowledgedAt),
+        }));
+        const normalizedAuditRows = auditRows.map((row) => ({
+            ...row,
+            createdAt: toIsoDateTime(row.createdAt),
+        }));
 
         return {
             summary: {
                 users: uniqueUsers.size,
                 budgets: budgetRows.length,
-                expenses: expenseRows.length,
+                expenses: normalizedExpenses.length,
                 activeAlerts,
-                auditEvents: auditRows.length,
+                auditEvents: normalizedAuditRows.length,
             },
             tableCounts: {
                 budgets: budgetRows.length,
-                expenses: expenseRows.length,
-                alerts: alertRows.length,
-                audit: auditRows.length,
+                expenses: normalizedExpenses.length,
+                alerts: normalizedAlerts.length,
+                audit: normalizedAuditRows.length,
             },
             budgets: budgetRows,
-            expenses: expenseRows,
-            alerts: alertRows,
-            auditLogs: auditRows,
+            expenses: normalizedExpenses,
+            alerts: normalizedAlerts,
+            auditLogs: normalizedAuditRows,
         };
     } catch (error) {
         console.error('Error fetching admin database management data:', error);

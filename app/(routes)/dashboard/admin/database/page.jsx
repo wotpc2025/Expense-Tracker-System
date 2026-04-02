@@ -22,6 +22,13 @@ const formatCurrency = (value) =>
     minimumFractionDigits: 0,
   }).format(Number(value || 0))
 
+const formatDateTime = (value) => {
+  if (!value) return '-'
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return date.toLocaleString('th-TH')
+}
+
 const views = ['budgets', 'expenses', 'alerts', 'audit']
 
 const defaultSortByView = {
@@ -245,7 +252,7 @@ export default function AdminDatabasePage() {
                 <td className='py-2 pr-3 text-slate-500'>{row.category || '-'}</td>
                 <td className='py-2 pr-3 text-slate-500'>{row.createdBy || '-'}</td>
                 <td className='py-2 pr-3 text-right text-slate-700 dark:text-slate-200'>{formatCurrency(row.amount)}</td>
-                <td className='py-2 text-right text-slate-500'>{row.createdAt || '-'}</td>
+                <td className='py-2 text-right text-slate-500'>{formatDateTime(row.createdAt)}</td>
               </tr>
             ))}
           </tbody>
@@ -272,7 +279,7 @@ export default function AdminDatabasePage() {
                 <td className='py-2 pr-3 text-slate-700 dark:text-slate-200'>{row.alertKey}</td>
                 <td className='py-2 pr-3 text-slate-500'>{row.status}</td>
                 <td className='py-2 pr-3 text-slate-500'>{row.acknowledgedBy || '-'}</td>
-                <td className='py-2 text-right text-slate-500'>{row.acknowledgedAt || '-'}</td>
+                <td className='py-2 text-right text-slate-500'>{formatDateTime(row.acknowledgedAt)}</td>
               </tr>
             ))}
           </tbody>
@@ -298,7 +305,7 @@ export default function AdminDatabasePage() {
               <td className='py-2 pr-3 text-slate-700 dark:text-slate-200'>{row.action}</td>
               <td className='py-2 pr-3 text-slate-500'>{row.message}</td>
               <td className='py-2 pr-3 text-slate-500'>{row.actorEmail || '-'}</td>
-              <td className='py-2 text-right text-slate-500'>{row.createdAt || '-'}</td>
+              <td className='py-2 text-right text-slate-500'>{formatDateTime(row.createdAt)}</td>
             </tr>
           ))}
         </tbody>

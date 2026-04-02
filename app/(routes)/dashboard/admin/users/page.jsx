@@ -12,6 +12,13 @@ const formatCurrency = (value) =>
     minimumFractionDigits: 0,
   }).format(Number(value || 0))
 
+const formatDateTime = (value) => {
+  if (!value) return '-'
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return date.toLocaleString('th-TH')
+}
+
 export default function AdminUsersPage() {
   const { language } = useLanguage()
   const [loading, setLoading] = useState(true)
@@ -33,6 +40,14 @@ export default function AdminUsersPage() {
 
   const openDetail = async (email) => {
     if (!email) return
+
+    if (selectedEmail === email) {
+      setSelectedEmail('')
+      setDetail(null)
+      setDetailLoading(false)
+      return
+    }
+
     setSelectedEmail(email)
     setDetailLoading(true)
     const result = await getAdminUserDetailAction(email)
@@ -74,7 +89,11 @@ export default function AdminUsersPage() {
               )}
 
               {!loading && rows.map((row) => (
-                <tr key={row.email} className='border-b dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-900/40 cursor-pointer' onClick={() => openDetail(row.email)}>
+                <tr
+                  key={row.email}
+                  className={`border-b dark:border-slate-700/50 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/40 ${selectedEmail === row.email ? 'bg-slate-100 dark:bg-slate-900/50' : ''}`}
+                  onClick={() => openDetail(row.email)}
+                >
                   <td className='py-2 pr-3 text-slate-700 dark:text-slate-200'>
                     <span className='underline decoration-dotted'>{row.email}</span>
                   </td>
@@ -134,7 +153,7 @@ export default function AdminUsersPage() {
                   {(detail.recentExpenses || []).map((item) => (
                     <div key={item.id} className='rounded-lg border border-slate-200 dark:border-slate-700 p-2'>
                       <p className='text-sm text-slate-700 dark:text-slate-200'>{item.name}</p>
-                      <p className='text-xs text-slate-500 mt-1'>{item.category || '-'} • {formatCurrency(item.amount)} • {item.createdAt || '-'}</p>
+                      <p className='text-xs text-slate-500 mt-1'>{item.category || '-'} • {formatCurrency(item.amount)} • {formatDateTime(item.createdAt)}</p>
                     </div>
                   ))}
                   {(!detail.recentExpenses || detail.recentExpenses.length === 0) && (

@@ -9,7 +9,7 @@ import {
 } from '@/app/_actions/dbActions'
 import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
 import { getTranslation } from '@/lib/translations'
-import { AlertTriangle, Database, LineChart, Receipt, ShieldCheck, Users, Wrench } from 'lucide-react'
+import { AlertTriangle, Database, LineChart, Receipt, ShieldAlert, ShieldCheck, Users, Wrench } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   AlertDialog,
@@ -28,6 +28,13 @@ const formatCurrency = (value) =>
     currency: 'THB',
     minimumFractionDigits: 0,
   }).format(Number(value || 0))
+
+const formatDateTime = (value) => {
+  if (!value) return '-'
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return date.toLocaleString('th-TH')
+}
 
 export default function AdminDashboardPage() {
   const { language } = useLanguage()
@@ -50,6 +57,21 @@ export default function AdminDashboardPage() {
     alertStates: {},
     auditRows: [],
     recentExpenses: [],
+    security: {
+      checks: [],
+      failedChecks: 0,
+      warningChecks: 0,
+      telemetry: {
+        receiptScan: {
+          activeClientCount: 0,
+          deniedTotal: 0,
+          acceptedTotal: 0,
+          lastDeniedAt: null,
+          limit: 5,
+          windowSeconds: 300,
+        },
+      },
+    },
   })
 
   useEffect(() => {
@@ -65,7 +87,15 @@ export default function AdminDashboardPage() {
   }
 
   const parseDate = (dateStr) => {
+    if (dateStr instanceof Date) {
+      return dateStr.toISOString().slice(0, 10)
+    }
+
     const date = String(dateStr || '').trim()
+    if (/^\d{4}-\d{2}-\d{2}t/i.test(date)) {
+      const parsed = new Date(date)
+      if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10)
+    }
     if (/^\d{2}\/\d{2}\/\d{4}$/.test(date)) {
       const [dd, mm, yyyy] = date.split('/')
       return `${yyyy}-${mm}-${dd}`
@@ -215,6 +245,18 @@ export default function AdminDashboardPage() {
       createdAt: row.createdAt,
     }))
   }, [adminData.auditRows])
+
+  const securityChecks = adminData.security?.checks || []
+  const securityFailed = Number(adminData.security?.failedChecks || 0)
+  const securityWarn = Number(adminData.security?.warningChecks || 0)
+  const receiptScanTelemetry = adminData.security?.telemetry?.receiptScan || {
+    activeClientCount: 0,
+    deniedTotal: 0,
+    acceptedTotal: 0,
+    lastDeniedAt: null,
+    limit: 5,
+    windowSeconds: 300,
+  }
 
   const applyBulkSetCategory = async () => {
     if (filteredMonitoring.missingCategoryIds.length === 0) return
@@ -487,6 +529,64 @@ export default function AdminDashboardPage() {
 
       <div className='grid grid-cols-1 xl:grid-cols-2 gap-4'>
         <div className='rounded-xl border p-4 bg-white dark:bg-slate-800 dark:border-slate-700'>
+          <div className='flex items-center justify-between mb-3'>
+            <h3 className='font-semibold text-slate-700 dark:text-slate-200'>Security Health</h3>
+            <ShieldAlert className={`h-4 w-4 ${securityFailed > 0 ? 'text-rose-500' : securityWarn > 0 ? 'text-amber-500' : 'text-emerald-500'}`} />
+          </div>
+
+          <div className='mb-3 flex items-center gap-2 text-xs'>
+            <span className='rounded-full bg-rose-100 px-2 py-1 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'>Fail: {securityFailed}</span>
+            <span className='rounded-full bg-amber-100 px-2 py-1 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'>Warn: {securityWarn}</span>
+            <span className='rounded-full bg-emerald-100 px-2 py-1 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'>Pass: {Math.max(0, securityChecks.length - securityFailed - securityWarn)}</span>
+          </div>
+
+          <div className='space-y-2'>
+            {securityChecks.length === 0 && (
+              <p className='text-sm text-slate-400'>No security checks loaded</p>
+            )}
+            {securityChecks.map((check) => {
+              const tone = check.status === 'fail'
+                ? 'border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300'
+                : check.status === 'warn'
+                  ? 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300'
+                  : 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300'
+
+              return (
+                <div key={check.id} className={`rounded-lg border p-3 ${tone}`}>
+                  <p className='text-sm font-medium'>{check.label}</p>
+                  <p className='text-xs mt-1'>{check.detail}</p>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className='rounded-xl border p-4 bg-white dark:bg-slate-800 dark:border-slate-700'>
+          <h3 className='font-semibold text-slate-700 dark:text-slate-200 mb-3'>API Abuse Monitor</h3>
+          <div className='grid grid-cols-2 gap-2 text-sm'>
+            <div className='rounded-lg bg-slate-50 dark:bg-slate-900/60 px-3 py-2'>
+              <p className='text-slate-500'>Receipt API accepted</p>
+              <p className='font-semibold text-slate-700 dark:text-slate-200'>{receiptScanTelemetry.acceptedTotal}</p>
+            </div>
+            <div className='rounded-lg bg-slate-50 dark:bg-slate-900/60 px-3 py-2'>
+              <p className='text-slate-500'>Rate-limited blocked</p>
+              <p className='font-semibold text-slate-700 dark:text-slate-200'>{receiptScanTelemetry.deniedTotal}</p>
+            </div>
+            <div className='rounded-lg bg-slate-50 dark:bg-slate-900/60 px-3 py-2'>
+              <p className='text-slate-500'>Active client IPs</p>
+              <p className='font-semibold text-slate-700 dark:text-slate-200'>{receiptScanTelemetry.activeClientCount}</p>
+            </div>
+            <div className='rounded-lg bg-slate-50 dark:bg-slate-900/60 px-3 py-2'>
+              <p className='text-slate-500'>Policy</p>
+              <p className='font-semibold text-slate-700 dark:text-slate-200'>{receiptScanTelemetry.limit} requests / {Math.round(Number(receiptScanTelemetry.windowSeconds || 0) / 60)} min</p>
+            </div>
+          </div>
+          <p className='mt-3 text-xs text-slate-500'>Last blocked attempt: {receiptScanTelemetry.lastDeniedAt || '-'}</p>
+        </div>
+      </div>
+
+      <div className='grid grid-cols-1 xl:grid-cols-2 gap-4'>
+        <div className='rounded-xl border p-4 bg-white dark:bg-slate-800 dark:border-slate-700'>
           <h3 className='font-semibold text-slate-700 dark:text-slate-200 mb-3'>
             {getTranslation(language, 'admin.audit.title')}
           </h3>
@@ -497,7 +597,7 @@ export default function AdminDashboardPage() {
             {auditLog.map((entry) => (
               <div key={entry.id} className='rounded-lg border border-slate-200 dark:border-slate-700 p-3'>
                 <p className='font-medium text-slate-700 dark:text-slate-200'>{entry.event}</p>
-                <p className='text-xs text-slate-500 mt-1'>{entry.actor || '-'} • {entry.createdAt || '-'}</p>
+                <p className='text-xs text-slate-500 mt-1'>{entry.actor || '-'} • {formatDateTime(entry.createdAt)}</p>
               </div>
             ))}
           </div>
@@ -525,7 +625,7 @@ export default function AdminDashboardPage() {
                     <td className='py-2 pr-3 text-right text-slate-700 dark:text-slate-200'>
                       {formatCurrency(item.amount)}
                     </td>
-                    <td className='py-2 text-right text-slate-500'>{item.createdAt || '-'}</td>
+                    <td className='py-2 text-right text-slate-500'>{formatDateTime(item.createdAt)}</td>
                   </tr>
                 ))}
                 {filteredExpenses.length === 0 && (
