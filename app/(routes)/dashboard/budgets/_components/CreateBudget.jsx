@@ -26,12 +26,17 @@ import { getTranslation } from '@/lib/translations'
 import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
 
 function CreateBudget({ refreshData, trigger }) {
+        const getScannedTotal = (scanResult) => {
+            if (!scanResult || !Array.isArray(scanResult.lineItems)) return ''
+            const total = scanResult.lineItems.reduce((sum, item) => sum + Number(item.amount || 0), 0)
+            return total ? String(total) : ''
+        }
+
         // Toggle autoAmount and set amount from scan result if enabled
         const handleAutoAmountChange = (checked) => {
             setAutoAmount(checked);
-            if (checked && initialScanResult && Array.isArray(initialScanResult.lineItems)) {
-                const total = initialScanResult.lineItems.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-                setAmount(total ? String(total) : '');
+            if (checked) {
+                setAmount(getScannedTotal(initialScanResult));
             }
         };
     const { language } = useLanguage();
@@ -76,6 +81,11 @@ function CreateBudget({ refreshData, trigger }) {
         document.addEventListener('mousedown', handler)
         return () => document.removeEventListener('mousedown', handler)
     }, [openEmojiPicker])
+
+    useEffect(() => {
+        if (!autoAmount) return
+        setAmount(getScannedTotal(initialScanResult))
+    }, [autoAmount, initialScanResult])
 
     const resetForm = () => {
         setStep('create')
