@@ -17,7 +17,7 @@
 
 - Next.js 16 + React 18
 - Clerk (Auth)
-- Drizzle ORM + PostgreSQL
+- Drizzle ORM + MySQL
 - Tailwind CSS 4
 - Recharts + AG Grid
 - Sonner (Toast)
@@ -35,7 +35,7 @@
 
 - Node.js 20+
 - npm 10+
-- PostgreSQL (local หรือ cloud)
+- MySQL (local หรือ cloud)
 - บัญชี Clerk
 - บัญชี OpenRouter (ถ้าต้องการใช้ฟีเจอร์สแกนใบเสร็จ)
 

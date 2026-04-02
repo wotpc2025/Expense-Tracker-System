@@ -6,6 +6,30 @@ dotenv.config({
   path: ".env.local",
 });
 
+const getDbCredentials = () => {
+  const databaseUrl = String(process.env.DATABASE_URL || '').trim();
+
+  if (databaseUrl) {
+    const parsedUrl = new URL(databaseUrl);
+
+    return {
+      host: parsedUrl.hostname,
+      port: parsedUrl.port ? Number(parsedUrl.port) : 3306,
+      user: decodeURIComponent(parsedUrl.username || ''),
+      password: decodeURIComponent(parsedUrl.password || ''),
+      database: parsedUrl.pathname.replace(/^\//, ''),
+    };
+  }
+
+  return {
+    host: process.env.DB_HOST || 'localhost',
+    port: Number(process.env.DB_PORT || 3306),
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'expense_tracker',
+  };
+};
+
 export default defineConfig({
   // 1. ระบุประเภทฐานข้อมูล
   dialect: "mysql", 
@@ -17,10 +41,5 @@ export default defineConfig({
   out: "./drizzle",
 
   // 4. ข้อมูลการเชื่อมต่อ
-  dbCredentials: {
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'expense_tracker',
-  },
+  dbCredentials: getDbCredentials(),
 });
