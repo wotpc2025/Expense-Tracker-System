@@ -205,7 +205,9 @@ function SideNav() {
             <div className='mx-2 mb-2 rounded-lg border border-slate-700/60 bg-slate-900/60 px-3 py-2'>
                     <div className='flex items-center justify-between gap-3'>
                         <div className='min-w-0'>
-                            <p className='text-xs text-slate-400'>Database Status</p>
+                            <p className='text-xs text-slate-400'>
+                                {language === 'th' ? 'สถานะฐานข้อมูล' : 'Database Status'}
+                            </p>
                             <p className='mt-1 text-[11px] text-slate-500'>
                                 {dbStatus === 'online' && dbLatency
                                     ? `${dbLatency} ms`
