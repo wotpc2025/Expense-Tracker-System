@@ -406,7 +406,8 @@ export async function getAdminMonitoringDashboardAction() {
         const hasServerDbUrl = Boolean(process.env.DATABASE_URL);
         const hasPublicDbUrl = Boolean(process.env.NEXT_PUBLIC_DATABASE_URL);
         const hasServerAdminAllowlist = Boolean(process.env.ADMIN_EMAILS);
-        const hasPublicAdminAllowlist = Boolean(process.env.NEXT_PUBLIC_ADMIN_EMAILS);
+        // Client-side admin allowlist usage has been removed; admin checks run on server only.
+        const hasPublicAdminAllowlist = false;
         const appUrl = String(process.env.NEXT_PUBLIC_APP_URL || '');
         const httpsReady = process.env.NODE_ENV !== 'production' || appUrl.startsWith('https://');
 
@@ -523,7 +524,7 @@ export async function getAdminMonitoringDashboardAction() {
                 status: hasServerAdminAllowlist && !hasPublicAdminAllowlist ? 'pass' : 'warn',
                 detail: hasServerAdminAllowlist && !hasPublicAdminAllowlist
                     ? 'Using ADMIN_EMAILS only.'
-                    : 'Avoid exposing admin allowlist in NEXT_PUBLIC_ADMIN_EMAILS.',
+                    : 'Set ADMIN_EMAILS on server environment.',
             },
             {
                 id: 'api-key-server-only',
