@@ -136,12 +136,25 @@ function CreateBudget({ refreshData, trigger }) {
                 createdBy: user?.primaryEmailAddress?.emailAddress,
                 icon: emojiIcon,
             })
-            if (result && result[0]?.insertedId) {
-                refreshData && refreshData()
-                toast.success('New Budget Created!')
-                setCreatedBudget({ id: result[0].insertedId, name, icon: emojiIcon })
-                setStep('addExpense')
+
+            if (result?.error) {
+                toast.error(getTranslation(language, 'createBudget.toasts.createFailed'))
+                return
             }
+
+            const insertedId = Array.isArray(result)
+                ? result[0]?.insertedId ?? result[0]?.id
+                : result?.insertedId ?? result?.id ?? result?.insertId
+
+            if (!insertedId) {
+                toast.error(getTranslation(language, 'createBudget.toasts.createFailed'))
+                return
+            }
+
+            refreshData && refreshData()
+            toast.success(getTranslation(language, 'createBudget.toasts.createSuccess'))
+            setCreatedBudget({ id: Number(insertedId), name, icon: emojiIcon })
+            setStep('addExpense')
         } catch (error) {
             console.error('Create budget error:', error)
             toast.error(getTranslation(language, 'createBudget.toasts.createFailed'))
