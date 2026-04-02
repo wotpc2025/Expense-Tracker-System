@@ -81,8 +81,11 @@ npm install
 3. สร้าง/อัปเดต schema ลงฐานข้อมูล
 
 ```bash
+npm run db:migrate:types
 npm run db:push
 ```
+
+หมายเหตุ: `db:migrate:types` ใช้สำหรับฐานข้อมูลเดิมที่เคยเก็บ amount/createdAt เป็นข้อความ เพื่อแปลงข้อมูลก่อน push schema ใหม่
 
 4. รันแอปโหมดพัฒนา
 
@@ -98,7 +101,10 @@ npm run dev
 - npm run build: build สำหรับ production
 - npm run start: รัน production server
 - npm run db:push: push schema ด้วย drizzle-kit
+- npm run db:migrate:types: migrate ชนิดคอลัมน์เดิม (text) ไปเป็น numeric/timestamp
 - npm run db:studio: เปิด Drizzle Studio
+- npm run test: รัน unit tests (Vitest)
+- npm run test:watch: รัน tests แบบ watch mode
 
 ## Docker
 
@@ -129,9 +135,20 @@ docker compose down
 - ตรวจสอบค่า environment ให้ครบก่อน deploy โดยเฉพาะ Clerk และ Database
 - ถ้าใช้งาน AI scan บน production ต้องตั้งค่า OPENROUTER_API_KEY ด้วย
 
+## Testing
+
+รันทดสอบอัตโนมัติ:
+
+```bash
+npm run test
+```
+
+ชุดทดสอบตอนนี้ครอบคลุม:
+
+- Utility สำหรับ normalize จำนวนเงินและวันที่
+
 ## Known Notes
 
-- โฟลเดอร์ app/api/ai/generate-budget-plan มีอยู่แต่ยังไม่มี route implementation
 - metadata ของแอปใน app/layout.js ยังเป็นค่าเริ่มต้น สามารถปรับ title/description เพิ่มได้
 
 ## License

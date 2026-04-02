@@ -3,7 +3,8 @@
 import { db } from '@/utils/dbConfig'
 import { AdminAlerts, AdminAuditLogs, Budgets, Expenses } from '@/utils/schema'
 import { currentUser } from '@clerk/nextjs/server'
-import { eq, sql, desc, inArray } from 'drizzle-orm'
+import { eq, sql, desc, inArray, and } from 'drizzle-orm'
+import { toDateValue, toMoneyNumber } from '@/lib/dataNormalization'
 
 const getCurrentActorEmail = async () => {
     const user = await currentUser();
@@ -39,10 +40,15 @@ export async function checkUserBudgetsAction(email) {
 
 export async function createBudgetAction(data) {
     try {
+        const normalizedAmount = toMoneyNumber(data.amount)
+        if (normalizedAmount === null) {
+            return { error: "Invalid budget amount" }
+        }
+
         const result = await db.insert(Budgets)
             .values({
                 name: data.name,
-                amount: data.amount,
+                amount: normalizedAmount,
                 createdBy: data.createdBy,
                 icon: data.icon,
                 category: data.category || null,
@@ -74,13 +80,12 @@ export async function getBudgetInfoAction(email, budgetId) {
             icon: Budgets.icon,
             category: Budgets.category,
             createdBy: Budgets.createdBy,
-            totalSpend: sql`sum(CAST(${Expenses.amount} AS NUMERIC))`.mapWith(Number),
+            totalSpend: sql`coalesce(sum(${Expenses.amount}), 0)`.mapWith(Number),
             totalItem: sql`coalesce(count(${Expenses.id}), 0)`.mapWith(Number),
         })
         .from(Budgets)
         .leftJoin(Expenses, eq(Budgets.id, Expenses.budgetId))
-        .where(eq(Budgets.createdBy, email))
-        .where(eq(Budgets.id, budgetId))
+        .where(and(eq(Budgets.createdBy, email), eq(Budgets.id, budgetId)))
         .groupBy(Budgets.id);
 
         getExpensesListAction();
@@ -95,12 +100,19 @@ export async function getBudgetInfoAction(email, budgetId) {
 // ✅ เพิ่มฟังก์ชันนี้สำหรับเพิ่ม Expense ใหม่
 export async function addNewExpenseAction(data) {
     try {
+        const normalizedAmount = toMoneyNumber(data.amount)
+        if (normalizedAmount === null) {
+            return { error: 'Invalid expense amount' }
+        }
+
+        const normalizedDate = toDateValue(data.createdAt) || new Date();
+
         const result = await db.insert(Expenses).values({
             name: data.name,
-            amount: data.amount,
+            amount: normalizedAmount,
                 budgetId: data.budgetId,
                 category: data.category || null,
-            createdAt: data.createdAt // หรือใช้คำสั่ง sql`now()` ถ้าอยากได้เวลาปัจจุบันจาก DB
+            createdAt: normalizedDate
         }).returning({ insertedId: Expenses.id });
 
         await createAdminAuditLogEntry({
@@ -121,7 +133,7 @@ export async function addBulkExpensesAction(payload) {
     try {
         const budgetId = Number(payload?.budgetId);
         const category = String(payload?.category || '').trim() || null;
-        const createdAt = String(payload?.createdAt || '').trim() || new Date().toLocaleDateString('en-GB');
+        const createdAt = toDateValue(payload?.createdAt) || new Date();
         const rawItems = Array.isArray(payload?.items) ? payload.items : [];
 
         if (!budgetId || rawItems.length === 0) {
@@ -131,9 +143,9 @@ export async function addBulkExpensesAction(payload) {
         const values = rawItems
             .map((item) => ({
                 name: String(item?.name || '').trim(),
-                amount: String(item?.amount || '').trim(),
+                amount: toMoneyNumber(item?.amount),
             }))
-            .filter((item) => item.name && Number(item.amount) > 0)
+            .filter((item) => item.name && item.amount !== null)
             .slice(0, 100)
             .map((item) => ({
                 name: item.name,
@@ -205,11 +217,18 @@ export async function deleteExpenseAction(expenseId) {
 // ✅ ฟังก์ชันสำหรับแก้ไข Expense
 export async function updateExpenseAction(expenseId, data) {
     try {
+        const normalizedAmount = toMoneyNumber(data.amount)
+        if (normalizedAmount === null) {
+            return { error: 'Invalid expense amount' }
+        }
+
+        const normalizedDate = toDateValue(data.createdAt);
+
         const result = await db.update(Expenses).set({
             name: data.name,
-            amount: String(data.amount),
+            amount: normalizedAmount,
             category: data.category || null,
-            createdAt: data.createdAt,
+            createdAt: normalizedDate || new Date(),
         }).where(eq(Expenses.id, expenseId)).returning();
 
         await createAdminAuditLogEntry({
@@ -256,9 +275,14 @@ export async function deleteBudgetAction(budgetId) {
 // ✅ ฟังก์ชันสำหรับแก้ Budget
 export async function updateBudgetAction(budgetInfo, name, amount, emojiIcon, category) {
     try {
+        const normalizedAmount = toMoneyNumber(amount)
+        if (normalizedAmount === null) {
+            return { error: 'Invalid budget amount' }
+        }
+
         const result = await db.update(Budgets).set({
             name:name,
-            amount:amount,
+            amount:normalizedAmount,
             icon: emojiIcon || budgetInfo?.icon || '😀',
             category: category || null,
         }).where(eq(Budgets.id, budgetInfo.id))
@@ -320,7 +344,7 @@ export const getBudgetListAction = async (email) => {
       icon: Budgets.icon, // <--- ตรวจสอบว่าใน Schema ตั้งชื่อว่า icon ใช่ไหม
             category: Budgets.category,
       createdBy: Budgets.createdBy,
-      totalSpend: sql`sum(CAST(${Expenses.amount} AS NUMERIC))`.mapWith(Number),
+        totalSpend: sql`coalesce(sum(${Expenses.amount}), 0)`.mapWith(Number),
       totalItem: sql`coalesce(count(${Expenses.id}), 0)`.mapWith(Number),
     })
     .from(Budgets)
@@ -420,15 +444,9 @@ export async function getAdminMonitoringDashboardAction() {
 
         const thisMonthKey = new Date().toISOString().slice(0, 7);
         const txThisMonth = expenseRows.filter((row) => {
-            const d = String(row.createdAt || '');
-            if (/^\d{2}\/\d{2}\/\d{4}$/.test(d)) {
-                const [dd, mm, yyyy] = d.split('/');
-                return `${yyyy}-${mm}` === thisMonthKey;
-            }
-            if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
-                return d.slice(0, 7) === thisMonthKey;
-            }
-            return false;
+            const dateValue = row.createdAt ? new Date(row.createdAt) : null;
+            if (!dateValue || Number.isNaN(dateValue.getTime())) return false;
+            return dateValue.toISOString().slice(0, 7) === thisMonthKey;
         }).length;
 
         const alertStates = storedAlerts.reduce((acc, row) => {
@@ -639,7 +657,7 @@ export async function getAdminDatabaseManagementAction() {
                 icon: Budgets.icon,
                 category: Budgets.category,
                 createdBy: Budgets.createdBy,
-                totalSpend: sql`coalesce(sum(CAST(${Expenses.amount} AS NUMERIC)), 0)`.mapWith(Number),
+                totalSpend: sql`coalesce(sum(${Expenses.amount}), 0)`.mapWith(Number),
                 totalItem: sql`coalesce(count(${Expenses.id}), 0)`.mapWith(Number),
             })
             .from(Budgets)

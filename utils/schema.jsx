@@ -1,9 +1,9 @@
-import { integer, pgTable, serial, varchar } from "drizzle-orm/pg-core";
+import { integer, numeric, pgTable, serial, timestamp, varchar } from "drizzle-orm/pg-core";
 
 export const Budgets=pgTable('budgets',{
     id:serial('id').primaryKey(),
     name:varchar('name').notNull(),
-    amount:varchar('amount').notNull(),
+    amount:numeric('amount', { precision: 12, scale: 2, mode: 'number' }).notNull(),
     icon:varchar('icon'),
     category:varchar('category'),
     createdBy:varchar('createdBy').notNull()
@@ -12,17 +12,17 @@ export const Budgets=pgTable('budgets',{
 export const Expenses=pgTable('expenses',{
     id:serial('id').primaryKey(),
     name:varchar('name').notNull(),
-    amount:varchar('amount').notNull(),    
+    amount:numeric('amount', { precision: 12, scale: 2, mode: 'number' }).notNull(),
     budgetId:integer('budgetId').references(()=>Budgets.id),
     category:varchar('category'),
-    createdAt:varchar('createdAt').notNull()
+    createdAt:timestamp('createdAt', { withTimezone: true }).defaultNow().notNull()
 })
 
 export const AdminAlerts = pgTable('admin_alerts', {
     id: serial('id').primaryKey(),
     alertKey: varchar('alertKey').notNull(),
     status: varchar('status').notNull(),
-    acknowledgedAt: varchar('acknowledgedAt'),
+    acknowledgedAt: timestamp('acknowledgedAt', { withTimezone: true }),
     acknowledgedBy: varchar('acknowledgedBy'),
 })
 
@@ -33,5 +33,5 @@ export const AdminAuditLogs = pgTable('admin_audit_logs', {
     targetCount: integer('targetCount').notNull(),
     message: varchar('message').notNull(),
     actorEmail: varchar('actorEmail'),
-    createdAt: varchar('createdAt').notNull(),
+    createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),
 })
