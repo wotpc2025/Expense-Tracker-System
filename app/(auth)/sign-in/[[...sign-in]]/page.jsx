@@ -1,7 +1,8 @@
 "use client"
 
 import { SignIn } from '@clerk/nextjs'
-import Image from 'next/image'import { getTranslation } from '@/lib/translations'
+import Image from 'next/image'
+import { getTranslation } from '@/lib/translations'
 
 export default function Page() {
   const language = 'en';return <div className="bg-white dark:bg-gray-900">

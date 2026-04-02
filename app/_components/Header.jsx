@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { useUser,UserButton } from '@clerk/nextjs'
-import Link from 'next/link'import { getTranslation } from '@/lib/translations'
+import Link from 'next/link'
+import { getTranslation } from '@/lib/translations'
 
 function Header() {
 

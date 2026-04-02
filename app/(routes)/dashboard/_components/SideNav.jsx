@@ -17,7 +17,8 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import { ThemeToggle } from '@/components/ThemeToggle'import { getTranslation } from '@/lib/translations'
+import { ThemeToggle } from '@/components/ThemeToggle'
+import { getTranslation } from '@/lib/translations'
 import { useUser } from '@clerk/nextjs'
 import { isAdminByRole } from '@/lib/adminAccess'
 import { getCurrentUserAdminStatusAction } from '@/app/_actions/dbActions'
