@@ -7,6 +7,7 @@ import { getBudgetListAction, getAllExpensesAction } from '@/app/_actions/dbActi
 import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
 import { getTranslation } from '@/lib/translations'
 import { useDashboardDateFilter } from '@/lib/useDashboardDateFilter'
+import { getCategoryColor } from '@/lib/expenseCategories'
 import { EXPORT_LANGUAGE_OPTIONS, exportRowsToCsv, sanitizeFileNamePart } from '@/lib/csvExport'
 import moment from 'moment'
 import 'moment/locale/th'
@@ -447,6 +448,7 @@ export default function ReportsPage() {
       const spent = Number(b.totalSpend || 0)
       switch (sortKey) {
         case 'name':      return b.name?.toLowerCase() || ''
+        case 'category':  return (b.category || 'uncategorized').toLowerCase()
         case 'amount':    return budget
         case 'spent':     return spent
         case 'remaining': return budget - spent
@@ -1005,7 +1007,7 @@ export default function ReportsPage() {
             <table className='w-full text-sm'>
               <thead>
                 <tr className='border-b dark:border-slate-700'>
-                  {[['name','left','reports.budget'],['amount','right','reports.budgetAmount'],['spent','right','reports.actualSpent'],['remaining','right','reports.remaining'],['pct','left','reports.ratio']].map(([key, align, tKey]) => (
+                  {[['name','left','reports.budgetName'],['category','left','reports.category'],['amount','right','reports.budgetAmount'],['spent','right','reports.actualSpent'],['remaining','right','reports.remaining'],['pct','left','reports.ratio']].map(([key, align, tKey]) => (
                     <th
                       key={key}
                       onClick={() => handleSort(key)}
@@ -1035,6 +1037,14 @@ export default function ReportsPage() {
                           <span className='text-lg'>{b.icon}</span>
                           <span className='font-medium text-slate-700 dark:text-slate-200 truncate max-w-35'>{b.name}</span>
                         </div>
+                      </td>
+                      <td className='py-3 pr-4'>
+                        <span
+                          style={{ backgroundColor: getCategoryColor(b.category || 'uncategorized'), color: '#fff' }}
+                          className='inline-flex rounded-full px-2 py-0.5 text-xs font-semibold'
+                        >
+                          {getCategoryLabel(b.category || 'uncategorized')}
+                        </span>
                       </td>
                       <td className='py-3 pr-4 text-right text-slate-600 dark:text-slate-300'>{fmt(budget)}</td>
                       <td className={`py-3 pr-4 text-right font-medium ${over ? 'text-red-500' : 'text-slate-700 dark:text-slate-200'}`}>
