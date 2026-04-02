@@ -110,17 +110,17 @@ function CreateBudget({ refreshData, trigger }) {
             const response = await fetch('/api/ai/scan-receipt', { method: 'POST', body: formData })
             const result = await response.json()
             if (!response.ok) {
-                toast.error(result?.userMessage || result?.error || 'สแกนใบเสร็จไม่สำเร็จ')
+                toast.error(result?.userMessage || result?.error || getTranslation(language, 'createBudget.toasts.scanFailed'))
                 return
             }
             setInitialScanResult(result)
             toast.success(
                 Array.isArray(result?.lineItems) && result.lineItems.length > 0
-                    ? `สแกนสำเร็จ พบ ${result.lineItems.length} รายการ — กรอกชื่อ Budget แล้วกด Create Budget`
-                    : 'สแกนใบเสร็จสำเร็จ — กรอกชื่อ Budget แล้วกด Create Budget'
+                    ? getTranslation(language, 'createBudget.toasts.scanSuccess').replace('{count}', String(result.lineItems.length))
+                    : getTranslation(language, 'createBudget.toasts.scanSuccessNoBudget')
             )
         } catch {
-            toast.error('สแกนใบเสร็จไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')
+            toast.error(getTranslation(language, 'createBudget.toasts.scanFailed'))
         } finally {
             setScanLoading(false)
             if (receiptInputRef.current) receiptInputRef.current.value = ''
@@ -144,7 +144,7 @@ function CreateBudget({ refreshData, trigger }) {
             }
         } catch (error) {
             console.error('Create budget error:', error)
-            toast.error('สร้าง Budget ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')
+            toast.error(getTranslation(language, 'createBudget.toasts.createFailed'))
         } finally {
             setLoading(false)
         }
@@ -169,12 +169,12 @@ function CreateBudget({ refreshData, trigger }) {
                         <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${step === 'create' ? 'bg-amber-600 text-white' : 'bg-emerald-500 text-white'}`}>
                             {step === 'create' ? '1' : <CheckCircle2 className='h-3.5 w-3.5' />}
                         </span>
-                        Create Budget
+                        {getTranslation(language, 'createBudget.step1Title')}
                     </span>
                     <span className='text-slate-300 select-none'>→</span>
                     <span className={`flex items-center gap-1.5 font-semibold ${step === 'addExpense' ? 'text-amber-600' : 'text-slate-400'}`}>
                         <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${step === 'addExpense' ? 'bg-amber-600 text-white' : 'bg-slate-200 text-slate-500'}`}>2</span>
-                        Add Expenses
+                        {getTranslation(language, 'createBudget.step2Title')}
                     </span>
                 </div>
 
@@ -228,7 +228,7 @@ function CreateBudget({ refreshData, trigger }) {
                                 />
                             </div>
                             <div className='mt-2'>
-                                <h2 className='text-black font-medium my-1 dark:text-white'>{language === 'th' ? 'เป้าหมายงบประมาณ' : getTranslation(language, 'createBudget.budgetAmount')}</h2>
+                                <h2 className='text-black font-medium my-1 dark:text-white'>{getTranslation(language, 'createBudget.budgetAmount')}</h2>
                                 <div className='flex items-center gap-2 mb-2'>
                                     <Checkbox
                                         id="autoAmount"
@@ -252,7 +252,11 @@ function CreateBudget({ refreshData, trigger }) {
                                     className={autoAmount ? 'opacity-60 pointer-events-none' : ''}
                                 />
                                 {autoAmount && (!initialScanResult || !Array.isArray(initialScanResult.lineItems) || initialScanResult.lineItems.length === 0) && (
-                                    <div className='text-xs text-amber-600 mt-1'>โปรดสแกนใบเสร็จด้วย AI เพื่อดำเนินการสร้างงบประมาณ</div>
+                                    <div className='text-xs text-amber-600 mt-1'>
+                                        {language === 'th'
+                                            ? 'โปรดสแกนใบเสร็จด้วย AI เพื่อดำเนินการสร้างงบประมาณ'
+                                            : 'Please scan a receipt with AI to continue creating this budget.'}
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -282,8 +286,22 @@ function CreateBudget({ refreshData, trigger }) {
                                 <CheckCircle2 className='mt-0.5 h-4 w-4 shrink-0 text-emerald-500' />
                                 <p className='text-xs text-emerald-700'>
                                     {Array.isArray(initialScanResult.lineItems) && initialScanResult.lineItems.length > 0
-                                        ? <><span className='font-semibold'>พบ {initialScanResult.lineItems.length} รายการ</span>{' — '}กรอกข้อมูล Budget แล้วกด Create Budget เพื่อตรวจสอบ Expenses</>
-                                        : <><span className='font-semibold'>สแกนสำเร็จ</span>{' — '}กรอกข้อมูล Budget แล้วกด Create Budget เพื่อเพิ่ม Expense</>}
+                                        ? <>
+                                            <span className='font-semibold'>
+                                                {language === 'th' ? `พบ ${initialScanResult.lineItems.length} รายการ` : `${initialScanResult.lineItems.length} items found`}
+                                            </span>
+                                            {' — '}
+                                            {language === 'th'
+                                                ? 'กรอกข้อมูล Budget แล้วกด Create Budget เพื่อตรวจสอบ Expenses'
+                                                : 'Fill in budget details and click Create Budget to review expenses.'}
+                                        </>
+                                        : <>
+                                            <span className='font-semibold'>{language === 'th' ? 'สแกนสำเร็จ' : 'Scan successful'}</span>
+                                            {' — '}
+                                            {language === 'th'
+                                                ? 'กรอกข้อมูล Budget แล้วกด Create Budget เพื่อเพิ่ม Expense'
+                                                : 'Fill in budget details and click Create Budget to add expenses.'}
+                                        </>}
                                 </p>
                             </div>
                         )}
@@ -313,7 +331,9 @@ function CreateBudget({ refreshData, trigger }) {
                             <p className='text-sm text-slate-500 mt-0.5'>
                                 <span className='mr-1'>{createdBudget.icon}</span>
                                 <span className='font-semibold text-slate-700'>{createdBudget.name}</span>
-                                {' '}{initialScanResult ? 'ตรวจสอบและเพิ่ม Expense จากใบเสร็จได้เลย' : 'สร้างเรียบร้อยแล้ว — เพิ่ม Expense ได้เลย หรือกด Done เพื่อปิด'}
+                                {' '}{initialScanResult
+                                    ? (language === 'th' ? 'ตรวจสอบและเพิ่ม Expense จากใบเสร็จได้เลย' : 'You can now review and add expenses from the scanned receipt.')
+                                    : (language === 'th' ? 'สร้างเรียบร้อยแล้ว — เพิ่ม Expense ได้เลย หรือกด Done เพื่อปิด' : 'Budget created. Add expenses now, or click Done to close.')}
                             </p>
                         </DialogHeader>
                         <div className='mt-1'>
@@ -330,7 +350,7 @@ function CreateBudget({ refreshData, trigger }) {
                             className='mt-2 w-full cursor-pointer border-slate-300 text-slate-600 hover:bg-slate-50'
                             onClick={() => { setOpen(false); resetForm() }}
                         >
-                            Done — ปิดหน้าต่างนี้
+                            {language === 'th' ? 'เสร็จสิ้น — ปิดหน้าต่างนี้' : 'Done - Close this window'}
                         </Button>
                     </>
                 )}

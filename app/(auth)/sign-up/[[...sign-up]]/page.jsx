@@ -1,7 +1,14 @@
+"use client"
+
 import { SignUp } from '@clerk/nextjs'
 import Image from 'next/image';
+import { LanguageToggle } from '@/components/LanguageToggle'
+import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
+import { getTranslation } from '@/lib/translations'
 
 export default function Page() {
+  const { language } = useLanguage()
+
   return (
     <div className="bg-white dark:bg-gray-900">
       <div className="flex justify-center h-screen">
@@ -28,14 +35,17 @@ export default function Page() {
           </div>
         </div>
 
-        <div className="flex items-center w-full max-w-md px-6 mx-auto lg:w-2/6">
+        <div className="relative flex items-center w-full max-w-md px-6 mx-auto lg:w-2/6">
+          <div className="absolute right-6 top-6">
+            <LanguageToggle />
+          </div>
           <div className="flex-1">
             <div className="text-center">
               <h2 className="text-4xl font-bold text-center text-gray-700 dark:text-white">
-                Welcome, to <span className="text-amber-600">Exfinit</span>
+                {getTranslation(language, 'authPage.welcomePrefix')} <span className="text-amber-600">Exfinit</span>
               </h2>
               <p className="mt-3 text-gray-500 dark:text-gray-300">
-                Sign up to access your account
+                {getTranslation(language, 'authPage.signUpSubtitle')}
               </p>
             </div>
 
