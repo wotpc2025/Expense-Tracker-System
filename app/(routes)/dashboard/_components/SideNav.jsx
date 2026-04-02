@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { Database, LayoutGrid, PiggyBank, ReceiptText, Shield, TrendingUp, Users } from 'lucide-react'
 import Link from 'next/link'
@@ -22,12 +22,38 @@ import { LanguageToggle } from '@/components/LanguageToggle'
 import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
 import { getTranslation } from '@/lib/translations'
 import { useUser } from '@clerk/nextjs'
-import { isAdminUser } from '@/lib/adminAccess'
+import { isAdminByRole } from '@/lib/adminAccess'
+import { getCurrentUserAdminStatusAction } from '@/app/_actions/dbActions'
 
 function SideNav() {
     const { language } = useLanguage()
     const { user } = useUser()
-    const isAdmin = isAdminUser(user, process.env.NEXT_PUBLIC_ADMIN_EMAILS)
+    const [isAdmin, setIsAdmin] = useState(isAdminByRole(user))
+
+    useEffect(() => {
+        let isActive = true
+
+        if (isAdminByRole(user)) {
+            setIsAdmin(true)
+            return () => {
+                isActive = false
+            }
+        }
+
+        getCurrentUserAdminStatusAction()
+            .then((result) => {
+                if (!isActive) return
+                setIsAdmin(Boolean(result))
+            })
+            .catch(() => {
+                if (!isActive) return
+                setIsAdmin(false)
+            })
+
+        return () => {
+            isActive = false
+        }
+    }, [user])
 
     // Get user's first and last name (fallback to email if not available)
     const userFirstName = user?.firstName || ''

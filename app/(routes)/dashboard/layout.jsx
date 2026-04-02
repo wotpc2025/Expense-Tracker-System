@@ -6,11 +6,11 @@ import { useUser } from '@clerk/nextjs'
 // [!code --] import { db } from '@/utils/dbConfig'  <-- ลบทิ้ง!!
 // [!code --] import { Budgets } from '@/utils/schema' <-- ลบทิ้ง!!
 // [!code --] import { eq } from 'drizzle-orm' <-- ลบทิ้ง!!
-import { checkUserBudgetsAction } from '@/app/_actions/dbActions' // [!code ++] Import ตัวนี้มาแทน
+import { checkUserBudgetsAction, getCurrentUserAdminStatusAction } from '@/app/_actions/dbActions' // [!code ++] Import ตัวนี้มาแทน
 import { usePathname, useRouter } from 'next/navigation'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { LanguageProvider } from './_providers/LanguageProvider'
-import { isAdminUser } from '@/lib/adminAccess'
+import { isAdminByRole } from '@/lib/adminAccess'
 
 function DashboardLayout({children}) {
   const { user, isLoaded } = useUser();
@@ -19,10 +19,20 @@ function DashboardLayout({children}) {
 
   useEffect(() => {
     if (!isLoaded || !user) return;
-    if (isAdminUser(user, process.env.NEXT_PUBLIC_ADMIN_EMAILS)) return;
     if (pathname !== '/dashboard') return;
 
-    user && getUserBudgets();
+    let isActive = true
+
+    if (isAdminByRole(user)) return;
+
+    getCurrentUserAdminStatusAction().then((isAdmin) => {
+      if (!isActive || isAdmin) return;
+      getUserBudgets();
+    });
+
+    return () => {
+      isActive = false
+    }
   }, [isLoaded, user, pathname])
 
   const getUserBudgets = async () => {

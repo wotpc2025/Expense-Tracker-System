@@ -2,14 +2,14 @@
 import { useUser } from '@clerk/nextjs'
 import React, { useEffect, useMemo, useState } from 'react'
 import CardInfo from './_components/CardInfo';
-import { getAllExpensesAction, getBudgetListAction } from '@/app/_actions/dbActions';
+import { getAllExpensesAction, getBudgetListAction, getCurrentUserAdminStatusAction } from '@/app/_actions/dbActions';
 import BarChartDashboard from './_components/BarChartDashboard';
 import BudgetItem from './budgets/_components/BudgetItem';
 import ExpensesListTable from './budgets/_components/ExpensesListTable';
 import { useLanguage } from './_providers/LanguageProvider'
 import { getTranslation } from '@/lib/translations'
 import { useRouter } from 'next/navigation';
-import { isAdminUser } from '@/lib/adminAccess';
+import { isAdminByRole } from '@/lib/adminAccess';
 import { useDashboardDateFilter } from '@/lib/useDashboardDateFilter'
 import moment from 'moment'
 import { Calendar } from '@/components/ui/calendar'
@@ -25,6 +25,8 @@ function Dashboard() {
     const { user, isLoaded } = useUser();
     const router = useRouter();
     const { language } = useLanguage();
+    const [isAdmin, setIsAdmin] = useState(false)
+    const [isAdminResolved, setIsAdminResolved] = useState(false)
     const {
       dateFilterMode,
       setDateFilterMode,
@@ -51,23 +53,41 @@ function Dashboard() {
     useEffect(() => {
       if (!isLoaded || !user) return;
 
-      const isAdmin = isAdminUser(user, process.env.NEXT_PUBLIC_ADMIN_EMAILS);
-      if (isAdmin) {
-        router.replace('/dashboard/admin');
+      let isActive = true
+
+      setIsAdmin(isAdminByRole(user))
+
+      getCurrentUserAdminStatusAction()
+        .then((result) => {
+          if (!isActive) return
+          const nextIsAdmin = Boolean(result)
+          setIsAdmin(nextIsAdmin)
+          setIsAdminResolved(true)
+          if (nextIsAdmin) {
+            router.replace('/dashboard/admin')
+          }
+        })
+        .catch(() => {
+          if (!isActive) return
+          setIsAdminResolved(true)
+        })
+
+      return () => {
+        isActive = false
       }
     }, [isLoaded, user, router]);
   
     useEffect(() => {
-      if (isLoaded && user && !isAdminUser(user, process.env.NEXT_PUBLIC_ADMIN_EMAILS)) {
+      if (isLoaded && user && isAdminResolved && !isAdmin) {
         getBudgetList();
       }
-    }, [isLoaded, user])
+    }, [isLoaded, user, isAdminResolved, isAdmin])
 
     useEffect(() => {
-      if (isLoaded && user && !isAdminUser(user, process.env.NEXT_PUBLIC_ADMIN_EMAILS)) {
+      if (isLoaded && user && isAdminResolved && !isAdmin) {
         getAllExpenses();
       }
-    }, [isLoaded, user])
+    }, [isLoaded, user, isAdminResolved, isAdmin])
   
     const getBudgetList = async () => {
       setIsBudgetLoading(true);

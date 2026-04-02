@@ -6,6 +6,7 @@ import { currentUser } from '@clerk/nextjs/server'
 import { eq, sql, desc, inArray, and } from 'drizzle-orm'
 import { toDateValue, toMoneyNumber } from '@/lib/dataNormalization'
 import { getSecurityTelemetrySnapshot } from '@/lib/securityTelemetry'
+import { isAdminUser } from '@/lib/adminAccess'
 
 const toIsoDateTime = (value) => {
     if (!value) return null;
@@ -17,6 +18,11 @@ const toIsoDateTime = (value) => {
 const getCurrentActorEmail = async () => {
     const user = await currentUser();
     return String(user?.primaryEmailAddress?.emailAddress || '').toLowerCase() || null;
+}
+
+export async function getCurrentUserAdminStatusAction() {
+    const user = await currentUser();
+    return isAdminUser(user, process.env.ADMIN_EMAILS);
 }
 
 const createAdminAuditLogEntry = async ({ action, targetType, targetCount, message }) => {
