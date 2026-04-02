@@ -202,23 +202,27 @@ function SideNav() {
                 </SidebarGroup>
             </SidebarContent>
 
-            <SidebarFooter className='border-t'>
-                <div className='mx-1 mb-2 rounded-lg border border-slate-700/60 bg-slate-900/60 px-3 py-2'>
-                    <div className='flex items-center justify-between text-xs'>
-                        <span className='text-slate-400'>Database</span>
-                        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium ${dbBadgeClass}`}>
+            <div className='mx-2 mb-2 rounded-lg border border-slate-700/60 bg-slate-900/60 px-3 py-2'>
+                    <div className='flex items-center justify-between gap-3'>
+                        <div className='min-w-0'>
+                            <p className='text-xs text-slate-400'>Database Status</p>
+                            <p className='mt-1 text-[11px] text-slate-500'>
+                                {dbStatus === 'online' && dbLatency
+                                    ? `${dbLatency} ms`
+                                    : language === 'th'
+                                        ? 'อัปเดตทุก 30 วินาที'
+                                        : 'Updates every 30s'}
+                            </p>
+                        </div>
+
+                        <span className={`inline-flex h-6 shrink-0 items-center justify-center gap-1 rounded-full border px-2.5 text-xs font-medium leading-none ${dbBadgeClass}`}>
                             <span className={`h-1.5 w-1.5 rounded-full ${dbDotClass}`} />
                             {dbStatusLabel}
                         </span>
                     </div>
-                    <p className='mt-1 text-[11px] text-slate-500'>
-                        {dbStatus === 'online' && dbLatency
-                            ? `${dbLatency} ms`
-                            : language === 'th'
-                                ? 'อัปเดตทุก 30 วินาที'
-                                : 'Updates every 30s'}
-                    </p>
-                </div>
+            </div>
+
+            <SidebarFooter className='border-t pt-2'>
                 <div className='flex items-center justify-between px-1'>
                     <div className='flex items-center gap-2 text-sm font-semibold'>
                         <UserButton />
