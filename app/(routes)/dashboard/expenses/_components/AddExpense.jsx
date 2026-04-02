@@ -9,8 +9,11 @@ import { addBulkExpensesAction, addNewExpenseAction } from '@/app/_actions/dbAct
 import moment from 'moment';
 import { Loader, ScanLine } from 'lucide-react';
 import { DEFAULT_EXPENSE_CATEGORIES, normalizeCategoryName } from '@/lib/expenseCategories';
+import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider';
+import { getTranslation } from '@/lib/translations';
 
 function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'comfortable', initialScanResult = null }) {
+    const { language } = useLanguage();
 
     const [name, setName] = useState(initialScanResult?.expenseName || '');
     const [amount, setAmount] = useState(initialScanResult?.amount != null ? String(initialScanResult.amount) : '');
@@ -41,7 +44,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
     const addCustomCategory = () => {
         const nextCategory = normalizeCategoryName(customCategory);
         if (!nextCategory) {
-            toast.error('Please enter a category name');
+            toast.error(getTranslation(language, 'addExpense.toasts.enterCategoryName'));
             return;
         }
 
@@ -56,7 +59,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
         setCategoryOptions(updated);
         setCategory(nextCategory);
         setCustomCategory('');
-        toast.success('Category added');
+        toast.success(getTranslation(language, 'addExpense.toasts.categoryAdded'));
     };
 
     const handleReceiptSelection = async (event) => {
@@ -76,7 +79,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
             const result = await response.json();
 
             if (!response.ok) {
-                toast.error(result?.userMessage || result?.error || 'สแกนใบเสร็จไม่สำเร็จ');
+                toast.error(result?.userMessage || result?.error || getTranslation(language, 'addExpense.toasts.scanRetry'));
                 return;
             }
 
@@ -84,15 +87,17 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
                 // Only show line items to prevent accidental double-adding of aggregate + items
                 setScannedItems(result.lineItems);
                 setSelectedScannedIndexes(result.lineItems.map((_, index) => index));
-                toast.success(`สแกนสำเร็จ พบ ${result.lineItems.length} รายการ`);
+                toast.success(
+                    getTranslation(language, 'addExpense.toasts.scanFound').replace('{count}', String(result.lineItems.length))
+                );
             } else {
-                toast.error('ไม่พบรายการใดๆ จากการสแกน');
+                toast.error(getTranslation(language, 'addExpense.toasts.scanNoItems'));
                 setScannedItems([]);
                 setSelectedScannedIndexes([]);
             }
         } catch (error) {
             console.error('Scan receipt error:', error);
-            toast.error('สแกนใบเสร็จไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+            toast.error(getTranslation(language, 'addExpense.toasts.scanRetry'));
         } finally {
             setScanLoading(false);
             if (receiptInputRef.current) {
@@ -117,7 +122,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
             setName('');
             setCategory('');
             setAmount(''); // ล้างค่าหลังเพิ่มเสร็จ
-            toast.success('New Expense Added!');
+            toast.success(getTranslation(language, 'addExpense.toasts.addSuccess'));
             refreshData && refreshData(); // สั่ง refresh ข้อมูลหน้าจอถ้ามี function ส่งมา
         }
         setLoading(false);
@@ -125,13 +130,13 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
 
     const addScannedItems = async () => {
         if (!Array.isArray(scannedItems) || scannedItems.length === 0) {
-            toast.error('ยังไม่มีรายการที่สแกนได้');
+            toast.error(getTranslation(language, 'addExpense.toasts.noScannedItems'));
             return;
         }
 
         const itemsToAdd = scannedItems.filter((_, index) => selectedScannedIndexes.includes(index));
         if (itemsToAdd.length === 0) {
-            toast.error('กรุณาเลือกรายการอย่างน้อย 1 รายการ');
+            toast.error(getTranslation(language, 'addExpense.toasts.selectAtLeastOne'));
             return;
         }
 
@@ -145,11 +150,13 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
             });
 
             if (!result?.success) {
-                toast.error(result?.error || 'เพิ่มรายการจากใบเสร็จไม่สำเร็จ');
+                toast.error(result?.error || getTranslation(language, 'addExpense.toasts.addMultipleFailed'));
                 return;
             }
 
-            toast.success(`เพิ่มรายการจากใบเสร็จแล้ว ${result.count} รายการ`);
+            toast.success(
+                getTranslation(language, 'addExpense.toasts.addMultipleSuccess').replace('{count}', String(result.count))
+            );
             setScannedItems([]);
             setSelectedScannedIndexes([]);
             setName('');
@@ -166,10 +173,27 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
             refreshData && refreshData();
         } catch (error) {
             console.error('Add scanned items error:', error);
-            toast.error('เพิ่มรายการจากใบเสร็จไม่สำเร็จ');
+            toast.error(getTranslation(language, 'addExpense.toasts.addMultipleFailed'));
         } finally {
             setAddingScanned(false);
         }
+    }
+
+    const updateScannedItemName = (index, value) => {
+        setScannedItems((prev) => prev.map((item, idx) => (
+            idx === index
+                ? { ...item, name: value }
+                : item
+        )));
+    }
+
+    const updateScannedItemAmount = (index, value) => {
+        const parsed = Number(value);
+        setScannedItems((prev) => prev.map((item, idx) => (
+            idx === index
+                ? { ...item, amount: Number.isFinite(parsed) ? parsed : 0 }
+                : item
+        )));
     }
 
     const toggleScannedItem = (index) => {
@@ -201,7 +225,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
     return (
         <div className={`rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 ${density === 'compact' ? 'p-3.5 sm:p-4' : 'p-4 sm:p-5'}`}>
             <div className='flex items-center justify-between gap-2 mb-2'>
-                <h2 className='text-lg font-bold sm:text-xl'>Add Expense</h2>
+                <h2 className='text-lg font-bold sm:text-xl'>{getTranslation(language, 'addExpense.addExpense')}</h2>
                 {scannedItems.length > 0 && (
                     <Button
                         type='button'
@@ -210,7 +234,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
                         disabled={addingScanned}
                         className='h-8 px-3 text-xs cursor-pointer'
                     >
-                        Clear Scan
+                        {getTranslation(language, 'addExpense.clearScan')}
                     </Button>
                 )}
             </div>
@@ -228,13 +252,13 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
                 className={`mt-3 w-full cursor-pointer bg-linear-to-r from-fuchsia-500 to-violet-500 text-white hover:from-fuchsia-600 hover:to-violet-600 disabled:opacity-50 ${density === 'compact' ? 'h-9' : 'h-10'}`}
             >
                 {scanLoading ? <Loader className='animate-spin' /> : <ScanLine className='mr-2 h-4 w-4' />}
-                {scanLoading ? 'Scanning Receipt...' : 'Scan Receipt with AI'}
+                {scanLoading ? getTranslation(language, 'addExpense.scanning') : getTranslation(language, 'addExpense.scanReceipt')}
             </Button>
 
             {scannedItems.length > 0 && (
                 <div className='mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/30 dark:bg-emerald-900/20'>
                     <p className='text-sm text-emerald-700 dark:text-emerald-300 font-medium'>
-                        ✓ สแกนสำเร็จ กรุณาเลือกรายการและกด "Add Selected" เพื่อเพิ่มข้อมูล
+                        {getTranslation(language, 'addExpense.scanHint')}
                     </p>
                 </div>
             )}
@@ -243,8 +267,12 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
                 <div className='mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50'>
                     <div className='flex items-center justify-between mb-2 gap-2 flex-wrap'>
                         <div>
-                            <h3 className='text-sm font-semibold text-slate-700 dark:text-slate-300'>Scanned Items ({scannedItems.length})</h3>
-                            <p className='text-xs text-slate-500'>Selected: {selectedScannedIndexes.length}</p>
+                            <h3 className='text-sm font-semibold text-slate-700 dark:text-slate-300'>
+                                {getTranslation(language, 'addExpense.scannedItems')} ({scannedItems.length})
+                            </h3>
+                            <p className='text-xs text-slate-500'>
+                                {getTranslation(language, 'addExpense.selectedCount').replace('{count}', String(selectedScannedIndexes.length))}
+                            </p>
                         </div>
                         <div className='flex gap-2'>
                             <Button
@@ -254,7 +282,9 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
                                 disabled={addingScanned || scanLoading}
                                 className='h-8 px-3 text-xs cursor-pointer'
                             >
-                                {selectedScannedIndexes.length === scannedItems.length ? 'Unselect All' : 'Select All'}
+                                {selectedScannedIndexes.length === scannedItems.length
+                                    ? getTranslation(language, 'addExpense.unselectAll')
+                                    : getTranslation(language, 'addExpense.selectAll')}
                             </Button>
                             <Button
                                 type='button'
@@ -262,22 +292,40 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
                                 disabled={addingScanned || scanLoading || selectedScannedIndexes.length === 0}
                                 className='h-8 px-3 text-xs bg-emerald-600 hover:bg-emerald-700 cursor-pointer'
                             >
-                                {addingScanned ? <Loader className='animate-spin h-3.5 w-3.5' /> : 'Add Selected'}
+                                {addingScanned ? <Loader className='animate-spin h-3.5 w-3.5' /> : getTranslation(language, 'addExpense.addSelected')}
                             </Button>
                         </div>
                     </div>
                     <div className='max-h-44 space-y-1 overflow-y-auto pr-1'>
                         {scannedItems.map((item, idx) => (
-                            <div key={`${item.name}-${idx}`} className='flex items-center justify-between text-xs rounded border bg-white px-2 py-1.5 dark:border-slate-700 dark:bg-slate-800'>
-                                <label className='flex items-center gap-2 min-w-0 flex-1 cursor-pointer'>
-                                    <input
-                                        type='checkbox'
-                                        checked={selectedScannedIndexes.includes(idx)}
-                                        onChange={() => toggleScannedItem(idx)}
+                            <div key={`${item.name}-${idx}`} className='rounded border bg-white px-2 py-1.5 dark:border-slate-700 dark:bg-slate-800'>
+                                <div className='flex items-center justify-between text-xs'>
+                                    <label className='flex items-center gap-2 min-w-0 flex-1 cursor-pointer'>
+                                        <input
+                                            type='checkbox'
+                                            checked={selectedScannedIndexes.includes(idx)}
+                                            onChange={() => toggleScannedItem(idx)}
+                                        />
+                                        <span className='truncate pr-2'>{item.name}</span>
+                                    </label>
+                                    <span className='font-semibold'>฿{Number(item.amount || 0).toLocaleString('en-US')}</span>
+                                </div>
+
+                                <div className='mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2'>
+                                    <Input
+                                        value={item.name || ''}
+                                        onChange={(e) => updateScannedItemName(idx, e.target.value)}
+                                        placeholder={getTranslation(language, 'addExpense.editItemName')}
+                                        className='h-8 text-xs'
                                     />
-                                    <span className='truncate pr-2'>{item.name}</span>
-                                </label>
-                                <span className='font-semibold'>฿{Number(item.amount || 0).toLocaleString('en-US')}</span>
+                                    <input
+                                        type='number'
+                                        value={Number(item.amount || 0)}
+                                        onChange={(e) => updateScannedItemAmount(idx, e.target.value)}
+                                        className='h-8 rounded-md border border-input bg-transparent px-3 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100'
+                                        placeholder={getTranslation(language, 'addExpense.editItemAmount')}
+                                    />
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -287,29 +335,29 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
             {scannedItems.length === 0 && (
                 <>
                     <div className={density === 'compact' ? 'mt-2.5' : 'mt-3'}>
-                        <h2 className='text-black font-medium my-1 dark:text-white'>Expense Name</h2>
-                        <Input placeholder="e.g. Home Decor"
+                        <h2 className='text-black font-medium my-1 dark:text-white'>{getTranslation(language, 'addExpense.expenseName')}</h2>
+                        <Input placeholder={getTranslation(language, 'placeholder.expenseName')}
                             autoComplete="on"
                             value={name}
                             onChange={(e) => setName(e.target.value)} />
                     </div>
                     <div className={density === 'compact' ? 'mt-2.5' : 'mt-3'}>
-                        <h2 className='text-black font-medium my-1 dark:text-white'>Expense Amount</h2>
-                        <Input placeholder="e.g. 1000$"
+                        <h2 className='text-black font-medium my-1 dark:text-white'>{getTranslation(language, 'addExpense.expenseAmount')}</h2>
+                        <Input placeholder={getTranslation(language, 'placeholder.expenseAmount')}
                             autoComplete="on"
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)} />
                     </div>
                     <div className={density === 'compact' ? 'mt-2.5' : 'mt-3'}>
                         <h2 className='text-black font-medium my-1 dark:text-white'>
-                            Category <span className='text-slate-400 text-xs font-normal'>(optional)</span>
+                            {getTranslation(language, 'addExpense.category')}
                         </h2>
                         <select
                             value={category}
                             onChange={(e) => setCategory(e.target.value)}
                             className={`w-full rounded-md border border-input bg-transparent px-3 text-sm dark:bg-slate-800 dark:text-slate-100 dark:border-slate-600 ${density === 'compact' ? 'h-9' : 'h-10'}`}
                         >
-                            <option value=''>Select category</option>
+                            <option value=''>{getTranslation(language, 'addExpense.selectCategory')}</option>
                             {categoryOptions.map((cat) => (
                                 <option key={cat} value={cat}>{cat}</option>
                             ))}
@@ -317,7 +365,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
 
                         <div className='mt-2 flex flex-wrap gap-2 sm:flex-nowrap'>
                             <Input
-                                placeholder='Add new category'
+                                placeholder={getTranslation(language, 'addExpense.newCategory')}
                                 autoComplete='off'
                                 value={customCategory}
                                 onChange={(e) => setCustomCategory(e.target.value)}
@@ -328,7 +376,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
                                 onClick={addCustomCategory}
                                 className='cursor-pointer whitespace-nowrap'
                             >
-                                Add Category
+                                {getTranslation(language, 'addExpense.addNewCategory')}
                             </Button>
                         </div>
                     </div>
@@ -336,7 +384,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
                         onClick={() => addNewExpense()}
                         className={`mt-4 w-full bg-amber-600 hover:bg-amber-700 cursor-pointer ${density === 'compact' ? 'h-9' : 'h-10'}`}>
                         {loading ?
-                            <Loader className='animate-spin' /> : "Add New Expense"
+                            <Loader className='animate-spin' /> : getTranslation(language, 'addExpense.addButton')
                         }
                     </Button>
                 </>

@@ -103,11 +103,11 @@ function ExpensesScreen({ params }) {
         try {
             const result = await deleteBudgetAction(unwrappedParams?.id);
             // console.log("Delete Budget Result:", result);
-            toast.success('Budget Deleted!');
+            toast.success(getTranslation(language, 'expensesDetailPage.toasts.deleteSuccess'));
             router.push('/dashboard/budgets'); // กลับไปหน้ารายการ Budgets หลังจากลบเสร็จ
         } catch (error) {
             console.error("Error deleting budget:", error);
-            toast.error('Failed to delete budget');
+            toast.error(getTranslation(language, 'expensesDetailPage.toasts.deleteFailed'));
         }
     }
 
@@ -140,7 +140,7 @@ function ExpensesScreen({ params }) {
                         type='button'
                         onClick={() => setDensity('auto')}
                         className={`rounded px-2 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${density === 'auto' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'}`}
-                        title={`Auto mode is currently ${resolvedDensity}`}
+                        title={`${getTranslation(language, 'density.autoModeTooltip')}${resolvedDensity}`}
                     >
                         <span className='inline-flex items-center gap-1'>
                           <MonitorCog className='h-3.5 w-3.5' />
@@ -164,19 +164,18 @@ function ExpensesScreen({ params }) {
               <AlertDialog>
                   <AlertDialogTrigger asChild>
                             <Button className='h-10 gap-2 cursor-pointer hover:bg-red-800' variant="destructive">
-                        <Trash/> Delete</Button>
+                        <Trash/> {getTranslation(language, 'delete')}</Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent suppressHydrationWarning>
                       <AlertDialogHeader>
-                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                          <AlertDialogTitle>{getTranslation(language, 'expensesDetailPage.deleteDialog.title')}</AlertDialogTitle>
                           <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete your current budget along with expenses
-                              and remove your data from our servers.
+                              {getTranslation(language, 'expensesDetailPage.deleteDialog.description')}
                           </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() =>deleteBudget()}>Continue</AlertDialogAction>
+                          <AlertDialogCancel>{getTranslation(language, 'cancel')}</AlertDialogCancel>
+                          <AlertDialogAction onClick={() =>deleteBudget()}>{getTranslation(language, 'expensesDetailPage.deleteDialog.confirm')}</AlertDialogAction>
                       </AlertDialogFooter>
                   </AlertDialogContent>
               </AlertDialog>
@@ -186,36 +185,36 @@ function ExpensesScreen({ params }) {
                     <div className='mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4'>
                                                 <StatCard
                                                     loading={!isLoaded || isLoadingBudget}
-                                                    title='Budget Amount'
+                                                    title={getTranslation(language, 'expensesDetailPage.stats.budgetAmount')}
                                                     value={`฿${budgetAmount.toLocaleString('th-TH')}`}
-                                                    caption='Planned capacity'
+                                                    caption={getTranslation(language, 'expensesDetailPage.stats.plannedCapacity')}
                                                     formula='budget.amount'
                                                     tone='white'
                                                     points={[budgetAmount * 0.6, budgetAmount * 0.7, budgetAmount * 0.85, budgetAmount]}
                                                 />
                                                 <StatCard
                                                     loading={!isLoaded || isLoadingBudget || isLoadingExpenses}
-                                                    title='Total Spend'
+                                                    title={getTranslation(language, 'expensesDetailPage.stats.totalSpend')}
                                                     value={`฿${totalSpend.toLocaleString('th-TH')}`}
-                                                    caption='Current usage'
+                                                    caption={getTranslation(language, 'expensesDetailPage.stats.currentUsage')}
                                                     formula='SUM(expenses.amount by budgetId)'
                                                     tone='slate'
                                                     points={expensesList.slice(-10).map((item) => Number(item?.amount || 0))}
                                                 />
                                                 <StatCard
                                                     loading={!isLoaded || isLoadingBudget}
-                                                    title='Remaining'
+                                                    title={getTranslation(language, 'expensesDetailPage.stats.remaining')}
                                                     value={`฿${remaining.toLocaleString('th-TH')}`}
-                                                    caption='Left to use'
+                                                    caption={getTranslation(language, 'expensesDetailPage.stats.leftToUse')}
                                                     formula='Budget Amount - Total Spend'
                                                     tone='emerald'
                                                     points={[remaining + 1800, remaining + 1200, remaining + 400, remaining]}
                                                 />
                                                 <StatCard
                                                     loading={!isLoaded || isLoadingExpenses}
-                                                    title='Expense Items'
+                                                    title={getTranslation(language, 'expensesDetailPage.stats.expenseItems')}
                                                     value={totalItems}
-                                                    caption='Entries in this budget'
+                                                    caption={getTranslation(language, 'expensesDetailPage.stats.entriesInBudget')}
                                                     formula='COUNT(expenses in selected budget)'
                                                     tone='amber'
                                                     points={expensesList.slice(-10).map((_, index) => index + 1)}
