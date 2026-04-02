@@ -175,3 +175,16 @@
     stroke-dashoffset: 0;
   }
 }
+
+/* Improve native select option contrast for react-day-picker dropdowns on Windows */
+.rdp-dropdown,
+.rdp-dropdown option {
+  color: #0f172a;
+  background-color: #ffffff;
+}
+
+.dark .rdp-dropdown,
+.dark .rdp-dropdown option {
+  color: #e2e8f0;
+  background-color: #0f172a;
+}

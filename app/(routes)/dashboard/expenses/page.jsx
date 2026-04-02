@@ -6,8 +6,13 @@ import { getAllExpensesAction } from '@/app/_actions/dbActions'
 import ExpensesListTable from '../budgets/_components/ExpensesListTable'
 import StatCard from '../_components/StatCard'
 import { useDashboardDensity } from '@/lib/useDashboardDensity'
+import { useDashboardDateFilter } from '@/lib/useDashboardDateFilter'
 import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
 import { getTranslation } from '@/lib/translations'
+import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { CalendarDays } from 'lucide-react'
 import moment from 'moment'
 
 function ExpensesPage() {
@@ -15,6 +20,17 @@ function ExpensesPage() {
   const { language } = useLanguage()
   const [expensesList, setExpensesList] = useState([]);
   const [isFetching, setIsFetching] = useState(false);
+  const {
+    dateFilterMode,
+    setDateFilterMode,
+    selectedMonth,
+    setSelectedMonth,
+    startDate,
+    setStartDate,
+    endDate,
+    setEndDate,
+  } = useDashboardDateFilter(moment().format('YYYY-MM'))
+  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
   const [density, setDensity, resolvedDensity] = useDashboardDensity('dashboard-density', 'comfortable');
 
   const parseDate = (dateStr) => {
@@ -28,33 +44,107 @@ function ExpensesPage() {
     return m.isValid() ? m : null
   }
 
-  const summary = useMemo(() => {
-    const now = moment()
-    const thisMonthKey = now.format('YYYY-MM')
-    const daysElapsed = now.date()
-    const monthName = now.locale(language === 'th' ? 'th' : 'en').format('MMMM YYYY')
+  const getFilteredExpenses = () => {
+    if (dateFilterMode === 'all') return expensesList
 
-    const thisMonthExpenses = expensesList.filter(e => {
-      // If no createdAt, use today's date
-      const dateStr = e.createdAt || moment().format('DD/MM/YYYY')
-      const m = parseDate(dateStr)
-      const isThisMonth = m && m.format('YYYY-MM') === thisMonthKey
-      return isThisMonth
-    })
-    const thisMonthTotal = thisMonthExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0)
-    const totalAmount = expensesList.reduce((sum, e) => sum + Number(e.amount || 0), 0)
-    const avgPerDay = daysElapsed > 0 ? thisMonthTotal / daysElapsed : 0
+    if (dateFilterMode === 'month') {
+      return expensesList.filter((e) => {
+        const m = parseDate(e.createdAt)
+        return m && m.format('YYYY-MM') === selectedMonth
+      })
+    }
+
+    if (dateFilterMode === 'range') {
+      const from = startDate ? moment(startDate, 'YYYY-MM-DD', true).startOf('day') : null
+      const to = endDate ? moment(endDate, 'YYYY-MM-DD', true).endOf('day') : null
+      return expensesList.filter((e) => {
+        const m = parseDate(e.createdAt)
+        if (!m) return false
+        if (from && m.isBefore(from)) return false
+        if (to && m.isAfter(to)) return false
+        return true
+      })
+    }
+
+    return expensesList
+  }
+
+  const filteredExpenses = useMemo(getFilteredExpenses, [expensesList, dateFilterMode, selectedMonth, startDate, endDate])
+
+  const periodLabel = useMemo(() => {
+    if (dateFilterMode === 'all') return language === 'th' ? 'ทุกช่วงเวลา' : 'All time'
+    if (dateFilterMode === 'month') {
+      return moment(selectedMonth, 'YYYY-MM', true)
+        .locale(language === 'th' ? 'th' : 'en')
+        .format('MMMM YYYY')
+    }
+
+    if (!startDate && !endDate) return language === 'th' ? 'ช่วงวันที่ทั้งหมด' : 'Any date range'
+    if (startDate && endDate) {
+      const from = moment(startDate, 'YYYY-MM-DD', true).locale(language === 'th' ? 'th' : 'en').format('D MMM YYYY')
+      const to = moment(endDate, 'YYYY-MM-DD', true).locale(language === 'th' ? 'th' : 'en').format('D MMM YYYY')
+      return `${from} - ${to}`
+    }
+    if (startDate) {
+      const from = moment(startDate, 'YYYY-MM-DD', true).locale(language === 'th' ? 'th' : 'en').format('D MMM YYYY')
+      return `${language === 'th' ? 'ตั้งแต่' : 'From'} ${from}`
+    }
+
+    const to = moment(endDate, 'YYYY-MM-DD', true).locale(language === 'th' ? 'th' : 'en').format('D MMM YYYY')
+    return `${language === 'th' ? 'ถึง' : 'Until'} ${to}`
+  }, [dateFilterMode, selectedMonth, startDate, endDate, language])
+
+  const summary = useMemo(() => {
+    let periodDays = 1
+    if (dateFilterMode === 'month') {
+      const selected = moment(selectedMonth, 'YYYY-MM', true)
+      const nowKey = moment().format('YYYY-MM')
+      periodDays = selectedMonth === nowKey ? moment().date() : selected.daysInMonth()
+    } else if (dateFilterMode === 'range') {
+      const from = startDate ? moment(startDate, 'YYYY-MM-DD', true).startOf('day') : null
+      const to = endDate ? moment(endDate, 'YYYY-MM-DD', true).endOf('day') : null
+      if (from && to) {
+        periodDays = Math.max(to.diff(from, 'days') + 1, 1)
+      } else {
+        const validDates = filteredExpenses
+          .map((e) => parseDate(e.createdAt))
+          .filter(Boolean)
+          .sort((a, b) => a.valueOf() - b.valueOf())
+        if (validDates.length > 1) {
+          periodDays = Math.max(validDates[validDates.length - 1].diff(validDates[0], 'days') + 1, 1)
+        }
+      }
+    } else {
+      const uniqueDays = new Set(
+        filteredExpenses
+          .map((e) => parseDate(e.createdAt))
+          .filter(Boolean)
+          .map((m) => m.format('YYYY-MM-DD'))
+      )
+      periodDays = Math.max(uniqueDays.size, 1)
+    }
+
+    const periodTotal = filteredExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0)
+    const avgPerDay = periodDays > 0 ? periodTotal / periodDays : 0
 
     const categoryTotals = {}
-    expensesList.forEach(e => {
+    filteredExpenses.forEach(e => {
       if (e.category) categoryTotals[e.category] = (categoryTotals[e.category] || 0) + Number(e.amount || 0)
     })
     const topEntry = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0]
     const topCategory = topEntry ? topEntry[0] : '—'
     const topCategoryAmount = topEntry ? topEntry[1] : 0
 
-    return { thisMonthTotal, totalAmount, avgPerDay, topCategory, topCategoryAmount, daysElapsed, monthName }
-  }, [expensesList, language]);
+    return {
+      periodTotal,
+      totalAmount: periodTotal,
+      avgPerDay,
+      topCategory,
+      topCategoryAmount,
+      periodDays,
+      periodLabel,
+    }
+  }, [filteredExpenses, dateFilterMode, selectedMonth, startDate, endDate, periodLabel]);
 
   useEffect(() => {
     if (isLoaded && user) {
@@ -83,35 +173,174 @@ function ExpensesPage() {
         <p className='mt-1 text-sm text-slate-500'>{getTranslation(language, 'expensesPage.subtitle')}</p>
       </div>
 
+      <div className='mt-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900'>
+        <div className='flex flex-wrap items-end gap-3'>
+          <div className='w-full min-w-37.5 sm:w-auto'>
+            <label className='mb-1 block text-xs font-medium text-slate-500'>
+              {language === 'th' ? 'โหมดวันที่' : 'Date mode'}
+            </label>
+            <select
+              value={dateFilterMode}
+              onChange={(e) => setDateFilterMode(e.target.value)}
+              className='h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-amber-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'
+            >
+              <option value='month'>{language === 'th' ? 'รายเดือน' : 'By month'}</option>
+              <option value='range'>{language === 'th' ? 'ช่วงวันที่' : 'Date range'}</option>
+              <option value='all'>{language === 'th' ? 'ทุกช่วงเวลา' : 'All time'}</option>
+            </select>
+          </div>
+
+          {dateFilterMode === 'month' && (
+            <div className='w-full min-w-37.5 sm:w-auto'>
+              <label className='mb-1 block text-xs font-medium text-slate-500'>
+                {language === 'th' ? 'เลือกเดือน' : 'Select month'}
+              </label>
+              <Popover open={isMonthPickerOpen} onOpenChange={setIsMonthPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    className='h-10 w-full justify-between border-slate-300 bg-white px-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'
+                  >
+                    <span>
+                      {moment(`${selectedMonth}-01`, 'YYYY-MM-DD', true)
+                        .locale(language === 'th' ? 'th' : 'en')
+                        .format('MMMM YYYY')}
+                    </span>
+                    <CalendarDays className='h-4 w-4 opacity-70' />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className='w-auto p-0' align='start'>
+                  <Calendar
+                    mode='single'
+                    selected={moment(`${selectedMonth}-01`, 'YYYY-MM-DD', true).toDate()}
+                    month={moment(`${selectedMonth}-01`, 'YYYY-MM-DD', true).toDate()}
+                    captionLayout='dropdown'
+                    fromYear={2018}
+                    toYear={moment().year() + 2}
+                    onMonthChange={(date) => {
+                      setSelectedMonth(moment(date).format('YYYY-MM'))
+                    }}
+                    onSelect={(date) => {
+                      if (!date) return
+                      setSelectedMonth(moment(date).format('YYYY-MM'))
+                      setIsMonthPickerOpen(false)
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
+          {dateFilterMode === 'range' && (
+            <>
+              <div className='w-full min-w-37.5 sm:w-auto'>
+                <label className='mb-1 block text-xs font-medium text-slate-500'>
+                  {language === 'th' ? 'จากวันที่' : 'From'}
+                </label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type='button'
+                      variant='outline'
+                      className='h-10 w-full justify-between border-slate-300 bg-white px-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'
+                    >
+                      <span>
+                        {startDate
+                          ? moment(startDate, 'YYYY-MM-DD', true).locale(language === 'th' ? 'th' : 'en').format('D MMM YYYY')
+                          : (language === 'th' ? 'เลือกวันที่เริ่มต้น' : 'Select start date')}
+                      </span>
+                      <CalendarDays className='h-4 w-4 opacity-70' />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className='w-auto p-0' align='start'>
+                    <Calendar
+                      mode='single'
+                      selected={startDate ? moment(startDate, 'YYYY-MM-DD', true).toDate() : undefined}
+                      onSelect={(date) => {
+                        if (!date) return
+                        const next = moment(date).format('YYYY-MM-DD')
+                        setStartDate(next)
+                        if (endDate && moment(endDate).isBefore(moment(next))) {
+                          setEndDate(next)
+                        }
+                      }}
+                      disabled={(date) => Boolean(endDate && moment(date).isAfter(moment(endDate, 'YYYY-MM-DD', true).toDate()))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className='w-full min-w-37.5 sm:w-auto'>
+                <label className='mb-1 block text-xs font-medium text-slate-500'>
+                  {language === 'th' ? 'ถึงวันที่' : 'To'}
+                </label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type='button'
+                      variant='outline'
+                      className='h-10 w-full justify-between border-slate-300 bg-white px-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'
+                    >
+                      <span>
+                        {endDate
+                          ? moment(endDate, 'YYYY-MM-DD', true).locale(language === 'th' ? 'th' : 'en').format('D MMM YYYY')
+                          : (language === 'th' ? 'เลือกวันที่สิ้นสุด' : 'Select end date')}
+                      </span>
+                      <CalendarDays className='h-4 w-4 opacity-70' />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className='w-auto p-0' align='start'>
+                    <Calendar
+                      mode='single'
+                      selected={endDate ? moment(endDate, 'YYYY-MM-DD', true).toDate() : undefined}
+                      onSelect={(date) => {
+                        if (!date) return
+                        const next = moment(date).format('YYYY-MM-DD')
+                        setEndDate(next)
+                        if (startDate && moment(startDate).isAfter(moment(next))) {
+                          setStartDate(next)
+                        }
+                      }}
+                      disabled={(date) => Boolean(startDate && moment(date).isBefore(moment(startDate, 'YYYY-MM-DD', true).toDate()))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
       <div className='mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4'>
         <StatCard
           loading={!isLoaded || isFetching}
-          title={getTranslation(language, 'expensesStats.thisMonth')}
-          value={`฿${summary.thisMonthTotal.toLocaleString('th-TH')}`}
-          caption={summary.monthName}
+          title={dateFilterMode === 'month' ? getTranslation(language, 'expensesStats.thisMonth') : (language === 'th' ? 'ยอดตามช่วงเวลา' : 'Period Total')}
+          value={`฿${summary.periodTotal.toLocaleString('th-TH')}`}
+          caption={summary.periodLabel}
           formula={getTranslation(language, 'expensesStats.thisMonthFormula')}
           tone='amber'
-          points={expensesList
-            .filter(e => { const m = parseDate(e.createdAt); return m && m.format('YYYY-MM') === moment().format('YYYY-MM') })
-            .slice(-10).map(e => Number(e.amount || 0))}
+          points={filteredExpenses.slice(-10).map(e => Number(e.amount || 0))}
         />
         <StatCard
           loading={!isLoaded || isFetching}
           title={getTranslation(language, 'expensesStats.totalAmount')}
           value={`฿${summary.totalAmount.toLocaleString('th-TH')}`}
-          caption={`${expensesList.length} ${getTranslation(language, 'expensesStats.allRecords')}`}
+          caption={`${filteredExpenses.length} ${getTranslation(language, 'expensesStats.allRecords')}`}
           formula={getTranslation(language, 'expensesStats.totalAmountFormula')}
           tone='slate'
-          points={expensesList.slice(-10).map(e => Number(e.amount || 0))}
+          points={filteredExpenses.slice(-10).map(e => Number(e.amount || 0))}
         />
         <StatCard
           loading={!isLoaded || isFetching}
           title={getTranslation(language, 'expensesStats.avgPerDay')}
           value={`฿${summary.avgPerDay.toLocaleString('th-TH', { maximumFractionDigits: 0 })}`}
-          caption={`${summary.daysElapsed} ${language === 'th' ? 'วันในเดือนนี้' : 'days this month'}`}
+          caption={`${summary.periodDays} ${language === 'th' ? 'วันในช่วงที่เลือก' : 'days in selected period'}`}
           formula={getTranslation(language, 'expensesStats.avgPerDayFormula')}
           tone='emerald'
-          points={Array.from({ length: summary.daysElapsed }, (_, i) => i + 1).slice(-10).map(d => summary.thisMonthTotal / d)}
+          points={Array.from({ length: summary.periodDays }, (_, i) => i + 1).slice(-10).map(d => summary.periodTotal / d)}
         />
         <StatCard
           loading={!isLoaded || isFetching}
@@ -120,12 +349,12 @@ function ExpensesPage() {
           caption={summary.topCategoryAmount > 0 ? `฿${summary.topCategoryAmount.toLocaleString('th-TH')}` : '—'}
           formula={getTranslation(language, 'expensesStats.topCategoryFormula')}
           tone='white'
-          points={expensesList.slice(-10).map(e => Number(e.amount || 0))}
+          points={filteredExpenses.slice(-10).map(e => Number(e.amount || 0))}
         />
       </div>
 
       <ExpensesListTable
-        expensesList={expensesList}
+        expensesList={filteredExpenses}
         refreshData={getAllExpenses}
         density={resolvedDensity}
         densityMode={density}
