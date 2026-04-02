@@ -1,9 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from 'react'
-import { getAdminUserDetailAction, getAdminUsersSummaryAction } from '@/app/_actions/dbActions'
-import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
-import { getTranslation } from '@/lib/translations'
+import { getAdminUserDetailAction, getAdminUsersSummaryAction } from '@/app/_actions/dbActions'import { getTranslation } from '@/lib/translations'
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat('th-TH', {
@@ -20,8 +18,7 @@ const formatDateTime = (value) => {
 }
 
 export default function AdminUsersPage() {
-  const { language } = useLanguage()
-  const [loading, setLoading] = useState(true)
+  const language = 'en';const [loading, setLoading] = useState(true)
   const [detailLoading, setDetailLoading] = useState(false)
   const [rows, setRows] = useState([])
   const [selectedEmail, setSelectedEmail] = useState('')

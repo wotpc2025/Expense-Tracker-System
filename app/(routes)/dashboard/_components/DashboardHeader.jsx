@@ -2,15 +2,13 @@
 
 import { UserButton, useUser } from '@clerk/nextjs'
 import React, { useEffect, useState } from 'react'
-import { SidebarTrigger } from '@/components/ui/sidebar'
-import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
-import { getTranslation } from '@/lib/translations'
+import { SidebarTrigger } from '@/components/ui/sidebar'import { getTranslation } from '@/lib/translations'
 
 
 
 function DashboardHeader() {
   const { user, isSignedIn } = useUser();
-  const { language } = useLanguage();
+  const language = 'en';
   const [isClient, setIsClient] = useState(false);
   const [greeting, setGreeting] = useState('');
 

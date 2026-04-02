@@ -1,11 +1,10 @@
 import Link from 'next/link'
 import React from 'react'
+import { getTranslation } from '@/lib/translations'
 
 function BudgetItem({ budget, density = 'comfortable' }) {
-
-  const { language } = require('@/app/(routes)/dashboard/_providers/LanguageProvider').useLanguage();
-  const { getTranslation } = require('@/lib/translations');
-  const currencyLocale = language === 'th' ? 'th-TH' : 'en-US';
+  const language = 'en'
+  const currencyLocale = 'en-US'
   const calculateProgressPercentage = () => {
     if (!budget?.amount) return 0;
     const percentage = (Number(budget?.totalSpend || 0) / Number(budget?.amount || 0)) * 100;

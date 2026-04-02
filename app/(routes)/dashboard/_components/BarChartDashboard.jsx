@@ -6,9 +6,7 @@ import {
   ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
-} from '@/components/ui/chart'
-import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
-import { getTranslation } from '@/lib/translations'
+} from '@/components/ui/chart'import { getTranslation } from '@/lib/translations'
 
 function getChartConfig(language, getTranslation) {
   return {
@@ -24,7 +22,7 @@ function getChartConfig(language, getTranslation) {
 }
 
 function BarChartDashboard({budgetList}) {
-  const { language } = useLanguage();
+  const language = 'en';
   const hasData = Array.isArray(budgetList) && budgetList.length > 0;
   const chartConfig = getChartConfig(language, getTranslation);
   const currencyLocale = language === 'th' ? 'th-TH' : 'en-US';

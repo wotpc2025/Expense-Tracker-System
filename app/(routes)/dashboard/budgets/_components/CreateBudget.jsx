@@ -22,9 +22,7 @@ import { toast } from 'sonner'
 import { CheckCircle2, Loader, ScanLine, Sparkles } from 'lucide-react'
 import AddExpense from '../../expenses/_components/AddExpense'
 import { suggestEmoji } from '@/lib/budgetEmojiSuggest'
-import { getTranslation } from '@/lib/translations'
-import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
-
+import { getTranslation } from '@/lib/translations'
 function CreateBudget({ refreshData, trigger }) {
         const getScannedTotal = (scanResult) => {
             if (!scanResult || !Array.isArray(scanResult.lineItems)) return ''
@@ -39,7 +37,7 @@ function CreateBudget({ refreshData, trigger }) {
                 setAmount(getScannedTotal(initialScanResult));
             }
         };
-    const { language } = useLanguage();
+    const language = 'en';
     const [open, setOpen] = useState(false)
     const [step, setStep] = useState('create') // 'create' | 'addExpense'
     const [emojiIcon, setEmojiIcon] = useState('😀')

@@ -8,12 +8,10 @@ import { toast } from 'sonner';
 import { addBulkExpensesAction, addNewExpenseAction } from '@/app/_actions/dbActions';
 import moment from 'moment';
 import { Loader, ScanLine } from 'lucide-react';
-import { DEFAULT_EXPENSE_CATEGORIES, normalizeCategoryName } from '@/lib/expenseCategories';
-import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider';
-import { getTranslation } from '@/lib/translations';
+import { DEFAULT_EXPENSE_CATEGORIES, normalizeCategoryName } from '@/lib/expenseCategories';import { getTranslation } from '@/lib/translations';
 
 function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'comfortable', initialScanResult = null }) {
-    const { language } = useLanguage();
+    const language = 'en';
 
     const [name, setName] = useState(initialScanResult?.expenseName || '');
     const [amount, setAmount] = useState(initialScanResult?.amount != null ? String(initialScanResult.amount) : '');

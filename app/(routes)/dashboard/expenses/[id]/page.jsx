@@ -24,17 +24,14 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import EditBudget from '../../_components/EditBudget';
 import StatCard from '../../_components/StatCard';
-import { useDashboardDensity } from '@/lib/useDashboardDensity';
-import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
-import { getTranslation } from '@/lib/translations'
+import { useDashboardDensity } from '@/lib/useDashboardDensity';import { getTranslation } from '@/lib/translations'
 
 
 
 function ExpensesScreen({ params }) {
     const unwrappedParams = use(params);
     const { user, isLoaded } = useUser();
-    const { language } = useLanguage()
-    const [budgetInfo, setBudgetInfo] = useState(null);
+    const language = 'en';const [budgetInfo, setBudgetInfo] = useState(null);
     const [expensesList, setExpensesList] = useState([]);
     const [isLoadingBudget, setIsLoadingBudget] = useState(false);
     const [isLoadingExpenses, setIsLoadingExpenses] = useState(false);

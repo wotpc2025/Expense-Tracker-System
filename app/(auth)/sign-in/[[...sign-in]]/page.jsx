@@ -1,15 +1,10 @@
 "use client"
 
 import { SignIn } from '@clerk/nextjs'
-import Image from 'next/image'
-import { LanguageToggle } from '@/components/LanguageToggle'
-import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
-import { getTranslation } from '@/lib/translations'
+import Image from 'next/image'import { getTranslation } from '@/lib/translations'
 
 export default function Page() {
-  const { language } = useLanguage()
-
-  return <div className="bg-white dark:bg-gray-900">
+  const language = 'en';return <div className="bg-white dark:bg-gray-900">
         <div className="flex justify-center h-screen">
           <div
             className="hidden bg-cover lg:block lg:w-2/3"
@@ -35,9 +30,6 @@ export default function Page() {
           </div>
   
           <div className="relative flex items-center w-full max-w-md px-6 mx-auto lg:w-2/6">
-            <div className="absolute right-6 top-6">
-              <LanguageToggle />
-            </div>
             <div className="flex-1">
               <div className="text-center">
                 <h2 className="text-4xl font-bold text-center text-gray-700 dark:text-white">

@@ -2,15 +2,13 @@
 
 import { PiggyBank, ReceiptText, Wallet } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
-import { getTranslation } from '@/lib/translations'
+import Link from 'next/link'import { getTranslation } from '@/lib/translations'
 
 function CardInfo({ budgetList, isLoading = false }) {
 
     const[totalBudget, setTotalBudget]=useState(0);
     const[totalSpend, setTotalSpend]=useState(0);
-    const { language } = useLanguage();
+    const language = 'en';
 
     useEffect(() => {
         CalculateCardInfo();

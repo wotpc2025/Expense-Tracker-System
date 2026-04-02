@@ -6,9 +6,7 @@ import {
   adminBulkSetCategoryAction,
   getAdminMonitoringDashboardAction,
   setAdminAlertStatusAction,
-} from '@/app/_actions/dbActions'
-import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
-import { getTranslation } from '@/lib/translations'
+} from '@/app/_actions/dbActions'import { getTranslation } from '@/lib/translations'
 import { AlertTriangle, Database, LineChart, Receipt, ShieldAlert, ShieldCheck, Users, Wrench } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -37,9 +35,7 @@ const formatDateTime = (value) => {
 }
 
 export default function AdminDashboardPage() {
-  const { language } = useLanguage()
-
-  const [loading, setLoading] = useState(true)
+  const language = 'en';const [loading, setLoading] = useState(true)
   const [working, setWorking] = useState(false)
   const [datePreset, setDatePreset] = useState('all')
   const [startDate, setStartDate] = useState('')

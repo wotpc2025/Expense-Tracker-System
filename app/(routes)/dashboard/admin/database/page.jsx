@@ -1,9 +1,7 @@
 "use client"
 
 import React, { useEffect, useMemo, useState } from 'react'
-import { getAdminDatabaseManagementAction } from '@/app/_actions/dbActions'
-import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
-import { getTranslation } from '@/lib/translations'
+import { getAdminDatabaseManagementAction } from '@/app/_actions/dbActions'import { getTranslation } from '@/lib/translations'
 import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Database, Receipt, ScrollText, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -57,8 +55,7 @@ function SortableHeader({ label, sortKey, sortConfig, onSort, align = 'left' }) 
 }
 
 export default function AdminDatabasePage() {
-  const { language } = useLanguage()
-  const [loading, setLoading] = useState(true)
+  const language = 'en';const [loading, setLoading] = useState(true)
   const [activeView, setActiveView] = useState('budgets')
   const [query, setQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)

@@ -17,9 +17,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { syncBudgetCategoryToExpensesAction, updateBudgetAction } from '@/app/_actions/dbActions';
 import { toast } from 'sonner';
 import { DEFAULT_EXPENSE_CATEGORIES } from '@/lib/expenseCategories';
-import { getTranslation } from '@/lib/translations';
-import { useLanguage } from '../_providers/LanguageProvider';
-import {
+import { getTranslation } from '@/lib/translations';import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -33,7 +31,7 @@ import {
 
 
 function EditBudget({budgetInfo, refreshData, expensesList = []}) {
-  const { language } = useLanguage();
+  const language = 'en';
   const [emojiIcon,setEmojiIcon]=useState(budgetInfo?.icon || '😀');
     const [openEmojiPicker,setOpenEmojiPicker]=useState(false);
 

@@ -3,8 +3,6 @@ import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { LanguageProvider } from "@/app/(routes)/dashboard/_providers/LanguageProvider";
-
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,10 +31,8 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <LanguageProvider>
-            <Toaster />
-            {children}
-          </LanguageProvider>
+          <Toaster />
+          {children}
         </ThemeProvider>
       </body>
     </html>

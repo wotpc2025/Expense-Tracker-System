@@ -6,9 +6,7 @@ import BudgetItem from './BudgetItem'
 import CreateBudget from './CreateBudget'
 import { CalendarDays, LayoutGrid, List, MonitorCog, PiggyBank, RotateCcw, ScanLine } from 'lucide-react'
 import StatCard from '../../_components/StatCard'
-import { useDashboardDensity } from '@/lib/useDashboardDensity'
-import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
-import { getTranslation } from '@/lib/translations'
+import { useDashboardDensity } from '@/lib/useDashboardDensity'import { getTranslation } from '@/lib/translations'
 import { useDashboardDateFilter } from '@/lib/useDashboardDateFilter'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -32,8 +30,7 @@ function BudgetList() {
   } = useDashboardDateFilter(moment().format('YYYY-MM'))
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false)
   const { user, isLoaded } = useUser();
-  const { language } = useLanguage()
-  const currencyLocale = language === 'th' ? 'th-TH' : 'en-US'
+  const language = 'en';const currencyLocale = language === 'th' ? 'th-TH' : 'en-US'
 
   const parseDate = (dateStr) => {
     if (!dateStr) return null

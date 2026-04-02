@@ -39,10 +39,7 @@ const EXPORT_LANGUAGE_OPTIONS = {
         locale: 'en-US',
         headers: { name: 'Name', category: 'Category', amount: 'Amount', createdAt: 'Date' },
     },
-};
-
-import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider';
-
+};
 function ExpensesListTable({
     expensesList,
     refreshData,
@@ -54,7 +51,7 @@ function ExpensesListTable({
 }) {
 
     const [searchInput, setSearchInput] = useState('');
-    const { language } = useLanguage();
+    const language = 'en';
     const [showExportMenu, setShowExportMenu] = useState(false);
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [customCategories, setCustomCategories] = useState([]);

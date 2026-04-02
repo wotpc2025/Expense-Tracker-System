@@ -3,9 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useTheme } from 'next-themes'
-import { getBudgetListAction, getAllExpensesAction } from '@/app/_actions/dbActions'
-import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
-import { getTranslation } from '@/lib/translations'
+import { getBudgetListAction, getAllExpensesAction } from '@/app/_actions/dbActions'import { getTranslation } from '@/lib/translations'
 import { useDashboardDateFilter } from '@/lib/useDashboardDateFilter'
 import { getCategoryColor } from '@/lib/expenseCategories'
 import { EXPORT_LANGUAGE_OPTIONS, exportRowsToCsv, sanitizeFileNamePart } from '@/lib/csvExport'
@@ -43,8 +41,7 @@ const CustomTooltipStyle = (isDark) => ({
 export default function ReportsPage() {
   const { user } = useUser()
   const { resolvedTheme } = useTheme()
-  const { language } = useLanguage()
-  const isDark = resolvedTheme === 'dark'
+  const language = 'en';const isDark = resolvedTheme === 'dark'
 
   const [budgetList, setBudgetList] = useState([])
   const [expensesList, setExpensesList] = useState([])

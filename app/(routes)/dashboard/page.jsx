@@ -5,9 +5,7 @@ import CardInfo from './_components/CardInfo';
 import { getAllExpensesAction, getBudgetListAction, getCurrentUserAdminStatusAction } from '@/app/_actions/dbActions';
 import BarChartDashboard from './_components/BarChartDashboard';
 import BudgetItem from './budgets/_components/BudgetItem';
-import ExpensesListTable from './budgets/_components/ExpensesListTable';
-import { useLanguage } from './_providers/LanguageProvider'
-import { getTranslation } from '@/lib/translations'
+import ExpensesListTable from './budgets/_components/ExpensesListTable';import { getTranslation } from '@/lib/translations'
 import { useRouter } from 'next/navigation';
 import { isAdminByRole } from '@/lib/adminAccess';
 import { useDashboardDateFilter } from '@/lib/useDashboardDateFilter'
@@ -24,7 +22,7 @@ function Dashboard() {
   const [isBudgetLoading, setIsBudgetLoading] = useState(true);
     const { user, isLoaded } = useUser();
     const router = useRouter();
-    const { language } = useLanguage();
+    const language = 'en';
     const [isAdmin, setIsAdmin] = useState(false)
     const [isAdminResolved, setIsAdminResolved] = useState(false)
     const {

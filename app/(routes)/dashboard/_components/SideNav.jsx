@@ -17,17 +17,13 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import { ThemeToggle } from '@/components/ThemeToggle'
-import { LanguageToggle } from '@/components/LanguageToggle'
-import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
-import { getTranslation } from '@/lib/translations'
+import { ThemeToggle } from '@/components/ThemeToggle'import { getTranslation } from '@/lib/translations'
 import { useUser } from '@clerk/nextjs'
 import { isAdminByRole } from '@/lib/adminAccess'
 import { getCurrentUserAdminStatusAction } from '@/app/_actions/dbActions'
 
 function SideNav() {
-    const { language } = useLanguage()
-    const { user } = useUser()
+    const language = 'en';const { user } = useUser()
     const [isAdmin, setIsAdmin] = useState(isAdminByRole(user))
     const [dbStatus, setDbStatus] = useState('checking')
     const [dbLatency, setDbLatency] = useState(null)
@@ -231,7 +227,6 @@ function SideNav() {
                         {userFullName}
                     </div>
                     <div className='flex items-center gap-1'>
-                        <LanguageToggle direction='up' />
                         <ThemeToggle />
                     </div>
                 </div>

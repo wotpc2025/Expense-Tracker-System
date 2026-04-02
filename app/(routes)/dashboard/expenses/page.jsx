@@ -6,9 +6,7 @@ import { getAllExpensesAction } from '@/app/_actions/dbActions'
 import ExpensesListTable from '../budgets/_components/ExpensesListTable'
 import StatCard from '../_components/StatCard'
 import { useDashboardDensity } from '@/lib/useDashboardDensity'
-import { useDashboardDateFilter } from '@/lib/useDashboardDateFilter'
-import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
-import { getTranslation } from '@/lib/translations'
+import { useDashboardDateFilter } from '@/lib/useDashboardDateFilter'import { getTranslation } from '@/lib/translations'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -17,8 +15,7 @@ import moment from 'moment'
 
 function ExpensesPage() {
   const { user, isLoaded } = useUser();
-  const { language } = useLanguage()
-  const [expensesList, setExpensesList] = useState([]);
+  const language = 'en';const [expensesList, setExpensesList] = useState([]);
   const [isFetching, setIsFetching] = useState(false);
   const {
     dateFilterMode,

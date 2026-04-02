@@ -9,7 +9,6 @@ import { useUser } from '@clerk/nextjs'
 import { checkUserBudgetsAction, getCurrentUserAdminStatusAction } from '@/app/_actions/dbActions' // [!code ++] Import ตัวนี้มาแทน
 import { usePathname, useRouter } from 'next/navigation'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
-import { LanguageProvider } from './_providers/LanguageProvider'
 import { isAdminByRole } from '@/lib/adminAccess'
 
 function DashboardLayout({children}) {
@@ -46,15 +45,13 @@ function DashboardLayout({children}) {
   }
 
   return (
-    <LanguageProvider>
-      <SidebarProvider>
-        <SideNav />
-        <SidebarInset>
-          <DashboardHeader />
-          {children}
-        </SidebarInset>
-      </SidebarProvider>
-    </LanguageProvider>
+    <SidebarProvider>
+      <SideNav />
+      <SidebarInset>
+        <DashboardHeader />
+        {children}
+      </SidebarInset>
+    </SidebarProvider>
   )
 }
 export default DashboardLayout

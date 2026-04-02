@@ -4,15 +4,12 @@ import React, { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { useUser,UserButton } from '@clerk/nextjs'
-import Link from 'next/link'
-import { LanguageToggle } from '@/components/LanguageToggle'
-import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
-import { getTranslation } from '@/lib/translations'
+import Link from 'next/link'import { getTranslation } from '@/lib/translations'
 
 function Header() {
 
   const { user, isSignedIn } = useUser();
-  const { language } = useLanguage();
+  const language = 'en';
   const [isClient, setIsClient] = useState(false);
   const [greeting, setGreeting] = useState('');
 
@@ -48,7 +45,6 @@ function Header() {
       </div>
       {isClient && (
         <div className='flex items-center gap-2'>
-          <LanguageToggle />
           {isSignedIn ?
             <UserButton /> :
             <Link href={'/sign-up'}>
