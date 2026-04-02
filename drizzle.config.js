@@ -7,17 +7,20 @@ dotenv.config({
 });
 
 export default defineConfig({
-  // 1. ระบุประเภทฐานข้อมูล (ในคลิปรุ่นเก่าไม่ต้องใส่ส่วนนี้)
-  dialect: "postgresql", 
+  // 1. ระบุประเภทฐานข้อมูล
+  dialect: "mysql", 
 
-  // 2. พาธไปที่ไฟล์ schema (ปรับให้ตรงกับโฟลเดอร์ในโปรเจกต์คุณ)
+  // 2. พาธไปที่ไฟล์ schema
   schema: "./utils/schema.jsx", 
 
   // 3. โฟลเดอร์ที่จะให้เก็บไฟล์ Migration
   out: "./drizzle",
 
-  // 4. ข้อมูลการเชื่อมต่อ (ใช้ตัวแปรจาก .env.local)
+  // 4. ข้อมูลการเชื่อมต่อ
   dbCredentials: {
-    url: process.env.NEXT_PUBLIC_DATABASE_URL, 
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'expense_tracker',
   },
 });

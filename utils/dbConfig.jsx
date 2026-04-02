@@ -1,15 +1,17 @@
 
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
+import { drizzle } from 'drizzle-orm/mysql2';
+import mysql from 'mysql2/promise';
 import * as schema from './schema';
 
-// Prefer server-only DATABASE_URL; fallback keeps existing local setups working.
-const connectionString = process.env.DATABASE_URL || process.env.NEXT_PUBLIC_DATABASE_URL;
+// Create MySQL connection pool
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'expense_tracker',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+});
 
-if (!connectionString) {
-	throw new Error('Missing database connection string. Set DATABASE_URL in environment.');
-}
-
-// สำหรับการเชื่อมต่อในแบบ Single Client (เหมาะกับ Next.js Development)
-const client = postgres(connectionString);
-export const db = drizzle(client, { schema });
+export const db = drizzle(pool, { schema, mode: 'planetscale' });
