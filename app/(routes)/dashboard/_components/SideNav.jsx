@@ -29,6 +29,8 @@ function SideNav() {
     const { language } = useLanguage()
     const { user } = useUser()
     const [isAdmin, setIsAdmin] = useState(isAdminByRole(user))
+    const [dbStatus, setDbStatus] = useState('checking')
+    const [dbLatency, setDbLatency] = useState(null)
 
     useEffect(() => {
         let isActive = true
@@ -54,6 +56,43 @@ function SideNav() {
             isActive = false
         }
     }, [user])
+
+    useEffect(() => {
+        let isActive = true
+
+        const checkDatabaseStatus = async () => {
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), 4000)
+
+            try {
+                const response = await fetch('/api/health/db', {
+                    method: 'GET',
+                    cache: 'no-store',
+                    signal: controller.signal,
+                })
+                const payload = await response.json().catch(() => null)
+                if (!isActive) return
+
+                const isOnline = response.ok && payload?.status === 'online'
+                setDbStatus(isOnline ? 'online' : 'offline')
+                setDbLatency(Number(payload?.latencyMs) || null)
+            } catch {
+                if (!isActive) return
+                setDbStatus('offline')
+                setDbLatency(null)
+            } finally {
+                clearTimeout(timeoutId)
+            }
+        }
+
+        checkDatabaseStatus()
+        const intervalId = setInterval(checkDatabaseStatus, 30000)
+
+        return () => {
+            isActive = false
+            clearInterval(intervalId)
+        }
+    }, [])
 
     // Get user's first and last name (fallback to email if not available)
     const userFirstName = user?.firstName || ''
@@ -111,6 +150,24 @@ function SideNav() {
     const menuList = isAdmin ? adminMenuList : userMenuList
     const path=usePathname();
 
+    const dbBadgeClass = dbStatus === 'online'
+        ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+        : dbStatus === 'offline'
+            ? 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+            : 'bg-slate-500/10 text-slate-400 border-slate-500/30'
+
+    const dbDotClass = dbStatus === 'online'
+        ? 'bg-emerald-400'
+        : dbStatus === 'offline'
+            ? 'bg-rose-400'
+            : 'bg-slate-400'
+
+    const dbStatusLabel = dbStatus === 'online'
+        ? (language === 'th' ? 'ออนไลน์' : 'Online')
+        : dbStatus === 'offline'
+            ? (language === 'th' ? 'ออฟไลน์' : 'Offline')
+            : (language === 'th' ? 'กำลังเช็ก' : 'Checking')
+
   return (
         <Sidebar>
             <SidebarHeader className='border-b'>
@@ -146,6 +203,22 @@ function SideNav() {
             </SidebarContent>
 
             <SidebarFooter className='border-t'>
+                <div className='mx-1 mb-2 rounded-lg border border-slate-700/60 bg-slate-900/60 px-3 py-2'>
+                    <div className='flex items-center justify-between text-xs'>
+                        <span className='text-slate-400'>Database</span>
+                        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium ${dbBadgeClass}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${dbDotClass}`} />
+                            {dbStatusLabel}
+                        </span>
+                    </div>
+                    <p className='mt-1 text-[11px] text-slate-500'>
+                        {dbStatus === 'online' && dbLatency
+                            ? `${dbLatency} ms`
+                            : language === 'th'
+                                ? 'อัปเดตทุก 30 วินาที'
+                                : 'Updates every 30s'}
+                    </p>
+                </div>
                 <div className='flex items-center justify-between px-1'>
                     <div className='flex items-center gap-2 text-sm font-semibold'>
                         <UserButton />
