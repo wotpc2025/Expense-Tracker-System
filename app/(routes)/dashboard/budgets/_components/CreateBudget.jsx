@@ -285,8 +285,8 @@ function CreateBudget({ refreshData, trigger }) {
                         <Button
                             type='button'
                             onClick={() => receiptInputRef.current?.click()}
-                            disabled={scanLoading || loading}
-                            className='w-full cursor-pointer bg-linear-to-r from-fuchsia-500 to-violet-500 text-white hover:from-fuchsia-600 hover:to-violet-600'
+                            disabled={scanLoading || loading || Boolean(initialScanResult)}
+                            className='w-full cursor-pointer bg-linear-to-r from-fuchsia-500 to-violet-500 text-white hover:from-fuchsia-600 hover:to-violet-600 disabled:cursor-not-allowed disabled:opacity-60'
                         >
                             {scanLoading
                                 ? <><Loader className='animate-spin mr-2 h-4 w-4' />{getTranslation(language, 'addExpense.scanning')}</>

@@ -15,6 +15,18 @@ const toIsoDateTime = (value) => {
     return date.toISOString();
 }
 
+const getInsertId = (result) => {
+    const value = result?.[0]?.insertId ?? result?.insertId ?? null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+const getAffectedRows = (result) => {
+    const value = result?.[0]?.affectedRows ?? result?.affectedRows ?? 0;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
 const getCurrentActorEmail = async () => {
     const user = await currentUser();
     return String(user?.primaryEmailAddress?.emailAddress || '').toLowerCase() || null;
@@ -66,17 +78,18 @@ export async function createBudgetAction(data) {
                 createdBy: data.createdBy,
                 icon: data.icon,
                 category: data.category || null,
-            })
-            .returning({insertedId:Budgets.id}); // ส่งค่าที่บันทึกสำเร็จกลับมา
+            });
+
+        const insertedId = result?.[0]?.insertId ?? result?.insertId ?? null;
 
         await createAdminAuditLogEntry({
             action: 'create_budget',
             targetType: 'budget',
-            targetCount: result.length,
+            targetCount: insertedId ? 1 : 0,
             message: `Created budget ${data.name}`,
         });
 
-        return result;
+        return insertedId ? { insertedId } : { error: 'Failed to create budget' };
     } catch (error) {
         console.error("Error creating budget:", error);
         return { error: "Failed to create budget" };
@@ -127,16 +140,18 @@ export async function addNewExpenseAction(data) {
                 budgetId: data.budgetId,
                 category: data.category || null,
             createdAt: normalizedDate
-        }).returning({ insertedId: Expenses.id });
+        });
+
+        const insertedId = getInsertId(result);
 
         await createAdminAuditLogEntry({
             action: 'create_expense',
             targetType: 'expense',
-            targetCount: result.length,
+            targetCount: insertedId ? 1 : 0,
             message: `Created expense ${data.name}`,
         });
 
-        return result;
+        return insertedId ? { insertedId } : null;
     } catch (error) {
         console.error("Error adding expense:", error);
         return null;
@@ -173,16 +188,17 @@ export async function addBulkExpensesAction(payload) {
             return { success: false, error: 'No valid items to add' };
         }
 
-        const inserted = await db.insert(Expenses).values(values).returning({ id: Expenses.id });
+        const inserted = await db.insert(Expenses).values(values);
+        const insertedCount = getAffectedRows(inserted);
 
         await createAdminAuditLogEntry({
             action: 'bulk_create_expense',
             targetType: 'expense',
-            targetCount: inserted.length,
-            message: `Created ${inserted.length} expenses from receipt scan`,
+            targetCount: insertedCount,
+            message: `Created ${insertedCount} expenses from receipt scan`,
         });
 
-        return { success: true, count: inserted.length };
+        return { success: true, count: insertedCount };
     } catch (error) {
         console.error('Error adding bulk expenses:', error);
         return { success: false, error: 'Failed to add scanned items' };
@@ -211,17 +227,18 @@ export const getExpensesListAction = async (budgetId) => {
 export async function deleteExpenseAction(expenseId) {
     try {
         const result = await db.delete(Expenses)
-            .where(eq(Expenses.id, expenseId))
-            .returning();
+            .where(eq(Expenses.id, expenseId));
+
+        const deletedCount = getAffectedRows(result);
 
         await createAdminAuditLogEntry({
             action: 'delete_expense',
             targetType: 'expense',
-            targetCount: result.length,
-            message: `Deleted ${result.length} expense record`,
+            targetCount: deletedCount,
+            message: `Deleted ${deletedCount} expense record`,
         });
 
-        return result;
+        return deletedCount > 0 ? { success: true, count: deletedCount } : null;
     } catch (error) {
         console.error("Error deleting expense:", error);
         return null;
@@ -243,16 +260,18 @@ export async function updateExpenseAction(expenseId, data) {
             amount: normalizedAmount,
             category: data.category || null,
             createdAt: normalizedDate || new Date(),
-        }).where(eq(Expenses.id, expenseId)).returning();
+        }).where(eq(Expenses.id, expenseId));
+
+        const updatedCount = getAffectedRows(result);
 
         await createAdminAuditLogEntry({
             action: 'update_expense',
             targetType: 'expense',
-            targetCount: result.length,
+            targetCount: updatedCount,
             message: `Updated expense ${data.name}`,
         });
 
-        return result;
+        return updatedCount > 0 ? { success: true, count: updatedCount } : null;
     } catch (error) {
         console.error("Error updating expense:", error);
         return null;
@@ -264,22 +283,24 @@ export async function deleteBudgetAction(budgetId) {
     try {
         // ลบ Expenses ที่เกี่ยวข้องกับ Budget นี้ก่อน
         const deletedExpenses = await db.delete(Expenses)
-            .where(eq(Expenses.budgetId, budgetId))
-            .returning();
+            .where(eq(Expenses.budgetId, budgetId));
+
+        const deletedExpenseCount = getAffectedRows(deletedExpenses);
 
         // จากนั้นลบ Budget
         const result = await db.delete(Budgets)
-            .where(eq(Budgets.id, budgetId))
-            .returning();
+            .where(eq(Budgets.id, budgetId));
+
+        const deletedBudgetCount = getAffectedRows(result);
 
         await createAdminAuditLogEntry({
             action: 'delete_budget',
             targetType: 'budget',
-            targetCount: result.length,
-            message: `Deleted budget ${budgetId} and ${deletedExpenses.length} related expenses`,
+            targetCount: deletedBudgetCount,
+            message: `Deleted budget ${budgetId} and ${deletedExpenseCount} related expenses`,
         });
         
-        return result;
+        return { success: deletedBudgetCount > 0, deletedBudgetCount, deletedExpenseCount };
     } catch (error) {
         console.error("Error deleting budget:", error);
         return null;
@@ -300,16 +321,18 @@ export async function updateBudgetAction(budgetInfo, name, amount, emojiIcon, ca
             icon: emojiIcon || budgetInfo?.icon || '😀',
             category: category || null,
         }).where(eq(Budgets.id, budgetInfo.id))
-        .returning();
+;
+
+        const updatedCount = getAffectedRows(result);
 
         await createAdminAuditLogEntry({
             action: 'update_budget',
             targetType: 'budget',
-            targetCount: result.length,
+            targetCount: updatedCount,
             message: `Updated budget ${name}`,
         });
 
-        return result;
+        return updatedCount > 0 ? { success: true, count: updatedCount } : null;
     } catch (error) {
         console.error("Error updating budget:", error);
         return null;
@@ -336,10 +359,11 @@ export async function syncBudgetCategoryToExpensesAction(budgetId, category) {
 
         const updated = await db.update(Expenses)
             .set({ category: nextCategory })
-            .where(eq(Expenses.budgetId, parsedBudgetId))
-            .returning({ id: Expenses.id });
+            .where(eq(Expenses.budgetId, parsedBudgetId));
 
-        return { success: true, count: updated.length };
+        const updatedCount = getAffectedRows(updated);
+
+        return { success: true, count: updatedCount };
     } catch (error) {
         console.error('Error syncing budget category to expenses:', error);
         return { success: false, error: 'Failed to sync category to expenses' };
@@ -850,17 +874,18 @@ export async function adminBulkSetCategoryAction(expenseIds, categoryName) {
 
         const updated = await db.update(Expenses)
             .set({ category })
-            .where(inArray(Expenses.id, ids))
-            .returning({ id: Expenses.id });
+            .where(inArray(Expenses.id, ids));
+
+        const updatedCount = getAffectedRows(updated);
 
         await createAdminAuditLogEntry({
             action: 'bulk_set_category',
             targetType: 'expense',
-            targetCount: updated.length,
-            message: `Set category to ${category} for ${updated.length} expense records`,
+            targetCount: updatedCount,
+            message: `Set category to ${category} for ${updatedCount} expense records`,
         });
 
-        return { success: true, count: updated.length };
+        return { success: true, count: updatedCount };
     } catch (error) {
         console.error('Error bulk setting category:', error);
         return { success: false, count: 0, error: 'Failed to update categories' };
@@ -878,17 +903,18 @@ export async function adminBulkDeleteExpensesAction(expenseIds) {
         }
 
         const deleted = await db.delete(Expenses)
-            .where(inArray(Expenses.id, ids))
-            .returning({ id: Expenses.id });
+            .where(inArray(Expenses.id, ids));
+
+        const deletedCount = getAffectedRows(deleted);
 
         await createAdminAuditLogEntry({
             action: 'bulk_delete_expenses',
             targetType: 'expense',
-            targetCount: deleted.length,
-            message: `Deleted ${deleted.length} expense records from admin workbench`,
+            targetCount: deletedCount,
+            message: `Deleted ${deletedCount} expense records from admin workbench`,
         });
 
-        return { success: true, count: deleted.length };
+        return { success: true, count: deletedCount };
     } catch (error) {
         console.error('Error bulk deleting expenses:', error);
         return { success: false, count: 0, error: 'Failed to delete expenses' };
