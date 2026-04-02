@@ -1,12 +1,15 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useLanguage } from '@/app/(routes)/dashboard/_providers/LanguageProvider'
 import { Globe } from 'lucide-react'
 
-export function LanguageToggle() {
+export function LanguageToggle({ direction = 'down' }) {
   const { language, toggleLanguage, mounted } = useLanguage()
   const [isOpen, setIsOpen] = useState(false)
+  const dropdownPositionClass = direction === 'up'
+    ? 'bottom-full right-0 mb-2'
+    : 'top-full right-0 mt-2'
 
   // Guard against hydration mismatch
   if (!mounted) {
@@ -36,7 +39,7 @@ export function LanguageToggle() {
           />
 
           {/* Dropdown menu */}
-          <div className='absolute top-full right-0 mt-2 w-32 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-40 overflow-hidden'>
+          <div className={`absolute ${dropdownPositionClass} w-32 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-40 overflow-hidden`}>
             <button
               onClick={() => {
                 if (language !== 'en') toggleLanguage()

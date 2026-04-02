@@ -225,7 +225,7 @@ function SideNav() {
                         {userFullName}
                     </div>
                     <div className='flex items-center gap-1'>
-                        <LanguageToggle />
+                        <LanguageToggle direction='up' />
                         <ThemeToggle />
                     </div>
                 </div>
