@@ -39,6 +39,16 @@ const CustomTooltipStyle = (isDark) => ({
   fontSize: 12,
 })
 
+const formatCurrencyForLanguage = (value, locale) => {
+  const amount = Number(value || 0)
+  return amount.toLocaleString(locale, {
+    style: 'currency',
+    currency: 'THB',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+}
+
 export default function ReportsPage() {
   const { user } = useUser()
   const { resolvedTheme } = useTheme()
@@ -128,11 +138,30 @@ export default function ReportsPage() {
       }
     })
 
+    const totals = rows.reduce((acc, row) => {
+      acc.amount += Number(row.amount || 0)
+      acc.spent += Number(row.spent || 0)
+      acc.remaining += Number(row.remaining || 0)
+      return acc
+    }, { amount: 0, spent: 0, remaining: 0 })
+    const totalRatio = totals.amount > 0 ? (totals.spent / totals.amount) * 100 : 0
+
+    const rowsWithTotal = [
+      ...rows,
+      {
+        name: selectedLanguage === 'th' ? 'รวมทั้งหมด' : 'Total',
+        amount: totals.amount,
+        spent: totals.spent,
+        remaining: totals.remaining,
+        ratio: totalRatio,
+      },
+    ]
+
     const userName = sanitizeFileNamePart(user?.fullName || 'user')
     const userEmail = sanitizeFileNamePart(user?.primaryEmailAddress?.emailAddress || 'no-email')
 
     exportRowsToCsv({
-      rows,
+      rows: rowsWithTotal,
       columns: [
         { key: 'name', header: headers.name },
         { key: 'amount', header: headers.amount, formatter: (value) => formatCurrencyForLanguage(value, languageConfig.locale) },
@@ -199,6 +228,21 @@ export default function ReportsPage() {
       const ratio = budget > 0 ? (spent / budget) * 100 : 0
       return { name: b.name || '', budget, spent, remaining, ratio }
     })
+
+    const totals = rawRows.reduce((acc, row) => {
+      acc.budget += Number(row.budget || 0)
+      acc.spent += Number(row.spent || 0)
+      acc.remaining += Number(row.remaining || 0)
+      return acc
+    }, { budget: 0, spent: 0, remaining: 0 })
+    const totalRatio = totals.budget > 0 ? (totals.spent / totals.budget) * 100 : 0
+    const summaryRow = {
+      name: selectedLanguage === 'th' ? 'รวมทั้งหมด' : 'Total',
+      budget: totals.budget,
+      spent: totals.spent,
+      remaining: totals.remaining,
+      ratio: totalRatio,
+    }
 
     const columnsTH = [
       { key: 'name', label: 'งบประมาณ', x: 40, width: 250, align: 'left', render: (row) => row.name },
@@ -306,6 +350,30 @@ export default function ReportsPage() {
         y += rowHeight
       })
 
+      const summaryRowHeight = 24
+      const pageBottomLimit = doc.internal.pageSize.getHeight() - 30
+      if (y + summaryRowHeight > pageBottomLimit) {
+        doc.addPage()
+        y = 40
+        drawHeader(y)
+        y += 22
+      }
+
+      doc.setFillColor(30, 41, 59)
+      doc.rect(40, y, 810, summaryRowHeight, 'F')
+      doc.setTextColor(255, 255, 255)
+
+      columnsTH.forEach((col) => {
+        const value = col.render(summaryRow)
+        setFontByText(value, 10)
+        if (col.align === 'right') {
+          const textWidth = doc.getTextWidth(value)
+          doc.text(value, col.x + col.width - 8 - textWidth, y + 16)
+        } else {
+          doc.text(value, col.x + 8, y + 16, { maxWidth: col.width - 16 })
+        }
+      })
+
       const pageHeight = doc.internal.pageSize.height
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(9)
@@ -317,6 +385,7 @@ export default function ReportsPage() {
     }
 
     const enRows = rawRows.map((row) => columnsEN.map((col) => col.render(row)))
+    const enSummaryRow = columnsEN.map((col) => col.render(summaryRow))
     const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
 
     if (logoDataUrl) {
@@ -340,6 +409,8 @@ export default function ReportsPage() {
     autoTable(doc, {
       head: [columnsEN.map((col) => col.label)],
       body: enRows,
+      foot: [enSummaryRow],
+      showFoot: 'lastPage',
       startY: 72,
       styles: {
         font: 'helvetica',
@@ -355,6 +426,12 @@ export default function ReportsPage() {
         fontStyle: 'bold',
       },
       alternateRowStyles: { fillColor: [248, 250, 252] },
+      footStyles: {
+        fillColor: [30, 41, 59],
+        textColor: [255, 255, 255],
+        font: 'helvetica',
+        fontStyle: 'bold',
+      },
       columnStyles: {
         0: { cellWidth: 180 },
         1: { halign: 'right' },
