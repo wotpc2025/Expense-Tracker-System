@@ -16,7 +16,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }) {
         root: "w-fit",
         months: "relative flex flex-col gap-4 sm:flex-row",
         month: "w-full space-y-4",
-        month_caption: "relative flex h-7 items-center justify-center px-8",
+        month_caption: "relative flex h-8 items-center justify-center px-8",
         caption_label: "select-none text-sm font-medium",
         nav: "absolute inset-x-0 top-0 flex items-center justify-between",
         button_previous: cn(
@@ -28,8 +28,8 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }) {
           "h-7 w-7 border-slate-300 bg-transparent p-0 text-slate-700 opacity-80 hover:opacity-100 dark:border-slate-700 dark:text-slate-200"
         ),
         dropdowns: "flex h-8 items-center gap-2",
-        dropdown_root: "relative inline-flex min-w-20 items-center rounded-md border border-slate-300 bg-white px-2 text-slate-800 shadow-xs has-focus:border-ring has-focus:ring-2 has-focus:ring-ring/50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
-        dropdown: "rdp-dropdown h-7 min-w-16 cursor-pointer appearance-none bg-transparent px-1 text-sm font-medium text-inherit outline-none",
+        dropdown_root: "relative inline-flex min-w-20 items-center justify-center rounded-md border border-slate-300 bg-white px-2 text-slate-800 shadow-xs has-[select:focus-visible]:border-ring has-[select:focus-visible]:ring-2 has-[select:focus-visible]:ring-ring/50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
+        dropdown: "rdp-dropdown absolute inset-0 cursor-pointer opacity-0",
         months_dropdown: "text-sm font-medium",
         years_dropdown: "text-sm font-medium",
         month_grid: "w-full border-collapse",

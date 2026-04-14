@@ -6,7 +6,8 @@ import { getAllExpensesAction } from '@/app/_actions/dbActions'
 import ExpensesListTable from '../budgets/_components/ExpensesListTable'
 import StatCard from '../_components/StatCard'
 import { useDashboardDensity } from '@/lib/useDashboardDensity'
-import { useDashboardDateFilter } from '@/lib/useDashboardDateFilter'import { getTranslation } from '@/lib/translations'
+import { useDashboardDateFilter } from '@/lib/useDashboardDateFilter'
+import { getTranslation } from '@/lib/translations'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -122,6 +123,7 @@ function ExpensesPage() {
     }
 
     const periodTotal = filteredExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0)
+    const overallTotal = expensesList.reduce((sum, e) => sum + Number(e.amount || 0), 0)
     const avgPerDay = periodDays > 0 ? periodTotal / periodDays : 0
 
     const categoryTotals = {}
@@ -134,14 +136,14 @@ function ExpensesPage() {
 
     return {
       periodTotal,
-      totalAmount: periodTotal,
+      totalAmount: overallTotal,
       avgPerDay,
       topCategory,
       topCategoryAmount,
       periodDays,
       periodLabel,
     }
-  }, [filteredExpenses, dateFilterMode, selectedMonth, startDate, endDate, periodLabel]);
+  }, [filteredExpenses, expensesList, dateFilterMode, selectedMonth, startDate, endDate, periodLabel]);
 
   useEffect(() => {
     if (isLoaded && user) {
@@ -325,7 +327,7 @@ function ExpensesPage() {
           loading={!isLoaded || isFetching}
           title={getTranslation(language, 'expensesStats.totalAmount')}
           value={`฿${summary.totalAmount.toLocaleString('th-TH')}`}
-          caption={`${filteredExpenses.length} ${getTranslation(language, 'expensesStats.allRecords')}`}
+          caption={`${expensesList.length} ${getTranslation(language, 'expensesStats.allRecords')}`}
           formula={getTranslation(language, 'expensesStats.totalAmountFormula')}
           tone='slate'
           points={filteredExpenses.slice(-10).map(e => Number(e.amount || 0))}

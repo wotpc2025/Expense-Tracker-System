@@ -3,7 +3,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useTheme } from 'next-themes'
-import { getBudgetListAction, getAllExpensesAction } from '@/app/_actions/dbActions'import { getTranslation } from '@/lib/translations'
+import { getBudgetListAction, getAllExpensesAction } from '@/app/_actions/dbActions'
+import { getTranslation } from '@/lib/translations'
 import { useDashboardDateFilter } from '@/lib/useDashboardDateFilter'
 import { getCategoryColor } from '@/lib/expenseCategories'
 import { EXPORT_LANGUAGE_OPTIONS, exportRowsToCsv, sanitizeFileNamePart } from '@/lib/csvExport'
@@ -487,6 +488,7 @@ export default function ReportsPage() {
   }, [dateFilterMode, selectedMonth, startDate, endDate, language])
 
   const periodTotal = filteredExpenses.reduce((s, e) => s + Number(e.amount || 0), 0)
+  const overallTotal = expensesList.reduce((s, e) => s + Number(e.amount || 0), 0)
 
   const periodDays = useMemo(() => {
     if (dateFilterMode === 'month') {
@@ -618,8 +620,8 @@ export default function ReportsPage() {
     },
     {
       title: getTranslation(language, 'expensesStats.totalAmount'),
-      value: fmt(periodTotal),
-      sub: `${filteredExpenses.length} ${getTranslation(language, 'reports.allTransactions')}`,
+      value: fmt(overallTotal),
+      sub: `${expensesList.length} ${getTranslation(language, 'reports.allTransactions')}`,
       Icon: Receipt,
       color: 'text-blue-600 dark:text-blue-400',
       bg: 'bg-blue-50 dark:bg-blue-900/30',
