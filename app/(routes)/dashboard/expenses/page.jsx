@@ -29,6 +29,8 @@ function ExpensesPage() {
     setEndDate,
   } = useDashboardDateFilter(moment().format('YYYY-MM'))
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
+  const [isStartPickerOpen, setIsStartPickerOpen] = useState(false);
+  const [isEndPickerOpen, setIsEndPickerOpen] = useState(false);
   const [density, setDensity, resolvedDensity] = useDashboardDensity('dashboard-density', 'comfortable');
 
   const parseDate = (dateStr) => {
@@ -69,7 +71,7 @@ function ExpensesPage() {
 
   const filteredExpenses = useMemo(getFilteredExpenses, [expensesList, dateFilterMode, selectedMonth, startDate, endDate])
 
-  const periodLabel = useMemo(() => {
+  const periodLabel = (() => {
     if (dateFilterMode === 'all') return language === 'th' ? 'ทุกช่วงเวลา' : 'All time'
     if (dateFilterMode === 'month') {
       return moment(selectedMonth, 'YYYY-MM', true)
@@ -90,7 +92,7 @@ function ExpensesPage() {
 
     const to = moment(endDate, 'YYYY-MM-DD', true).locale(language === 'th' ? 'th' : 'en').format('D MMM YYYY')
     return `${language === 'th' ? 'ถึง' : 'Until'} ${to}`
-  }, [dateFilterMode, selectedMonth, startDate, endDate, language])
+  })()
 
   const summary = useMemo(() => {
     let periodDays = 1
@@ -238,7 +240,7 @@ function ExpensesPage() {
                 <label className='mb-1 block text-xs font-medium text-slate-500'>
                   {language === 'th' ? 'จากวันที่' : 'From'}
                 </label>
-                <Popover>
+                <Popover open={isStartPickerOpen} onOpenChange={setIsStartPickerOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       type='button'
@@ -257,6 +259,10 @@ function ExpensesPage() {
                     <Calendar
                       mode='single'
                       selected={startDate ? moment(startDate, 'YYYY-MM-DD', true).toDate() : undefined}
+                      captionLayout='dropdown'
+                      fromYear={2000}
+                      toYear={moment().year() + 2}
+                      defaultMonth={startDate ? moment(startDate, 'YYYY-MM-DD', true).toDate() : moment().toDate()}
                       onSelect={(date) => {
                         if (!date) return
                         const next = moment(date).format('YYYY-MM-DD')
@@ -264,6 +270,7 @@ function ExpensesPage() {
                         if (endDate && moment(endDate).isBefore(moment(next))) {
                           setEndDate(next)
                         }
+                        setIsStartPickerOpen(false)
                       }}
                       disabled={(date) => Boolean(endDate && moment(date).isAfter(moment(endDate, 'YYYY-MM-DD', true).toDate()))}
                       initialFocus
@@ -275,7 +282,7 @@ function ExpensesPage() {
                 <label className='mb-1 block text-xs font-medium text-slate-500'>
                   {language === 'th' ? 'ถึงวันที่' : 'To'}
                 </label>
-                <Popover>
+                <Popover open={isEndPickerOpen} onOpenChange={setIsEndPickerOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       type='button'
@@ -294,6 +301,10 @@ function ExpensesPage() {
                     <Calendar
                       mode='single'
                       selected={endDate ? moment(endDate, 'YYYY-MM-DD', true).toDate() : undefined}
+                      captionLayout='dropdown'
+                      fromYear={2000}
+                      toYear={moment().year() + 2}
+                      defaultMonth={endDate ? moment(endDate, 'YYYY-MM-DD', true).toDate() : (startDate ? moment(startDate, 'YYYY-MM-DD', true).toDate() : moment().toDate())}
                       onSelect={(date) => {
                         if (!date) return
                         const next = moment(date).format('YYYY-MM-DD')
@@ -301,6 +312,7 @@ function ExpensesPage() {
                         if (startDate && moment(startDate).isAfter(moment(next))) {
                           setStartDate(next)
                         }
+                        setIsEndPickerOpen(false)
                       }}
                       disabled={(date) => Boolean(startDate && moment(date).isBefore(moment(startDate, 'YYYY-MM-DD', true).toDate()))}
                       initialFocus

@@ -6,7 +6,8 @@ import BudgetItem from './BudgetItem'
 import CreateBudget from './CreateBudget'
 import { CalendarDays, LayoutGrid, List, MonitorCog, PiggyBank, RotateCcw, ScanLine } from 'lucide-react'
 import StatCard from '../../_components/StatCard'
-import { useDashboardDensity } from '@/lib/useDashboardDensity'import { getTranslation } from '@/lib/translations'
+import { useDashboardDensity } from '@/lib/useDashboardDensity'
+import { getTranslation } from '@/lib/translations'
 import { useDashboardDateFilter } from '@/lib/useDashboardDateFilter'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -29,6 +30,8 @@ function BudgetList() {
     setEndDate,
   } = useDashboardDateFilter(moment().format('YYYY-MM'))
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false)
+  const [isStartPickerOpen, setIsStartPickerOpen] = useState(false)
+  const [isEndPickerOpen, setIsEndPickerOpen] = useState(false)
   const { user, isLoaded } = useUser();
   const language = 'en';const currencyLocale = language === 'th' ? 'th-TH' : 'en-US'
 
@@ -97,7 +100,7 @@ function BudgetList() {
     })
   }, [expensesList, dateFilterMode, selectedMonth, startDate, endDate])
 
-  const periodLabel = useMemo(() => {
+  const periodLabel = (() => {
     if (dateFilterMode === 'all') return language === 'th' ? 'ทุกช่วงเวลา' : 'All time'
 
     if (dateFilterMode === 'month') {
@@ -118,7 +121,7 @@ function BudgetList() {
     }
     const to = moment(endDate, 'YYYY-MM-DD', true).locale(language === 'th' ? 'th' : 'en').format('D MMM YYYY')
     return `${language === 'th' ? 'ถึง' : 'Until'} ${to}`
-  }, [dateFilterMode, selectedMonth, startDate, endDate, language])
+  })()
 
   const budgetSpendById = useMemo(() => {
     const map = {}
@@ -232,7 +235,7 @@ function BudgetList() {
                 <label className='mb-1 block text-xs font-medium text-slate-500'>
                   {language === 'th' ? 'จากวันที่' : 'From'}
                 </label>
-                <Popover>
+                <Popover open={isStartPickerOpen} onOpenChange={setIsStartPickerOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       type='button'
@@ -251,6 +254,10 @@ function BudgetList() {
                     <Calendar
                       mode='single'
                       selected={startDate ? moment(startDate, 'YYYY-MM-DD', true).toDate() : undefined}
+                      captionLayout='dropdown'
+                      fromYear={2000}
+                      toYear={moment().year() + 2}
+                      defaultMonth={startDate ? moment(startDate, 'YYYY-MM-DD', true).toDate() : moment().toDate()}
                       onSelect={(date) => {
                         if (!date) return
                         const next = moment(date).format('YYYY-MM-DD')
@@ -258,6 +265,7 @@ function BudgetList() {
                         if (endDate && moment(endDate).isBefore(moment(next))) {
                           setEndDate(next)
                         }
+                        setIsStartPickerOpen(false)
                       }}
                       disabled={(date) => Boolean(endDate && moment(date).isAfter(moment(endDate, 'YYYY-MM-DD', true).toDate()))}
                       initialFocus
@@ -269,7 +277,7 @@ function BudgetList() {
                 <label className='mb-1 block text-xs font-medium text-slate-500'>
                   {language === 'th' ? 'ถึงวันที่' : 'To'}
                 </label>
-                <Popover>
+                <Popover open={isEndPickerOpen} onOpenChange={setIsEndPickerOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       type='button'
@@ -288,6 +296,10 @@ function BudgetList() {
                     <Calendar
                       mode='single'
                       selected={endDate ? moment(endDate, 'YYYY-MM-DD', true).toDate() : undefined}
+                      captionLayout='dropdown'
+                      fromYear={2000}
+                      toYear={moment().year() + 2}
+                      defaultMonth={endDate ? moment(endDate, 'YYYY-MM-DD', true).toDate() : (startDate ? moment(startDate, 'YYYY-MM-DD', true).toDate() : moment().toDate())}
                       onSelect={(date) => {
                         if (!date) return
                         const next = moment(date).format('YYYY-MM-DD')
@@ -295,6 +307,7 @@ function BudgetList() {
                         if (startDate && moment(startDate).isAfter(moment(next))) {
                           setStartDate(next)
                         }
+                        setIsEndPickerOpen(false)
                       }}
                       disabled={(date) => Boolean(startDate && moment(date).isBefore(moment(startDate, 'YYYY-MM-DD', true).toDate()))}
                       initialFocus
