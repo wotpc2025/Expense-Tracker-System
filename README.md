@@ -2,16 +2,19 @@
 
 ระบบจัดการรายรับรายจ่ายส่วนบุคคลด้วย Next.js (App Router) ที่เน้นการบริหารงบประมาณ, ติดตามค่าใช้จ่าย, และมีฟีเจอร์ AI ช่วยสแกนใบเสร็จเพื่อเพิ่มรายการได้เร็วขึ้น
 
-## Features
+## Features (Current)
 
-- Authentication ด้วย Clerk
-- Dashboard สรุปภาพรวมงบประมาณและค่าใช้จ่าย
-- จัดการงบประมาณ: สร้าง, แก้ไข, ลบ, ดูยอดคงเหลือ
-- จัดการค่าใช้จ่าย: เพิ่มแบบปกติ, เพิ่มหลายรายการจากผลสแกนใบเสร็จ, ลบรายการ
-- สแกนใบเสร็จด้วย AI ผ่าน OpenRouter API
-- กำหนดหมวดหมู่รายจ่าย (มีค่าเริ่มต้น + เพิ่มเองได้)
-- ตารางแสดงข้อมูลแบบค้นหา/กรอง และปรับความหนาแน่นของการแสดงผลได้
-- แสดงกราฟสรุปการใช้จ่าย
+- Authentication ด้วย Clerk (Sign-in / Sign-up)
+- Dashboard หลักสำหรับ Budget และ Expense management
+- Budget CRUD: สร้าง, แก้ไข, ลบ, ดูยอดใช้จ่าย/ยอดคงเหลือ
+- Expense CRUD: เพิ่ม, แก้ไข, ลบ และเพิ่มหลายรายการ (bulk)
+- AI Receipt Scan ผ่าน OpenRouter พร้อมแยก line items จากใบเสร็จ
+- Rate limit API สแกนใบเสร็จ (5 requests / 5 นาที / IP) + telemetry
+- Reports Dashboard พร้อมตัวกรองวันเวลา, กราฟ และ export เป็น CSV/PDF
+- Admin Center (route: /dashboard/admin)
+- Monitoring, alert acknowledgement, audit logs, bulk set category / bulk delete
+- Admin users summary และ database management view
+- Health endpoint ตรวจสอบฐานข้อมูลที่ /api/health/db
 
 ## Tech Stack
 
@@ -19,14 +22,21 @@
 - Clerk (Auth)
 - Drizzle ORM + MySQL
 - Tailwind CSS 4
-- Recharts + AG Grid
+- AG Grid
+- Recharts
+- jsPDF + jspdf-autotable (PDF export)
 - Sonner (Toast)
 
 ## Project Structure (สำคัญ)
 
 - app/(routes)/dashboard: หน้าหลักหลังล็อกอิน
-- app/_actions/dbActions.js: Server Actions สำหรับ CRUD
+- app/(routes)/dashboard/reports: รายงานและ export
+- app/(routes)/dashboard/admin: หน้าผู้ดูแลระบบ
+- app/_actions/dbActions.js: Server Actions หลัก (CRUD + Admin)
 - app/api/ai/scan-receipt/route.js: API สแกนใบเสร็จด้วย AI
+- app/api/health/db/route.js: API health check ฐานข้อมูล
+- lib/securityTelemetry.js: rate limit และ telemetry ด้านความปลอดภัย
+- lib/adminAccess.js: ตรวจสอบสิทธิ์ admin
 - utils/schema.jsx: โครงสร้างตารางฐานข้อมูล
 - utils/dbConfig.jsx: การเชื่อมต่อฐานข้อมูล
 - drizzle.config.js: ตั้งค่า Drizzle Kit
@@ -48,12 +58,21 @@
 ```env
 # Database
 DATABASE_URL=mysql://USER:PASSWORD@HOST:3306/DB_NAME
+# Alternative DB config (when DATABASE_URL is not used)
+# DB_HOST=localhost
+# DB_PORT=3306
+# DB_USER=root
+# DB_PASSWORD=
+# DB_NAME=expense_tracker
 
 # Clerk
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxx
 CLERK_SECRET_KEY=sk_test_xxx
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+
+# Admin allowlist (server-side)
+ADMIN_EMAILS=admin1@example.com,admin2@example.com
 
 # AI Receipt Scan (OpenRouter)
 OPENROUTER_API_KEY=sk-or-v1-xxx
@@ -66,7 +85,9 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 หมายเหตุ:
 
 - DATABASE_URL ถูกใช้งานบนเซิร์ฟเวอร์เท่านั้น (ไม่ expose ให้ browser เห็น) สำหรับ Drizzle config
+- ไม่ควรตั้งค่า NEXT_PUBLIC_DATABASE_URL
 - ถ้าไม่ใส่ OPENROUTER_API_KEY ระบบส่วนอื่นยังทำงานได้ แต่ฟีเจอร์สแกนใบเสร็จจะใช้งานไม่ได้
+- ADMIN_EMAILS ใช้สำหรับกำหนดผู้มีสิทธิ์เข้าหน้า /dashboard/admin
 
 ## Installation (Local)
 
@@ -81,11 +102,8 @@ npm install
 3. สร้าง/อัปเดต schema ลงฐานข้อมูล
 
 ```bash
-npm run db:migrate:types
 npm run db:push
 ```
-
-หมายเหตุ: `db:migrate:types` ใช้สำหรับฐานข้อมูลเดิมที่เคยเก็บ amount/createdAt เป็นข้อความ เพื่อแปลงข้อมูลก่อน push schema ใหม่
 
 4. รันแอปโหมดพัฒนา
 
@@ -101,9 +119,7 @@ npm run dev
 - npm run build: build สำหรับ production
 - npm run start: รัน production server
 - npm run db:push: push schema ด้วย drizzle-kit
-- npm run db:migrate:types: migrate ชนิดคอลัมน์เดิม (text) ไปเป็น numeric/timestamp
-- npm run db:studio: เปิด Drizzle Studio แบบปลอดภัย (localhost เท่านั้น และ block ใน production)
-- npm run db:studio:unsafe: เปิด Drizzle Studio แบบไม่แนะนำ (0.0.0.0)
+- npm run db:studio: เปิด Drizzle Studio
 - npm run test: รัน unit tests (Vitest)
 - npm run test:watch: รัน tests แบบ watch mode
 
@@ -113,7 +129,7 @@ npm run dev
 
 ### รันด้วย Docker Compose
 
-1. สร้างไฟล์ .env ใน root project และกำหนดค่าตัวแปรที่จำเป็น (อย่างน้อย Clerk และ Database)
+1. สร้างไฟล์ .env ใน root project และกำหนดค่าตัวแปรที่จำเป็น (อย่างน้อย Clerk, Database และ ADMIN_EMAILS ถ้าจะใช้ admin route)
 2. สั่งรัน:
 
 ```bash
@@ -135,23 +151,12 @@ docker compose down
 - มีไฟล์ deploy.sh สำหรับ flow deploy ด้วย Docker (stop, pull, build, up)
 - ตรวจสอบค่า environment ให้ครบก่อน deploy โดยเฉพาะ Clerk และ Database
 - ถ้าใช้งาน AI scan บน production ต้องตั้งค่า OPENROUTER_API_KEY ด้วย
+- production ควรตั้ง NEXT_PUBLIC_APP_URL เป็น https://...
 
-## Drizzle Studio Safety (Basic)
+## API Endpoints (สำคัญ)
 
-- `npm run db:studio` ถูกตั้งให้ปลอดภัยเป็นค่าเริ่มต้น:
-	- bind ที่ `127.0.0.1:4983`
-	- block อัตโนมัติเมื่อ `NODE_ENV=production`
-- ถ้าจำเป็นต้องเปิดใน production ชั่วคราว (ไม่แนะนำ):
-
-```bash
-ALLOW_DB_STUDIO_IN_PROD=true npm run db:studio
-```
-
-- สามารถปรับ host/port ได้ในเครื่อง dev:
-
-```bash
-DB_STUDIO_HOST=127.0.0.1 DB_STUDIO_PORT=4983 npm run db:studio
-```
+- POST /api/ai/scan-receipt: สแกนใบเสร็จด้วย AI
+- GET /api/health/db: เช็กสถานะการเชื่อมต่อฐานข้อมูล
 
 ## Testing
 
@@ -165,9 +170,12 @@ npm run test
 
 - Utility สำหรับ normalize จำนวนเงินและวันที่
 
+สรุปล่าสุดอยู่ที่ไฟล์ TEST_RESULTS.md (6/6 tests passed)
+
 ## Known Notes
 
 - metadata ของแอปใน app/layout.js ยังเป็นค่าเริ่มต้น สามารถปรับ title/description เพิ่มได้
+- ไฟล์ deploy.sh มีค่า webhook ตรงในไฟล์ ควรจัดการ secrets ผ่าน environment ใน production
 
 ## License
 
