@@ -1,0 +1,85 @@
+@startuml ExpenseTrackerUserCases
+left to right direction
+skinparam actorStyle stickman
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam defaultFontName Tahoma
+skinparam dpi 140
+skinparam nodesep 60
+skinparam ranksep 55
+skinparam usecase {
+    BackgroundColor white
+    BorderColor #888888
+}
+
+title ระบบบริหารการจัดการค่าใช้จ่าย (Expense Management System)
+
+together {
+    actor "ผู้ดูแลระบบ\n(Admin)" as admin
+
+    rectangle "ระบบบริหารการจัดการค่าใช้จ่าย (Expense Management System)" as SYS {
+        top to bottom direction
+        usecase "UC_01 สมัครสมาชิก" as UC01
+        usecase "UC_02 เข้าสู่ระบบ" as UC02
+        usecase "UC_03 ดูแดชบอร์ดและภาพรวม" as UC03
+        usecase "UC_04 สร้างข้อมูลงบประมาณ" as UC04
+        usecase "UC_05 แก้ไขและลบงบประมาณ" as UC05
+        usecase "UC_06 เพิ่มรายการค่าใช้จ่าย" as UC06
+        usecase "UC_07 แก้ไขและลบรายการค่าใช้จ่าย" as UC07
+        usecase "UC_08 อัปโหลดใบเสร็จ (AI Scan)" as UC08
+        usecase "UC_09 ยืนยันผลการสแกน" as UC09
+        usecase "UC_10 ดูรายงานและสถิติ" as UC10
+        usecase "UC_11 ส่งออกข้อมูลรายงาน แบบ CSV/PDF" as UC11
+        usecase "UC_12 ตรวจสอบข้อมูลผู้ใช้งาน" as UC12
+        usecase "UC_13 ตรวจสอบงบประมาณและค่าใช้จ่ายทั้งหมด" as UC13
+        usecase "UC_14 ตรวจสอบแจ้งเตือนผิดปกติ" as UC14
+        usecase "UC_15 ตรวจสอบบันทึกเหตุการณ์ระบบ" as UC15
+
+        UC01 -[hidden]down- UC02
+        UC02 -[hidden]down- UC03
+        UC03 -[hidden]down- UC04
+        UC04 -[hidden]down- UC05
+        UC05 -[hidden]down- UC06
+        UC06 -[hidden]down- UC07
+        UC07 -[hidden]down- UC08
+        UC08 -[hidden]down- UC09
+        UC09 -[hidden]down- UC10
+        UC10 -[hidden]down- UC11
+        UC11 -[hidden]down- UC12
+        UC12 -[hidden]down- UC13
+        UC13 -[hidden]down- UC14
+        UC14 -[hidden]down- UC15
+    }
+
+    actor "ผู้ใช้งานทั่วไป\n(User)" as user
+}
+
+admin -[hidden]right- SYS
+SYS -[hidden]right- user
+admin -[hidden]right- UC09
+UC09 -[hidden]right- user
+
+' 3. การเชื่อมเส้นแบบ "บังคับทิศทาง" (Directional Links)
+' ใช้ -right- เพื่อบอกว่า "Admin อยู่ซ้ายของ Use Case"
+' ใช้ -left- เพื่อบอกว่า "User อยู่ขวาของ Use Case"
+
+admin -right- UC02
+admin -right- UC12
+admin -right- UC13
+admin -right- UC14
+admin -right- UC15
+
+UC01 -right- user
+UC02 -right- user
+UC03 -right- user
+UC04 -right- user
+UC05 -right- user
+UC06 -right- user
+UC07 -right- user
+UC08 -right- user
+UC09 -right- user
+UC10 -right- user
+UC11 -right- user
+
+@enduml

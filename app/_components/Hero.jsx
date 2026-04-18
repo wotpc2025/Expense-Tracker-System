@@ -2,7 +2,8 @@
 
 import Image from 'next/image'
 import React from 'react'
-import Link from 'next/link'import { getTranslation } from '@/lib/translations'
+import Link from 'next/link'
+import { getTranslation } from '@/lib/translations'
 
 function Hero() {
     const language = 'en';return (
@@ -31,7 +32,7 @@ function Hero() {
                   </div>
               </div>
           </div>
-          <Image src='/dashboard.png' alt='dashboard'
+          <Image src='/dashboard black.png' alt='dashboard'
           width={1000} 
           height={1000}
           className='mt-5 rounded-xl border-2'
