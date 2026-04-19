@@ -1,0 +1,33 @@
+@startuml ActivityUC12AdminUsers
+skinparam defaultFontName Tahoma
+skinparam dpi 140
+skinparam shadowing false
+skinparam backgroundColor #f0f0f0
+skinparam activity {
+  BackgroundColor #f8f8f8
+  BorderColor #666666
+  FontColor #111111
+  StartColor black
+  EndColor black
+  RoundCorner 8
+}
+skinparam PartitionBorderColor #777777
+skinparam PartitionBackgroundColor #efefef
+skinparam ArrowColor #555555
+
+title UC_12 ตรวจสอบข้อมูลผู้ใช้งาน
+
+|ผู้ดูแลระบบ|
+start
+:เข้าสู่ระบบ;
+:เลือกเมนู Admin - Users;
+
+|ระบบ|
+:ตรวจสอบสิทธิ์แอดมิน;
+:ดึงข้อมูลผู้ใช้งาน;
+:แสดงรายการผู้ใช้งาน;
+
+|ผู้ดูแลระบบ|
+:ตรวจสอบข้อมูลผู้ใช้งาน;
+stop
+@enduml

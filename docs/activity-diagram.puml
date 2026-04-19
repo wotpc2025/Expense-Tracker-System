@@ -1,0 +1,48 @@
+@startuml ExpenseTrackerActivityDiagram
+skinparam defaultFontName Tahoma
+skinparam dpi 140
+skinparam shadowing false
+skinparam backgroundColor #f0f0f0
+skinparam activity {
+  BackgroundColor #f8f8f8
+  BorderColor #666666
+  FontColor #111111
+  StartColor black
+  EndColor black
+  BarColor #666666
+  DiamondBorderColor #666666
+  DiamondBackgroundColor #f8f8f8
+  RoundCorner 8
+}
+skinparam PartitionBorderColor #777777
+skinparam PartitionBackgroundColor #efefef
+skinparam ArrowColor #555555
+
+title Activity Diagram: การเพิ่มรายการค่าใช้จ่ายในระบบ
+
+|ผู้ใช้|
+start
+:เข้าสู่ระบบ;
+
+|ระบบ|
+:ตรวจสอบสิทธิ์ผู้ใช้งาน;
+:แสดงหน้า Dashboard พร้อมข้อมูลล่าสุด;
+
+|ผู้ใช้|
+:กดปุ่ม "เพิ่มค่าใช้จ่าย";
+
+|ระบบ|
+:แสดงฟอร์มเพิ่มรายการค่าใช้จ่าย;
+
+|ผู้ใช้|
+:กรอกชื่อรายการ จำนวนเงิน และหมวดหมู่;
+:กดปุ่มบันทึก;
+
+|ระบบ|
+:ตรวจสอบความถูกต้องของข้อมูล;
+:บันทึกข้อมูลค่าใช้จ่ายลงฐานข้อมูล;
+:คำนวณยอดใช้จ่ายและยอดคงเหลือใหม่;
+:แสดงผลการบันทึกสำเร็จ;
+
+stop
+@enduml

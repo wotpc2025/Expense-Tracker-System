@@ -1,0 +1,36 @@
+@startuml ActivityUC08UploadReceipt
+skinparam defaultFontName Tahoma
+skinparam dpi 140
+skinparam shadowing false
+skinparam backgroundColor #f0f0f0
+skinparam activity {
+  BackgroundColor #f8f8f8
+  BorderColor #666666
+  FontColor #111111
+  StartColor black
+  EndColor black
+  RoundCorner 8
+}
+skinparam PartitionBorderColor #777777
+skinparam PartitionBackgroundColor #efefef
+skinparam ArrowColor #555555
+
+title UC_08 อัปโหลดใบเสร็จ (AI Scan)
+
+|ผู้ใช้งาน|
+start
+:เลือกเมนูสแกนใบเสร็จ;
+:อัปโหลดรูปใบเสร็จ;
+
+|ระบบ|
+:ตรวจสอบไฟล์และขนาด;
+if (ไฟล์ผ่านเงื่อนไข?) then (Yes)
+  :ส่งข้อมูลไปบริการ AI;
+  :รับผลการสแกนรายการ;
+  :แสดงรายการที่อ่านได้;
+  stop
+else (No)
+  :แจ้งข้อผิดพลาดการอัปโหลด;
+  stop
+endif
+@enduml

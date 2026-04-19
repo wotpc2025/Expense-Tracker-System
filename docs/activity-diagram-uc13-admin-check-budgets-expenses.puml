@@ -1,0 +1,33 @@
+@startuml ActivityUC13AdminData
+skinparam defaultFontName Tahoma
+skinparam dpi 140
+skinparam shadowing false
+skinparam backgroundColor #f0f0f0
+skinparam activity {
+  BackgroundColor #f8f8f8
+  BorderColor #666666
+  FontColor #111111
+  StartColor black
+  EndColor black
+  RoundCorner 8
+}
+skinparam PartitionBorderColor #777777
+skinparam PartitionBackgroundColor #efefef
+skinparam ArrowColor #555555
+
+title UC_13 ตรวจสอบงบประมาณและค่าใช้จ่ายทั้งหมด
+
+|ผู้ดูแลระบบ|
+start
+:เลือกเมนู Admin - Database;
+:เลือกมุมมอง Budget หรือ Expense;
+
+|ระบบ|
+:ตรวจสอบสิทธิ์แอดมิน;
+:ดึงข้อมูลจากฐานข้อมูล;
+:แสดงตารางข้อมูลพร้อมค้นหา/เรียงลำดับ;
+
+|ผู้ดูแลระบบ|
+:ตรวจสอบรายละเอียดข้อมูล;
+stop
+@enduml

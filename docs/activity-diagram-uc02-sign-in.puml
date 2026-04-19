@@ -1,0 +1,36 @@
+@startuml ActivityUC02SignIn
+skinparam defaultFontName Tahoma
+skinparam dpi 140
+skinparam shadowing false
+skinparam backgroundColor #f0f0f0
+skinparam activity {
+  BackgroundColor #f8f8f8
+  BorderColor #666666
+  FontColor #111111
+  StartColor black
+  EndColor black
+  RoundCorner 8
+}
+skinparam PartitionBorderColor #777777
+skinparam PartitionBackgroundColor #efefef
+skinparam ArrowColor #555555
+
+title UC_02 เข้าสู่ระบบ
+
+|ผู้ใช้งาน (ผู้ใช้, แอดมิน)|
+start
+:เปิดหน้า Landing Page;
+:กดปุ่ม Get Started;
+:กรอกอีเมลและรหัสผ่าน;
+
+|ระบบ|
+:ตรวจสอบข้อมูลเข้าสู่ระบบ;
+if (เข้าสู่ระบบสำเร็จ?) then (Yes)
+  :ตรวจสอบสิทธิ์ผู้ใช้งาน;
+  :แสดงหน้าหลักตามสิทธิ์;
+  stop
+else (No)
+  :แสดงข้อความแจ้งเตือน;
+  stop
+endif
+@enduml

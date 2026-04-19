@@ -1,0 +1,32 @@
+@startuml ActivityUC09ConfirmScan
+skinparam defaultFontName Tahoma
+skinparam dpi 140
+skinparam shadowing false
+skinparam backgroundColor #f0f0f0
+skinparam activity {
+  BackgroundColor #f8f8f8
+  BorderColor #666666
+  FontColor #111111
+  StartColor black
+  EndColor black
+  RoundCorner 8
+}
+skinparam PartitionBorderColor #777777
+skinparam PartitionBackgroundColor #efefef
+skinparam ArrowColor #555555
+
+title UC_09 ยืนยันผลการสแกน
+
+|ผู้ใช้งาน|
+start
+:ตรวจสอบรายการที่ AI สแกนได้;
+:แก้ไขรายการที่ไม่ถูกต้อง (ถ้ามี);
+:กดยืนยันการบันทึก;
+
+|ระบบ|
+:ตรวจสอบข้อมูลที่ยืนยัน;
+:บันทึกรายการแบบหลายแถว;
+:อัปเดตยอดค่าใช้จ่าย;
+:แสดงผลบันทึกสำเร็จ;
+stop
+@enduml

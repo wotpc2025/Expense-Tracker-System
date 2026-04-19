@@ -1,0 +1,41 @@
+@startuml ActivityExpenseSearch
+skinparam defaultFontName Tahoma
+skinparam dpi 140
+skinparam shadowing false
+skinparam backgroundColor #f0f0f0
+skinparam activity {
+  BackgroundColor #f8f8f8
+  BorderColor #666666
+  FontColor #111111
+  StartColor black
+  EndColor black
+  BarColor #666666
+  DiamondBorderColor #666666
+  DiamondBackgroundColor #f8f8f8
+  RoundCorner 8
+}
+skinparam PartitionBorderColor #777777
+skinparam PartitionBackgroundColor #efefef
+skinparam ArrowColor #555555
+
+title แผนภาพกิจกรรมการค้นหารายการค่าใช้จ่าย
+
+|ผู้ใช้|
+start
+:เข้าสู่ระบบ;
+:เลือกเมนู "ค่าใช้จ่าย";
+:กรอกคำค้นหา หรือเลือกช่วงวันที่;
+
+|ระบบ|
+:ตรวจสอบสิทธิ์ผู้ใช้งาน;
+:แสดงรายการค่าใช้จ่ายทั้งหมดเริ่มต้น;
+:ค้นหาข้อมูลจากฐานข้อมูล;
+
+if (พบข้อมูล?) then (Yes)
+  :แสดงผลการค้นหา;
+  stop
+else (No)
+  :แสดงข้อความ "ไม่พบข้อมูล";
+  stop
+endif
+@enduml

@@ -1,0 +1,33 @@
+@startuml ActivityUC10Reports
+skinparam defaultFontName Tahoma
+skinparam dpi 140
+skinparam shadowing false
+skinparam backgroundColor #f0f0f0
+skinparam activity {
+  BackgroundColor #f8f8f8
+  BorderColor #666666
+  FontColor #111111
+  StartColor black
+  EndColor black
+  RoundCorner 8
+}
+skinparam PartitionBorderColor #777777
+skinparam PartitionBackgroundColor #efefef
+skinparam ArrowColor #555555
+
+title UC_10 ดูรายงานและสถิติ
+
+|ผู้ใช้งาน|
+start
+:เลือกเมนูรายงาน;
+:กำหนดช่วงวันที่;
+
+|ระบบ|
+:ดึงข้อมูลตามเงื่อนไข;
+:คำนวณสถิติและสรุปหมวดหมู่;
+:แสดงกราฟและตารางรายงาน;
+
+|ผู้ใช้งาน|
+:วิเคราะห์ข้อมูลรายงาน;
+stop
+@enduml
