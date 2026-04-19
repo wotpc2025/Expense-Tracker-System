@@ -530,6 +530,34 @@ export default function ReportsPage() {
     )
   }, [filteredExpenses])
 
+  const inferredCategoryByBudgetId = useMemo(() => {
+    const grouped = {}
+
+    filteredExpenses.forEach((expense) => {
+      const budgetId = Number(expense?.budgetId)
+      const category = String(expense?.category || '').trim()
+      if (!budgetId || !category) return
+
+      if (!grouped[budgetId]) grouped[budgetId] = {}
+      grouped[budgetId][category] = (grouped[budgetId][category] || 0) + Number(expense?.amount || 0)
+    })
+
+    const resolved = {}
+    Object.entries(grouped).forEach(([budgetId, categories]) => {
+      const topCategory = Object.entries(categories)
+        .sort((a, b) => {
+          if (b[1] !== a[1]) return b[1] - a[1]
+          return String(a[0]).localeCompare(String(b[0]))
+        })[0]?.[0]
+
+      if (topCategory) {
+        resolved[Number(budgetId)] = topCategory
+      }
+    })
+
+    return resolved
+  }, [filteredExpenses])
+
   const filteredBudgetList = useMemo(() => {
     const baseBudgets = dateFilterMode === 'all'
       ? budgetList
@@ -538,8 +566,11 @@ export default function ReportsPage() {
     return baseBudgets.map((budget) => ({
       ...budget,
       totalSpend: Number(budgetSpendById[budget.id] || 0),
+      resolvedCategory: String(budget?.category || '').trim()
+        || inferredCategoryByBudgetId[Number(budget.id)]
+        || 'uncategorized',
     }))
-  }, [budgetList, budgetSpendById, activeBudgetIds, dateFilterMode])
+  }, [budgetList, budgetSpendById, activeBudgetIds, dateFilterMode, inferredCategoryByBudgetId])
 
   const sortedBudgetList = useMemo(() => {
     const getValue = (b) => {
@@ -547,7 +578,7 @@ export default function ReportsPage() {
       const spent = Number(b.totalSpend || 0)
       switch (sortKey) {
         case 'name':      return b.name?.toLowerCase() || ''
-        case 'category':  return (b.category || 'uncategorized').toLowerCase()
+        case 'category':  return (b.resolvedCategory || 'uncategorized').toLowerCase()
         case 'amount':    return budget
         case 'spent':     return spent
         case 'remaining': return budget - spent
@@ -1176,10 +1207,10 @@ export default function ReportsPage() {
                       </td>
                       <td className='py-3 pr-4'>
                         <span
-                          style={{ backgroundColor: getCategoryColor(b.category || 'uncategorized'), color: '#fff' }}
+                          style={{ backgroundColor: getCategoryColor(b.resolvedCategory || 'uncategorized'), color: '#fff' }}
                           className='inline-flex rounded-full px-2 py-0.5 text-xs font-semibold'
                         >
-                          {getCategoryLabel(b.category || 'uncategorized')}
+                          {getCategoryLabel(b.resolvedCategory || 'uncategorized')}
                         </span>
                       </td>
                       <td className='py-3 pr-4 text-right text-slate-600 dark:text-slate-300'>{fmt(budget)}</td>
