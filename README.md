@@ -1,4 +1,4 @@
-# Expense Tracker System
+# Expense Management System
 
 ระบบจัดการรายรับรายจ่ายส่วนบุคคลด้วย Next.js (App Router) ที่เน้นการบริหารงบประมาณ, ติดตามค่าใช้จ่าย, และมีฟีเจอร์ AI ช่วยสแกนใบเสร็จเพื่อเพิ่มรายการได้เร็วขึ้น
 
@@ -8,7 +8,7 @@
 - Dashboard หลักสำหรับ Budget และ Expense management
 - Budget CRUD: สร้าง, แก้ไข, ลบ, ดูยอดใช้จ่าย/ยอดคงเหลือ
 - Expense CRUD: เพิ่ม, แก้ไข, ลบ และเพิ่มหลายรายการ (bulk)
-- AI Receipt Scan ผ่าน OpenRouter พร้อมแยก line items จากใบเสร็จ
+- AI Receipt Scan ผ่าน OpenRouter พร้อมแยก line items จากใบเสร็จ (รองรับเฉพาะไฟล์รูปภาพไม่เกิน 5MB)
 - Rate limit API สแกนใบเสร็จ (5 requests / 5 นาที / IP) + telemetry
 - Reports Dashboard พร้อมตัวกรองวันเวลา, กราฟ และ export เป็น CSV/PDF
 - Admin Center (route: /dashboard/admin)
@@ -155,7 +155,7 @@ docker compose down
 
 ## API Endpoints (สำคัญ)
 
-- POST /api/ai/scan-receipt: สแกนใบเสร็จด้วย AI
+- POST /api/ai/scan-receipt: สแกนใบเสร็จด้วย AI (multipart/form-data, field ชื่อ `receipt`, ต้อง login, จำกัดขนาดไฟล์ 5MB, มี rate limit)
 - GET /api/health/db: เช็กสถานะการเชื่อมต่อฐานข้อมูล
 
 ## Testing
