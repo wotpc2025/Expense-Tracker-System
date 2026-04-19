@@ -1,3 +1,12 @@
+# Multi-stage Dockerfile for optimized Next.js production images:
+# base -> deps -> builder -> runner
+
+# Notes:
+# - `next.config.mjs` uses `output: 'standalone'`, so runtime files are emitted
+#   under `.next/standalone` and copied in the runner stage.
+# - Install dependencies before copying full source to maximize Docker layer cache hits.
+# - Keep runtime image minimal: no dev deps, no source tree, only built assets.
+
 # --- STAGE 1: Base Image ---
 FROM node:20-alpine AS base
 # Add libc6-compat for compatibility with certain libraries (like sharp or bcrypt)
@@ -8,6 +17,7 @@ WORKDIR /app
 FROM base AS deps
 # Copy package files to install dependencies first (leverages Docker cache)
 COPY package.json package-lock.json ./
+# Use deterministic install based on lockfile for reproducible builds.
 RUN npm ci
 
 # --- STAGE 3: Builder ---
@@ -36,6 +46,7 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 
+# Runtime-only envs consumed by Next.js standalone server.
 ENV NODE_ENV=production
 # Allow the app to be accessible outside the container
 ENV HOSTNAME="0.0.0.0"
@@ -47,6 +58,7 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
+# App listens on container port 3000; host mapping is defined in compose.
 EXPOSE 3000
 
 # Run the server using Node directly (fastest and lightest way)

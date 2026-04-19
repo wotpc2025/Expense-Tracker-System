@@ -1,15 +1,24 @@
 import { defineConfig } from "drizzle-kit";
 import * as dotenv from "dotenv";
 
-// สั่งให้โหลดค่าจากไฟล์ .env.local
+// Drizzle CLI config used by commands like:
+// - npx drizzle-kit push
+// - npx drizzle-kit generate
+// - npx drizzle-kit studio
+
+// Load environment variables from .env.local for local schema/migration commands.
 dotenv.config({
   path: ".env.local",
 });
 
+// Resolve DB credentials with this priority:
+// 1) DATABASE_URL (single connection string)
+// 2) DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME (discrete values)
 const getDbCredentials = () => {
   const databaseUrl = String(process.env.DATABASE_URL || '').trim();
 
   if (databaseUrl) {
+    // URL parsing keeps credentials handling consistent between local and CI.
     const parsedUrl = new URL(databaseUrl);
 
     return {
@@ -31,15 +40,16 @@ const getDbCredentials = () => {
 };
 
 export default defineConfig({
-  // 1. ระบุประเภทฐานข้อมูล
+  // Database dialect used by Drizzle.
   dialect: "mysql", 
 
-  // 2. พาธไปที่ไฟล์ schema
+  // Path to schema definitions.
   schema: "./utils/schema.jsx", 
 
-  // 3. โฟลเดอร์ที่จะให้เก็บไฟล์ Migration
+  // Output directory for generated migrations.
   out: "./drizzle",
 
-  // 4. ข้อมูลการเชื่อมต่อ
+  // Connection details resolved from DATABASE_URL or DB_* fallback.
+  // This keeps one config file usable across dev machines and deployment nodes.
   dbCredentials: getDbCredentials(),
 });

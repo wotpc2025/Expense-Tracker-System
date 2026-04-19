@@ -1,7 +1,12 @@
+# Ignore local dependencies and build artifacts to keep Docker context small.
 node_modules
 .next
 out
 build
+
+# Ignore repository metadata and local secrets.
 .git
 .env.local
+
+# Ignore local npm debug logs.
 npm-debug.log

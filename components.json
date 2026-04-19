@@ -1,4 +1,5 @@
 {
+  "$comment": "shadcn/ui generator configuration for style, aliases, and component registry behavior.",
   "$schema": "https://ui.shadcn.com/schema.json",
   "style": "new-york",
   "rsc": true,

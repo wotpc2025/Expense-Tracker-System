@@ -1,6 +1,13 @@
+# Docker Compose configuration for production-like single-service deployment.
+#
+# Runtime flow summary:
+# 1) Build image from local Dockerfile with NEXT_PUBLIC_* build args.
+# 2) Start one app container and expose container port 3000 on host port 3068.
+# 3) Load secrets/runtime vars from .env + explicit environment overrides.
 services:
   expense-tracker-app:
-    # Build configuration for the application
+    # Build-stage settings passed into Dockerfile.
+    # NEXT_PUBLIC_* vars must be available at build time so Next.js can inline them.
     build:
       context: . # Path to the Dockerfile context
       args:
@@ -9,21 +16,24 @@ services:
         - NEXT_PUBLIC_CLERK_SIGN_IN_URL=${NEXT_PUBLIC_CLERK_SIGN_IN_URL:-/sign-in}
         - NEXT_PUBLIC_CLERK_SIGN_UP_URL=${NEXT_PUBLIC_CLERK_SIGN_UP_URL:-/sign-up}
 
-    # Custom name for the running container
+    # Stable container name for easier ops commands (logs, restart, exec).
     container_name: expense-tracker-app
 
-    # Restart policy: starts unless manually stopped
+    # Keep service alive across daemon restarts unless explicitly stopped by operator.
     restart: unless-stopped
 
     # Port mapping: [Host Port] : [Container Port]
+    # Access app at http://<host>:3068
     ports:
       - "3068:3000"
 
-    # Load all environment variables from a .env file
+    # Load base environment variables from .env in project root.
+    # Note: compose file currently points to .env (not .env.local).
     env_file:
       - .env
   
-    # Runtime-only environment variables
+    # Runtime-only environment variables (server-side secrets stay in env file).
+    # Explicit keys here document what the app expects in production.
     environment:
       - NODE_ENV=production
       - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}

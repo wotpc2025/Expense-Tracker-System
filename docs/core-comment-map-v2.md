@@ -1,6 +1,6 @@
 # Expense Management System — Complete Code Comment Map
 
-> **Purpose (EN):** Quick-reference knowledge base. Every file in the system is listed with its role, key exports/functions, and where to find the most important logic.
+> **Purpose (EN):** Quick-reference knowledge base. Core runtime files and root operational config files are listed with their roles and key logic anchors.
 >
 > **วัตถุประสงค์ (TH):** แผนที่รวมคอมเมนต์ครบทุกไฟล์ในระบบ ใช้เป็นฐานข้อมูล แต่ละไฟล์ระบุหน้าที่ ฟังก์ชันสำคัญ และตำแหน่ง logic ที่ควรรู้
 
@@ -384,3 +384,67 @@ Returns: `[density, setDensity, resolvedDensity, resetDensity]`
 - Find by function name: `rg -n "getAdminMonitoringDashboardAction" app/_actions/dbActions.js`
 - Find by file + line (VS Code): `Go to Line` -> type the number, e.g. `1082` in `lib/translations.js`
 - Find by directory first: `rg --files app/(routes)/dashboard/_components`
+
+---
+
+## 12. Root Config & DevOps Files / ไฟล์ตั้งค่าระดับโปรเจกต์
+
+### `.dockerignore`
+**EN:** Controls which files are excluded from Docker build context to speed up builds and avoid copying secrets/artifacts.  
+**TH:** กำหนดไฟล์ที่ไม่ส่งเข้า Docker build context เพื่อลดขนาดและป้องกันการพาไฟล์สำคัญเข้า image
+
+### `.gitignore`
+**EN:** Defines local/dev artifacts, generated outputs, and secrets that should not be committed to Git.  
+**TH:** ระบุไฟล์ชั่วคราว/ไฟล์ build/ความลับที่ไม่ควรถูก commit
+
+### `Dockerfile`
+**EN:** Multi-stage container build for Next.js standalone runtime (`base -> deps -> builder -> runner`).  
+**TH:** Dockerfile แบบหลาย stage สำหรับ build และรัน Next.js โหมด standalone อย่างเบาและปลอดภัย
+
+### `docker-compose.yml`
+**EN:** Service orchestration for production-like run: build args, env injection, restart policy, and port mapping.  
+**TH:** ไฟล์ประกอบการรัน service ด้วย Docker Compose ครอบคลุม build args, env, restart และพอร์ต
+
+### `deploy.sh`
+**EN:** End-to-end deployment automation with Discord notifications and fail-safe trap handling.  
+**TH:** สคริปต์ deploy อัตโนมัติครบ flow พร้อมแจ้งเตือน Discord และดักข้อผิดพลาด
+
+### `next.config.mjs`
+**EN:** Next.js runtime config for standalone output and global security headers.  
+**TH:** ตั้งค่า Next.js สำหรับ standalone build และ security headers ทั้งระบบ
+
+### `proxy.ts`
+**EN:** Clerk middleware access control for public/private route matching and API protection.  
+**TH:** middleware ของ Clerk สำหรับป้องกัน route ส่วน private และบังคับ auth บน API
+
+### `drizzle.config.js`
+**EN:** Drizzle Kit CLI configuration (schema path, dialect, migration output, DB credentials resolution).  
+**TH:** ตั้งค่า Drizzle CLI สำหรับ schema, dialect, โฟลเดอร์ migration และการ resolve ค่าฐานข้อมูล
+
+### `postcss.config.mjs`
+**EN:** PostCSS pipeline config used by Tailwind/Next build.  
+**TH:** ตั้งค่า PostCSS ที่ใช้ใน pipeline ของ Tailwind/Next.js
+
+### `components.json`
+**EN:** shadcn/ui generator settings for style presets and import aliases.  
+**TH:** ตั้งค่า generator ของ shadcn/ui สำหรับ style และ alias
+
+### `jsconfig.json`
+**EN:** JavaScript path alias configuration (`@/*`) used across imports.  
+**TH:** ตั้งค่า path alias (`@/*`) สำหรับ import ในโปรเจกต์
+
+### Root Files — Directory + LOC Index
+
+| File | Directory | Key LOC |
+|---|---|---|
+| `.dockerignore` | project root | L1 ignore policy header |
+| `.gitignore` | project root | L1 ignore policy header |
+| `Dockerfile` | project root | L11 `base`, L21 `npm ci`, L43 `npm run build`, L65 `CMD` |
+| `components.json` | project root | L1 JSON config root |
+| `deploy.sh` | project root | L19 `set -e`, L26 `send_discord_msg`, L43 `trap`, L51-L65 deploy steps |
+| `docker-compose.yml` | project root | L7 `services`, L8 `expense-tracker-app` |
+| `drizzle.config.js` | project root | L1 `defineConfig` import, L42 `defineConfig(...)` |
+| `jsconfig.json` | project root | L1 JSON config root |
+| `next.config.mjs` | project root | L2 `nextConfig`, L39 export |
+| `postcss.config.mjs` | project root | L3 `plugins`, L8 export |
+| `proxy.ts` | project root | L1 Clerk import, L7 public routes, L14 middleware, L23 matcher |

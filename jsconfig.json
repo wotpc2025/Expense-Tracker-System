@@ -1,4 +1,5 @@
 {
+  "$comment": "Path aliases for cleaner imports, e.g. '@/lib/utils' -> './lib/utils'.",
   "compilerOptions": {
     "paths": {
       "@/*": ["./*"]
