@@ -1,3 +1,15 @@
+/**
+ * app/layout.js — Next.js Root Layout
+ *
+ * Wraps every page in the application with:
+ *   - ClerkProvider    : makes Clerk auth context available client-side
+ *   - ThemeProvider    : enables dark/light/system theme (next-themes via shadcn)
+ *   - Toaster          : global sonner toast notification container
+ *   - Google Fonts     : Geist Sans, Geist Mono, Outfit loaded via next/font
+ *
+ * suppressHydrationWarning on <html> is required by next-themes to avoid a
+ * React hydration mismatch when applying the stored theme class on first render.
+ */
 import { Geist, Geist_Mono, Outfit } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";

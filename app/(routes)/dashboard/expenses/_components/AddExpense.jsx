@@ -1,14 +1,43 @@
 "use client"
+/**
+ * AddExpense.jsx — Add Expense Form with AI Receipt Scanner
+ *
+ * Dual-mode expense entry component used inside:
+ *   - expenses/[id]/page.jsx   (standalone add form at bottom of budget detail)
+ *   - CreateBudget.jsx Step 2  (pre-populated from initial receipt scan result)
+ *
+ * Mode A — Manual entry:
+ *   - Name, amount, and category inputs
+ *   - addNewExpenseAction() inserts one expense row
+ *
+ * Mode B — AI Receipt Scan:
+ *   - Upload receipt image → POST /api/ai/scan-receipt
+ *   - Returns lineItems[] array; each item appears as an editable checklist row
+ *   - User can select/deselect items and edit name/amount before confirming
+ *   - addBulkExpensesAction() inserts all selected rows in one server call
+ *
+ * Category handling:
+ *   - Inherits initialCategory from the parent budget (pre-selected)
+ *   - User can type a custom category and add it to the local dropdown
+ *   - Custom categories are session-local (not persisted to DB)
+ *
+ * Props:
+ *   budgetId         {number}   - ID of the parent budget
+ *   initialCategory  {string}   - default category from parent budget
+ *   refreshData      {function} - calls parent refresh after adding expense(s)
+ *   density          {string}   - 'comfortable' | 'compact' for spacing
+ *   initialScanResult{object}   - pre-filled scan data from CreateBudget Step 1
+ */
 
 import React from 'react'
-import { Input } from '@/components/ui/input'
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { addBulkExpensesAction, addNewExpenseAction } from '@/app/_actions/dbActions';
 import moment from 'moment';
 import { Loader, ScanLine } from 'lucide-react';
-import { DEFAULT_EXPENSE_CATEGORIES, normalizeCategoryName } from '@/lib/expenseCategories';import { getTranslation } from '@/lib/translations';
+import { DEFAULT_EXPENSE_CATEGORIES, normalizeCategoryName } from '@/lib/expenseCategories';
+import { t } from '@/lib/text'
 
 function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'comfortable', initialScanResult = null }) {
     const language = 'en';
@@ -42,7 +71,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
     const addCustomCategory = () => {
         const nextCategory = normalizeCategoryName(customCategory);
         if (!nextCategory) {
-            toast.error(getTranslation(language, 'addExpense.toasts.enterCategoryName'));
+            toast.error(t('addExpense.toasts.enterCategoryName'));
             return;
         }
 
@@ -57,7 +86,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
         setCategoryOptions(updated);
         setCategory(nextCategory);
         setCustomCategory('');
-        toast.success(getTranslation(language, 'addExpense.toasts.categoryAdded'));
+        toast.success(t('addExpense.toasts.categoryAdded'));
     };
 
     const handleReceiptSelection = async (event) => {
@@ -77,7 +106,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
             const result = await response.json();
 
             if (!response.ok) {
-                toast.error(result?.userMessage || result?.error || getTranslation(language, 'addExpense.toasts.scanRetry'));
+                toast.error(result?.userMessage || result?.error || t('addExpense.toasts.scanRetry'));
                 return;
             }
 
@@ -86,16 +115,16 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
                 setScannedItems(result.lineItems);
                 setSelectedScannedIndexes(result.lineItems.map((_, index) => index));
                 toast.success(
-                    getTranslation(language, 'addExpense.toasts.scanFound').replace('{count}', String(result.lineItems.length))
+                    t('addExpense.toasts.scanFound').replace('{count}', String(result.lineItems.length))
                 );
             } else {
-                toast.error(getTranslation(language, 'addExpense.toasts.scanNoItems'));
+                toast.error(t('addExpense.toasts.scanNoItems'));
                 setScannedItems([]);
                 setSelectedScannedIndexes([]);
             }
         } catch (error) {
             console.error('Scan receipt error:', error);
-            toast.error(getTranslation(language, 'addExpense.toasts.scanRetry'));
+            toast.error(t('addExpense.toasts.scanRetry'));
         } finally {
             setScanLoading(false);
             if (receiptInputRef.current) {
@@ -120,7 +149,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
             setName('');
             setCategory('');
             setAmount(''); // ล้างค่าหลังเพิ่มเสร็จ
-            toast.success(getTranslation(language, 'addExpense.toasts.addSuccess'));
+            toast.success(t('addExpense.toasts.addSuccess'));
             refreshData && refreshData(); // สั่ง refresh ข้อมูลหน้าจอถ้ามี function ส่งมา
         }
         setLoading(false);
@@ -128,13 +157,13 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
 
     const addScannedItems = async () => {
         if (!Array.isArray(scannedItems) || scannedItems.length === 0) {
-            toast.error(getTranslation(language, 'addExpense.toasts.noScannedItems'));
+            toast.error(t('addExpense.toasts.noScannedItems'));
             return;
         }
 
         const itemsToAdd = scannedItems.filter((_, index) => selectedScannedIndexes.includes(index));
         if (itemsToAdd.length === 0) {
-            toast.error(getTranslation(language, 'addExpense.toasts.selectAtLeastOne'));
+            toast.error(t('addExpense.toasts.selectAtLeastOne'));
             return;
         }
 
@@ -148,12 +177,12 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
             });
 
             if (!result?.success) {
-                toast.error(result?.error || getTranslation(language, 'addExpense.toasts.addMultipleFailed'));
+                toast.error(result?.error || t('addExpense.toasts.addMultipleFailed'));
                 return;
             }
 
             toast.success(
-                getTranslation(language, 'addExpense.toasts.addMultipleSuccess').replace('{count}', String(result.count))
+                t('addExpense.toasts.addMultipleSuccess').replace('{count}', String(result.count))
             );
             setScannedItems([]);
             setSelectedScannedIndexes([]);
@@ -171,7 +200,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
             refreshData && refreshData();
         } catch (error) {
             console.error('Add scanned items error:', error);
-            toast.error(getTranslation(language, 'addExpense.toasts.addMultipleFailed'));
+            toast.error(t('addExpense.toasts.addMultipleFailed'));
         } finally {
             setAddingScanned(false);
         }
@@ -223,7 +252,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
     return (
         <div className={`rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 ${density === 'compact' ? 'p-3.5 sm:p-4' : 'p-4 sm:p-5'}`}>
             <div className='flex items-center justify-between gap-2 mb-2'>
-                <h2 className='text-lg font-bold sm:text-xl'>{getTranslation(language, 'addExpense.addExpense')}</h2>
+                <h2 className='text-lg font-bold sm:text-xl'>{t('addExpense.addExpense')}</h2>
                 {scannedItems.length > 0 && (
                     <Button
                         type='button'
@@ -232,7 +261,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
                         disabled={addingScanned}
                         className='h-8 px-3 text-xs cursor-pointer'
                     >
-                        {getTranslation(language, 'addExpense.clearScan')}
+                        {t('addExpense.clearScan')}
                     </Button>
                 )}
             </div>
@@ -250,13 +279,13 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
                 className={`mt-3 w-full cursor-pointer bg-linear-to-r from-fuchsia-500 to-violet-500 text-white hover:from-fuchsia-600 hover:to-violet-600 disabled:opacity-50 ${density === 'compact' ? 'h-9' : 'h-10'}`}
             >
                 {scanLoading ? <Loader className='animate-spin' /> : <ScanLine className='mr-2 h-4 w-4' />}
-                {scanLoading ? getTranslation(language, 'addExpense.scanning') : getTranslation(language, 'addExpense.scanReceipt')}
+                {scanLoading ? t('addExpense.scanning') : t('addExpense.scanReceipt')}
             </Button>
 
             {scannedItems.length > 0 && (
                 <div className='mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/30 dark:bg-emerald-900/20'>
                     <p className='text-sm text-emerald-700 dark:text-emerald-300 font-medium'>
-                        {getTranslation(language, 'addExpense.scanHint')}
+                        {t('addExpense.scanHint')}
                     </p>
                 </div>
             )}
@@ -266,10 +295,10 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
                     <div className='flex items-center justify-between mb-2 gap-2 flex-wrap'>
                         <div>
                             <h3 className='text-sm font-semibold text-slate-700 dark:text-slate-300'>
-                                {getTranslation(language, 'addExpense.scannedItems')} ({scannedItems.length})
+                                {t('addExpense.scannedItems')} ({scannedItems.length})
                             </h3>
                             <p className='text-xs text-slate-500'>
-                                {getTranslation(language, 'addExpense.selectedCount').replace('{count}', String(selectedScannedIndexes.length))}
+                                {t('addExpense.selectedCount').replace('{count}', String(selectedScannedIndexes.length))}
                             </p>
                         </div>
                         <div className='flex gap-2'>
@@ -281,8 +310,8 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
                                 className='h-8 px-3 text-xs cursor-pointer'
                             >
                                 {selectedScannedIndexes.length === scannedItems.length
-                                    ? getTranslation(language, 'addExpense.unselectAll')
-                                    : getTranslation(language, 'addExpense.selectAll')}
+                                    ? t('addExpense.unselectAll')
+                                    : t('addExpense.selectAll')}
                             </Button>
                             <Button
                                 type='button'
@@ -290,7 +319,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
                                 disabled={addingScanned || scanLoading || selectedScannedIndexes.length === 0}
                                 className='h-8 px-3 text-xs bg-emerald-600 hover:bg-emerald-700 cursor-pointer'
                             >
-                                {addingScanned ? <Loader className='animate-spin h-3.5 w-3.5' /> : getTranslation(language, 'addExpense.addSelected')}
+                                {addingScanned ? <Loader className='animate-spin h-3.5 w-3.5' /> : t('addExpense.addSelected')}
                             </Button>
                         </div>
                     </div>
@@ -313,7 +342,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
                                     <Input
                                         value={item.name || ''}
                                         onChange={(e) => updateScannedItemName(idx, e.target.value)}
-                                        placeholder={getTranslation(language, 'addExpense.editItemName')}
+                                        placeholder={t('addExpense.editItemName')}
                                         className='h-8 text-xs'
                                     />
                                     <input
@@ -321,7 +350,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
                                         value={Number(item.amount || 0)}
                                         onChange={(e) => updateScannedItemAmount(idx, e.target.value)}
                                         className='h-8 rounded-md border border-input bg-transparent px-3 text-xs dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100'
-                                        placeholder={getTranslation(language, 'addExpense.editItemAmount')}
+                                        placeholder={t('addExpense.editItemAmount')}
                                     />
                                 </div>
                             </div>
@@ -333,29 +362,29 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
             {scannedItems.length === 0 && (
                 <>
                     <div className={density === 'compact' ? 'mt-2.5' : 'mt-3'}>
-                        <h2 className='text-black font-medium my-1 dark:text-white'>{getTranslation(language, 'addExpense.expenseName')}</h2>
-                        <Input placeholder={getTranslation(language, 'placeholder.expenseName')}
+                        <h2 className='text-black font-medium my-1 dark:text-white'>{t('addExpense.expenseName')}</h2>
+                        <Input placeholder={t('placeholder.expenseName')}
                             autoComplete="on"
                             value={name}
                             onChange={(e) => setName(e.target.value)} />
                     </div>
                     <div className={density === 'compact' ? 'mt-2.5' : 'mt-3'}>
-                        <h2 className='text-black font-medium my-1 dark:text-white'>{getTranslation(language, 'addExpense.expenseAmount')}</h2>
-                        <Input placeholder={getTranslation(language, 'placeholder.expenseAmount')}
+                        <h2 className='text-black font-medium my-1 dark:text-white'>{t('addExpense.expenseAmount')}</h2>
+                        <Input placeholder={t('placeholder.expenseAmount')}
                             autoComplete="on"
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)} />
                     </div>
                     <div className={density === 'compact' ? 'mt-2.5' : 'mt-3'}>
                         <h2 className='text-black font-medium my-1 dark:text-white'>
-                            {getTranslation(language, 'addExpense.category')}
+                            {t('addExpense.category')}
                         </h2>
                         <select
                             value={category}
                             onChange={(e) => setCategory(e.target.value)}
                             className={`w-full rounded-md border border-input bg-transparent px-3 text-sm dark:bg-slate-800 dark:text-slate-100 dark:border-slate-600 ${density === 'compact' ? 'h-9' : 'h-10'}`}
                         >
-                            <option value=''>{getTranslation(language, 'addExpense.selectCategory')}</option>
+                            <option value=''>{t('addExpense.selectCategory')}</option>
                             {categoryOptions.map((cat) => (
                                 <option key={cat} value={cat}>{cat}</option>
                             ))}
@@ -363,7 +392,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
 
                         <div className='mt-2 flex flex-wrap gap-2 sm:flex-nowrap'>
                             <Input
-                                placeholder={getTranslation(language, 'addExpense.newCategory')}
+                                placeholder={t('addExpense.newCategory')}
                                 autoComplete='off'
                                 value={customCategory}
                                 onChange={(e) => setCustomCategory(e.target.value)}
@@ -374,7 +403,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
                                 onClick={addCustomCategory}
                                 className='cursor-pointer whitespace-nowrap'
                             >
-                                {getTranslation(language, 'addExpense.addNewCategory')}
+                                {t('addExpense.addNewCategory')}
                             </Button>
                         </div>
                     </div>
@@ -382,7 +411,7 @@ function AddExpense({ budgetId, initialCategory = '', refreshData, density = 'co
                         onClick={() => addNewExpense()}
                         className={`mt-4 w-full bg-amber-600 hover:bg-amber-700 cursor-pointer ${density === 'compact' ? 'h-9' : 'h-10'}`}>
                         {loading ?
-                            <Loader className='animate-spin' /> : getTranslation(language, 'addExpense.addButton')
+                            <Loader className='animate-spin' /> : t('addExpense.addButton')
                         }
                     </Button>
                 </>

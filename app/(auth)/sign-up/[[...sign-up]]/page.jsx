@@ -2,7 +2,7 @@
 
 import { SignUp } from '@clerk/nextjs'
 import Image from 'next/image';
-import { getTranslation } from '@/lib/translations'
+import { t } from '@/lib/text'
 
 export default function Page() {
   const language = 'en';return (
@@ -35,10 +35,10 @@ export default function Page() {
           <div className="flex-1">
             <div className="text-center">
               <h2 className="text-4xl font-bold text-center text-gray-700 dark:text-white">
-                {getTranslation(language, 'authPage.welcomePrefix')} <span className="text-amber-600">Exfinit</span>
+                {t('authPage.welcomePrefix')} <span className="text-amber-600">Exfinit</span>
               </h2>
               <p className="mt-3 text-gray-500 dark:text-gray-300">
-                {getTranslation(language, 'authPage.signUpSubtitle')}
+                {t('authPage.signUpSubtitle')}
               </p>
             </div>
 

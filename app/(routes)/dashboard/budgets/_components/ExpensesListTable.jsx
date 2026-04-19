@@ -1,5 +1,33 @@
 "use client"
-
+/**
+ * ExpensesListTable.jsx — Expense Data Grid (ag-Grid)
+ *
+ * Reusable expense table used in:
+ *   - expenses/[id]/page.jsx    (single budget’s expenses)
+ *   - expenses/page.jsx         (all user expenses)
+ *
+ * Built on ag-Grid Community (AllCommunityModule) for virtualised rendering,
+ * client-side filtering, and CSV export.
+ *
+ * Features:
+ *   - Search bar with real-time ag-Grid quickFilter
+ *   - Category filter dropdown (built from DEFAULT_EXPENSE_CATEGORIES + custom)
+ *   - Add custom category to the dropdown
+ *   - Inline row edit via a Dialog form (name, amount, category, date)
+ *   - Row delete with confirmation
+ *   - CSV export with TH / EN locale selector (date + currency formatting)
+ *   - Dark mode support via ag-Grid’s quartz-dark theme
+ *   - Density and view layout toggles (passed in via props)
+ *
+ * Props:
+ *   expensesList      {object[]}   - expense data to display
+ *   refreshData       {function}   - re-fetch callback after mutate
+ *   gridHeight        {string}     - CSS height of the grid (default '420px')
+ *   density           {string}     - 'comfortable' | 'compact'
+ *   densityMode       {string}     - controlled density value
+ *   onDensityChange   {function}   - callback when density toggle clicked
+ *   showDensityToggle {boolean}    - whether to render the density toggle button
+ */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, Download, LayoutGrid, List, MonitorCog, Pencil, RotateCcw, Search, Trash } from 'lucide-react'
 import moment from 'moment';
@@ -20,7 +48,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { DEFAULT_EXPENSE_CATEGORIES, getCategoryColor, normalizeCategoryName } from '@/lib/expenseCategories';
-import { getTranslation } from '@/lib/translations';
+import { t } from '@/lib/text'
 import { useTheme } from 'next-themes';
 
 import 'ag-grid-community/styles/ag-grid.css';
@@ -39,7 +67,8 @@ const EXPORT_LANGUAGE_OPTIONS = {
         locale: 'en-US',
         headers: { name: 'Name', category: 'Category', amount: 'Amount', createdAt: 'Date' },
     },
-};
+};
+
 function ExpensesListTable({
     expensesList,
     refreshData,
@@ -241,7 +270,7 @@ function ExpensesListTable({
                                 if (language === 'th') {
                                     // Always show Thai for known and custom categories
                                     // Try translation first
-                                    const thLabel = getTranslation('th', `categories.${params.value.toLowerCase()}`);
+                                    const thLabel = t(`categories.${params.value.toLowerCase()}`);
                                     if (thLabel !== `categories.${params.value.toLowerCase()}`) {
                                         label = thLabel;
                                     } else {
@@ -267,7 +296,7 @@ function ExpensesListTable({
                                         if (manualMap[lower]) label = manualMap[lower];
                                     }
                                 } else {
-                                    const enLabel = getTranslation('en', `categories.${params.value.toLowerCase()}`);
+                                    const enLabel = t(`categories.${params.value.toLowerCase()}`);
                                     if (enLabel !== `categories.${params.value.toLowerCase()}`) label = enLabel;
                                 }
                                 return (
@@ -341,7 +370,7 @@ function ExpensesListTable({
                                 }`}
                             >
                                 <LayoutGrid className='h-3.5 w-3.5' />
-                                {language === 'th' ? 'สะดวกสบาย' : getTranslation(language, 'density.comfort')}
+                                {language === 'th' ? 'สะดวกสบาย' : t('density.comfort')}
                             </button>
                             <button
                                 type='button'
@@ -349,19 +378,19 @@ function ExpensesListTable({
                                 className={`inline-flex items-center gap-1 rounded px-2 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
                                     selectedDensityMode === 'auto' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:bg-slate-100'
                                 }`}
-                                title={getTranslation(language, 'density.autoModeTooltip') + effectiveDensity}
+                                title={t('density.autoModeTooltip') + effectiveDensity}
                             >
                                 <MonitorCog className='h-3.5 w-3.5' />
-                                {language === 'th' ? 'อัตโนมัติ' : getTranslation(language, 'density.auto')}
+                                {language === 'th' ? 'อัตโนมัติ' : t('density.auto')}
                             </button>
                             <button
                                 type='button'
                                 onClick={() => onDensityChange('comfortable')}
                                 className='inline-flex items-center gap-1 rounded px-2 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100 cursor-pointer'
-                                title={getTranslation(language, 'density.resetTooltip')}
+                                title={t('density.resetTooltip')}
                             >
                                 <RotateCcw className='h-3.5 w-3.5' />
-                                {language === 'th' ? 'รีเซ็ต' : getTranslation(language, 'density.reset')}
+                                {language === 'th' ? 'รีเซ็ต' : t('density.reset')}
                             </button>
                         </div>
                     )}

@@ -1,9 +1,28 @@
 "use client"
-
+/**
+ * SideNav.jsx — Sidebar Navigation Component
+ *
+ * Persistent left sidebar built on shadcn/ui <Sidebar>. Contents differ
+ * by user role:
+ *   - Regular user  : Dashboard / Budgets / Expenses / Reports
+ *   - Admin user    : Admin Monitoring / Admin Users / Database Management
+ *
+ * Admin detection:
+ *   1. Fast path: isAdminByRole(user) checks Clerk metadata synchronously.
+ *   2. Async path: getCurrentUserAdminStatusAction() confirms via DB for
+ *      users whose metadata hasn't been set yet.
+ *
+ * DB status badge:
+ *   - Polls /api/health/db every 30 seconds.
+ *   - Shows Online (green) / Offline (red) / Checking (grey) indicator.
+ *   - Aborts the fetch after 4 s to avoid hanging on slow networks.
+ *
+ * Footer: displays user's full name (or email), Clerk UserButton, ThemeToggle.
+ */
 import React, { useEffect, useState } from 'react'
-import Image from 'next/image'
 import { Database, LayoutGrid, PiggyBank, ReceiptText, Shield, TrendingUp, Users } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { UserButton } from '@clerk/nextjs'
 import { usePathname } from 'next/navigation'
 import {

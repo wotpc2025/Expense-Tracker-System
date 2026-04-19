@@ -1,4 +1,27 @@
 "use client"
+/**
+ * EditBudget.jsx — Edit Budget Dialog
+ *
+ * Modal dialog triggered by the pencil / Edit button on the budget detail page.
+ * Allows editing: emoji icon, budget name, budget amount, and default category.
+ *
+ * Features:
+ *   - EmojiPicker (emoji-picker-react library) for icon selection
+ *   - Category dropdown: combines DEFAULT_EXPENSE_CATEGORIES with any custom
+ *     categories already used in the budget's existing expenses (uniqueCategories memo)
+ *   - "Sync Category" action: bulk-updates ALL existing expenses under this
+ *     budget to match the newly selected category (with confirmation dialog)
+ *
+ * Data flow:
+ *   - updateBudgetAction(budgetInfo, name, amount, emoji, category)  → saves changes
+ *   - syncBudgetCategoryToExpensesAction(budgetId, category)         → bulk sync
+ *   - refreshData() callback re-fetches data in the parent page after save
+ *
+ * Props:
+ *   budgetInfo   {object}   - current budget data (id, name, amount, icon, category)
+ *   refreshData  {function} - called after successful save to update parent state
+ *   expensesList {object[]} - existing expenses for this budget (for category options)
+ */
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -17,7 +40,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { syncBudgetCategoryToExpensesAction, updateBudgetAction } from '@/app/_actions/dbActions';
 import { toast } from 'sonner';
 import { DEFAULT_EXPENSE_CATEGORIES } from '@/lib/expenseCategories';
-import { getTranslation } from '@/lib/translations';import {
+import { t } from '@/lib/text'
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -68,9 +92,9 @@ function EditBudget({budgetInfo, refreshData, expensesList = []}) {
         if (result) 
         {
         refreshData?.(); // รีเฟรชข้อมูลในหน้า
-          toast.success(getTranslation(language, 'updateSuccess'));
+          toast.success(t('updateSuccess'));
         } else {
-          toast.error(getTranslation(language, 'updateError'));
+          toast.error(t('updateError'));
         }
     }
 
@@ -79,7 +103,7 @@ function EditBudget({budgetInfo, refreshData, expensesList = []}) {
 
       const normalizedCategory = String(category || '').trim();
       if (!normalizedCategory) {
-        toast.error(getTranslation(language, 'editBudget.requireCategory'));
+        toast.error(t('editBudget.requireCategory'));
         return;
       }
 
@@ -87,11 +111,11 @@ function EditBudget({budgetInfo, refreshData, expensesList = []}) {
         setSyncingCategory(true);
         const result = await syncBudgetCategoryToExpensesAction(budgetInfo.id, normalizedCategory);
         if (!result?.success) {
-          toast.error(result?.error || getTranslation(language, 'editBudget.syncFailed'));
+          toast.error(result?.error || t('editBudget.syncFailed'));
           return;
         }
 
-        toast.success(getTranslation(language, 'editBudget.syncSuccess').replace('{count}', String(result.count)));
+        toast.success(t('editBudget.syncSuccess').replace('{count}', String(result.count)));
         refreshData?.();
       } finally {
         setSyncingCategory(false);
@@ -102,11 +126,11 @@ function EditBudget({budgetInfo, refreshData, expensesList = []}) {
     <div suppressHydrationWarning>
      <Dialog>
               <DialogTrigger asChild>
-            <Button className='flex gap-2 cursor-pointer' variant=''> <PenBox/> {getTranslation(language, 'edit')}</Button>
+            <Button className='flex gap-2 cursor-pointer' variant=''> <PenBox/> {t('edit')}</Button>
               </DialogTrigger>
               <DialogContent suppressHydrationWarning>
                   <DialogHeader>
-              <DialogTitle>{getTranslation(language, 'editBudget.title')}</DialogTitle>
+              <DialogTitle>{t('editBudget.title')}</DialogTitle>
                       <DialogDescription>
                         <div className='mt-5'>
                           <Button variant="outline"
@@ -123,33 +147,33 @@ function EditBudget({budgetInfo, refreshData, expensesList = []}) {
                             />
                           </div>
                           <div className='mt-2'>
-                            <h2 className='text-black font-medium my-1 dark:text-white'>{getTranslation(language, 'editBudget.budgetName')}</h2>
-                            <Input placeholder={getTranslation(language, 'placeholder.budgetName')}
+                            <h2 className='text-black font-medium my-1 dark:text-white'>{t('editBudget.budgetName')}</h2>
+                            <Input placeholder={t('placeholder.budgetName')}
                             value={name}
                             autoComplete="on"
                             onChange={(e)=>setName(e.target.value)}/>
                           </div>
                           <div className='mt-2'>
-                            <h2 className='text-black font-medium my-1 dark:text-white'>{getTranslation(language, 'editBudget.budgetAmount')}</h2>
+                            <h2 className='text-black font-medium my-1 dark:text-white'>{t('editBudget.budgetAmount')}</h2>
                             <Input 
                             type="number"
-                            placeholder={getTranslation(language, 'placeholder.budgetAmount')}
+                            placeholder={t('placeholder.budgetAmount')}
                             value={amount}
                             autoComplete="on"
                             onChange={(e)=>setAmount(e.target.value)}/>
                           </div>
 
                           <div className='mt-2'>
-                            <h2 className='text-black font-medium my-1 dark:text-white'>{getTranslation(language, 'editBudget.defaultCategory')}</h2>
+                            <h2 className='text-black font-medium my-1 dark:text-white'>{t('editBudget.defaultCategory')}</h2>
                             {budgetInfo?.category && (
-                              <p className='text-xs text-slate-500 dark:text-slate-400 mb-1'>{getTranslation(language, 'editBudget.currentCategory')}: <span className='font-semibold text-slate-700 dark:text-slate-300'>{budgetInfo.category}</span></p>
+                              <p className='text-xs text-slate-500 dark:text-slate-400 mb-1'>{t('editBudget.currentCategory')}: <span className='font-semibold text-slate-700 dark:text-slate-300'>{budgetInfo.category}</span></p>
                             )}
                             <select
                               value={category}
                               onChange={(e)=>setCategory(e.target.value)}
                               className='w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 cursor-pointer'
                             >
-                              <option value=''>-- {getTranslation(language, 'editBudget.selectCategory')} --</option>
+                              <option value=''>-- {t('editBudget.selectCategory')} --</option>
                               {uniqueCategories.map(cat => (
                                 <option key={cat} value={cat}>{cat}</option>
                               ))}
@@ -165,22 +189,22 @@ function EditBudget({budgetInfo, refreshData, expensesList = []}) {
                                   className='w-full cursor-pointer'
                                   disabled={syncingCategory}
                                 >
-                                  {getTranslation(language, 'editBudget.syncCategory')}
+                                  {t('editBudget.syncCategory')}
                                 </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>{getTranslation(language, 'editBudget.syncTitle')}</AlertDialogTitle>
+                                  <AlertDialogTitle>{t('editBudget.syncTitle')}</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    {getTranslation(language, 'editBudget.syncDescription').replace('{category}', category || '-')}
+                                    {t('editBudget.syncDescription').replace('{category}', category || '-')}
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel>{getTranslation(language, 'cancel')}</AlertDialogCancel>
+                                  <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                                   <AlertDialogAction
                                     onClick={onSyncCategoryToExistingExpenses}
                                   >
-                                    {getTranslation(language, 'editBudget.confirmSync')}
+                                    {t('editBudget.confirmSync')}
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
@@ -198,7 +222,7 @@ function EditBudget({budgetInfo, refreshData, expensesList = []}) {
                             onClick={()=>onUpdateBudget()}
                           className="mt-5 w-full bg-amber-600
                            hover:bg-amber-700 cursor-pointer">
-                            {getTranslation(language, 'editBudget.updateButton')}
+                            {t('editBudget.updateButton')}
                         </Button>
                       </DialogClose>
                     </DialogFooter>

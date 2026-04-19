@@ -1,12 +1,32 @@
 "use client"
-
+/**
+ * admin/page.jsx — Admin Monitoring Dashboard (/dashboard/admin)
+ *
+ * Central command page for system administrators. Sections:
+ *   - Overview cards: user count, budget count, expense count, total spend
+ *   - Data quality monitors: missing categories, invalid amounts, duplicates,
+ *     budgets over limit, monthly transaction count
+ *   - Alert management: admin-defined alerts with dismiss / acknowledge workflow
+ *   - Budget & expense rows: per-user breakdown tables with date + user filters
+ *   - Security panel: rate-limit telemetry from securityTelemetry.js
+ *   - Audit log: recent admin bulk-operation records
+ *
+ * Data flow:
+ *   - getAdminMonitoringDashboardAction() fetches all data in a single call
+ *   - setAdminAlertStatusAction() acknowledges / dismisses individual alerts
+ *   - adminBulkDeleteExpensesAction() and adminBulkSetCategoryAction() are
+ *     destructive operations guarded by an AlertDialog confirmation
+ *
+ * Server-side access is already restricted by admin/layout.jsx.
+ */
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   adminBulkDeleteExpensesAction,
   adminBulkSetCategoryAction,
   getAdminMonitoringDashboardAction,
   setAdminAlertStatusAction,
-} from '@/app/_actions/dbActions'import { getTranslation } from '@/lib/translations'
+} from '@/app/_actions/dbActions'
+import { getTranslation } from '@/lib/translations'
 import { AlertTriangle, Database, LineChart, Receipt, ShieldAlert, ShieldCheck, Users, Wrench } from 'lucide-react'
 import { toast } from 'sonner'
 import {

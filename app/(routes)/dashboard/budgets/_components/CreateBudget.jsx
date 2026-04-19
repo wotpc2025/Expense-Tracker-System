@@ -1,7 +1,29 @@
 
 "use client"
-
-
+/**
+ * CreateBudget.jsx — Create Budget Dialog (2-Step Flow)
+ *
+ * Multi-step modal dialog for creating a new budget:
+ *   Step 1 — "Create Budget":
+ *     - Emoji picker (emoji-mart) with auto-suggest from budgetEmojiSuggest.js
+ *     - Budget name input
+ *     - Budget amount input
+ *     - AI Receipt Scan: upload receipt → /api/ai/scan-receipt → prefill amount
+ *     - "Auto-fill amount from scan" checkbox
+ *
+ *   Step 2 — "Add Expense" (shown after budget is created):
+ *     - Renders <AddExpense> pre-populated with the scanned receipt data
+ *     - User can add scanned line items as expenses immediately
+ *
+ * Data flow:
+ *   - createBudgetAction()          → inserts budget row, returns insertedId
+ *   - POST /api/ai/scan-receipt     → returns { expenseName, amount, lineItems }
+ *   - refreshData() callback         → re-fetches BudgetList after creation
+ *
+ * Props:
+ *   refreshData {function}  - called after successful budget creation
+ *   trigger     {ReactNode} - optional custom trigger element (default: + card)
+ */
 
 import React, { useEffect, useRef, useState } from 'react'
 import {
@@ -22,7 +44,8 @@ import { toast } from 'sonner'
 import { CheckCircle2, Loader, ScanLine, Sparkles } from 'lucide-react'
 import AddExpense from '../../expenses/_components/AddExpense'
 import { suggestEmoji } from '@/lib/budgetEmojiSuggest'
-import { getTranslation } from '@/lib/translations'
+import { t } from '@/lib/text'
+
 function CreateBudget({ refreshData, trigger }) {
         const getScannedTotal = (scanResult) => {
             if (!scanResult || !Array.isArray(scanResult.lineItems)) return ''
@@ -108,17 +131,17 @@ function CreateBudget({ refreshData, trigger }) {
             const response = await fetch('/api/ai/scan-receipt', { method: 'POST', body: formData })
             const result = await response.json()
             if (!response.ok) {
-                toast.error(result?.userMessage || result?.error || getTranslation(language, 'createBudget.toasts.scanFailed'))
+                toast.error(result?.userMessage || result?.error || t('createBudget.toasts.scanFailed'))
                 return
             }
             setInitialScanResult(result)
             toast.success(
                 Array.isArray(result?.lineItems) && result.lineItems.length > 0
-                    ? getTranslation(language, 'createBudget.toasts.scanSuccess').replace('{count}', String(result.lineItems.length))
-                    : getTranslation(language, 'createBudget.toasts.scanSuccessNoBudget')
+                    ? t('createBudget.toasts.scanSuccess').replace('{count}', String(result.lineItems.length))
+                    : t('createBudget.toasts.scanSuccessNoBudget')
             )
         } catch {
-            toast.error(getTranslation(language, 'createBudget.toasts.scanFailed'))
+            toast.error(t('createBudget.toasts.scanFailed'))
         } finally {
             setScanLoading(false)
             if (receiptInputRef.current) receiptInputRef.current.value = ''
@@ -136,7 +159,7 @@ function CreateBudget({ refreshData, trigger }) {
             })
 
             if (result?.error) {
-                toast.error(getTranslation(language, 'createBudget.toasts.createFailed'))
+                toast.error(t('createBudget.toasts.createFailed'))
                 return
             }
 
@@ -145,17 +168,17 @@ function CreateBudget({ refreshData, trigger }) {
                 : result?.insertedId ?? result?.id ?? result?.insertId
 
             if (!insertedId) {
-                toast.error(getTranslation(language, 'createBudget.toasts.createFailed'))
+                toast.error(t('createBudget.toasts.createFailed'))
                 return
             }
 
             refreshData && refreshData()
-            toast.success(getTranslation(language, 'createBudget.toasts.createSuccess'))
+            toast.success(t('createBudget.toasts.createSuccess'))
             setCreatedBudget({ id: Number(insertedId), name, icon: emojiIcon })
             setStep('addExpense')
         } catch (error) {
             console.error('Create budget error:', error)
-            toast.error(getTranslation(language, 'createBudget.toasts.createFailed'))
+            toast.error(t('createBudget.toasts.createFailed'))
         } finally {
             setLoading(false)
         }
@@ -167,7 +190,7 @@ function CreateBudget({ refreshData, trigger }) {
                 {trigger ? trigger : (
                     <div className='bg-slate-100 p-10 rounded-md items-center flex flex-col border-2 border-dashed cursor-pointer hover:shadow-md'>
                         <h2 className='text-3xl'>+</h2>
-                        <h2 className='font-bold'>{getTranslation(language, 'createBudget.title')}</h2>
+                        <h2 className='font-bold'>{t('createBudget.title')}</h2>
                     </div>
                 )}
             </DialogTrigger>
@@ -180,12 +203,12 @@ function CreateBudget({ refreshData, trigger }) {
                         <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${step === 'create' ? 'bg-amber-600 text-white' : 'bg-emerald-500 text-white'}`}>
                             {step === 'create' ? '1' : <CheckCircle2 className='h-3.5 w-3.5' />}
                         </span>
-                        {getTranslation(language, 'createBudget.step1Title')}
+                        {t('createBudget.step1Title')}
                     </span>
                     <span className='text-slate-300 select-none'>→</span>
                     <span className={`flex items-center gap-1.5 font-semibold ${step === 'addExpense' ? 'text-amber-600' : 'text-slate-400'}`}>
                         <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${step === 'addExpense' ? 'bg-amber-600 text-white' : 'bg-slate-200 text-slate-500'}`}>2</span>
-                        {getTranslation(language, 'createBudget.step2Title')}
+                        {t('createBudget.step2Title')}
                     </span>
                 </div>
 
@@ -193,7 +216,7 @@ function CreateBudget({ refreshData, trigger }) {
                 {step === 'create' && (
                     <>
                         <DialogHeader>
-                            <DialogTitle>{getTranslation(language, 'createBudget.title')}</DialogTitle>
+                            <DialogTitle>{t('createBudget.title')}</DialogTitle>
                         </DialogHeader>
                         <div className='mt-1'>
                             {/* Emoji button with auto-suggest badge */}
@@ -202,7 +225,7 @@ function CreateBudget({ refreshData, trigger }) {
                                     variant="outline"
                                     className="cursor-pointer text-2xl h-12 w-12 p-0 relative"
                                     onClick={() => setOpenEmojiPicker(!openEmojiPicker)}
-                                    title={emojiAutoSet ? getTranslation(language, 'createBudget.emojiAutoSuggested') : getTranslation(language, 'createBudget.emojiPick')}
+                                    title={emojiAutoSet ? t('createBudget.emojiAutoSuggested') : t('createBudget.emojiPick')}
                                 >
                                     {emojiIcon}
                                 </Button>
@@ -230,16 +253,16 @@ function CreateBudget({ refreshData, trigger }) {
                                 </div>
                             )}
                             <div className='mt-3'>
-                                <h2 className='text-black font-medium my-1 dark:text-white'>{getTranslation(language, 'createBudget.budgetName')}</h2>
+                                <h2 className='text-black font-medium my-1 dark:text-white'>{t('createBudget.budgetName')}</h2>
                                 <Input
-                                    placeholder={getTranslation(language, 'placeholder.budgetName')}
+                                    placeholder={t('placeholder.budgetName')}
                                     autoComplete="on"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                 />
                             </div>
                             <div className='mt-2'>
-                                <h2 className='text-black font-medium my-1 dark:text-white'>{getTranslation(language, 'createBudget.budgetAmount')}</h2>
+                                <h2 className='text-black font-medium my-1 dark:text-white'>{t('createBudget.budgetAmount')}</h2>
                                 <div className='flex items-center gap-2 mb-2'>
                                     <Checkbox
                                         id="autoAmount"
@@ -251,11 +274,11 @@ function CreateBudget({ refreshData, trigger }) {
                                                 : "mr-1 cursor-pointer"
                                         }
                                     />
-                                    <span className='text-sm select-none'>{getTranslation(language, 'createBudget.autoFillFromScan')}</span>
+                                    <span className='text-sm select-none'>{t('createBudget.autoFillFromScan')}</span>
                                 </div>
                                 <Input
                                     type="number"
-                                    placeholder={getTranslation(language, 'placeholder.budgetAmount')}
+                                    placeholder={t('placeholder.budgetAmount')}
                                     autoComplete="on"
                                     value={amount}
                                     onChange={(e) => setAmount(e.target.value)}
@@ -287,8 +310,8 @@ function CreateBudget({ refreshData, trigger }) {
                             className='w-full cursor-pointer bg-linear-to-r from-fuchsia-500 to-violet-500 text-white hover:from-fuchsia-600 hover:to-violet-600 disabled:cursor-not-allowed disabled:opacity-60'
                         >
                             {scanLoading
-                                ? <><Loader className='animate-spin mr-2 h-4 w-4' />{getTranslation(language, 'addExpense.scanning')}</>
-                                : <><ScanLine className='mr-2 h-4 w-4' />{getTranslation(language, 'addExpense.scanReceipt')}</>}
+                                ? <><Loader className='animate-spin mr-2 h-4 w-4' />{t('addExpense.scanning')}</>
+                                : <><ScanLine className='mr-2 h-4 w-4' />{t('addExpense.scanReceipt')}</>}
                         </Button>
 
                         {/* Scan success badge */}
@@ -325,8 +348,8 @@ function CreateBudget({ refreshData, trigger }) {
                             {loading
                                 ? <Loader className='animate-spin' />
                                 : initialScanResult
-                                    ? getTranslation(language, 'createBudget.createAndReviewButton')
-                                    : getTranslation(language, 'createBudget.createButton')}
+                                    ? t('createBudget.createAndReviewButton')
+                                    : t('createBudget.createButton')}
                         </Button>
                     </>
                 )}
@@ -337,7 +360,7 @@ function CreateBudget({ refreshData, trigger }) {
                         <DialogHeader>
                             <DialogTitle className='flex items-center gap-2'>
                                 <CheckCircle2 className='h-5 w-5 text-emerald-500 shrink-0' />
-                                {getTranslation(language, 'createBudget.toasts.createSuccess')}
+                                {t('createBudget.toasts.createSuccess')}
                             </DialogTitle>
                             <p className='text-sm text-slate-500 mt-0.5'>
                                 <span className='mr-1'>{createdBudget.icon}</span>

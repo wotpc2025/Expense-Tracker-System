@@ -1,5 +1,27 @@
 "use client"
-
+/**
+ * StatCard.jsx — Statistics Card with Sparkline
+ *
+ * Reusable metric card used across the Budget, Expenses, and Reports pages.
+ * Displays: title, value, caption, and an optional inline sparkline trend.
+ *
+ * Sub-component Sparkline:
+ *   - Renders a small SVG polyline from a numeric points[] array.
+ *   - Trend color is green (up), amber (down), or slate (flat).
+ *
+ * Tooltip:
+ *   - An optional formula tooltip is shown when `formula` prop is provided.
+ *   - Opens on click of the info icon; closes on outside click.
+ *
+ * Props:
+ *   title   {string}   - metric label
+ *   value   {string}   - formatted metric value
+ *   caption {string}   - sub-label below the value
+ *   formula {string}   - optional calculation description shown in tooltip
+ *   tone    {'amber'|'slate'|'emerald'|'white'} - card background tint
+ *   points  {number[]} - data points for sparkline (min 2 required for line)
+ *   loading {boolean}  - shows skeleton pulse when true
+ */
 import React, { useEffect, useRef, useState } from 'react'
 import { CircleHelp } from 'lucide-react'
 

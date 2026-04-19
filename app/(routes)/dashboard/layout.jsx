@@ -1,4 +1,22 @@
 "use client"
+/**
+ * dashboard/layout.jsx — Dashboard Shell Layout
+ *
+ * Wraps every /dashboard/** route with:
+ *   - SidebarProvider  : shadcn/ui sidebar context provider
+ *   - SideNav          : persistent left navigation (collapses to icon strip on mobile)
+ *   - SidebarInset     : main content area that shifts when sidebar expands
+ *   - DashboardHeader  : top bar with greeting + UserButton
+ *
+ * Auth guard (client-side):
+ *   - Waits for Clerk to hydrate (isLoaded).
+ *   - Admins (detected by role metadata) are allowed through unconditionally.
+ *   - Regular users who have NO budgets yet are redirected to /dashboard/budgets
+ *     to prompt them to create their first budget.
+ *
+ * Server-side admin guard is handled by app/(routes)/dashboard/admin/layout.jsx
+ * for the /admin sub-routes.
+ */
 import React, { useEffect } from 'react'
 import SideNav from './_components/SideNav'
 import DashboardHeader from './_components/DashboardHeader'

@@ -1,4 +1,25 @@
 "use client"
+/**
+ * expenses/[id]/page.jsx — Budget Detail / Expense Management Page
+ *
+ * Route: /dashboard/expenses/[id]  (id = Budgets.id)
+ *
+ * Shows a single budget's full details and all associated expenses:
+ *   - BudgetItem card (progress bar, spend vs. budget)
+ *   - StatCard row: total spend, remaining, item count
+ *   - AddExpense form with AI receipt scan option
+ *   - ExpensesListTable for this budget only
+ *   - EditBudget dialog (pencil icon)
+ *   - Delete budget button (removes budget + all its expenses)
+ *
+ * Data flow:
+ *   - getBudgetInfoAction(email, id) → budgetInfo (includes totalSpend aggregate)
+ *   - getExpensesListAction(id)      → expensesList
+ *   - refreshData() re-calls both to keep the progress bar and table in sync
+ *     after add/edit/delete operations.
+ *
+ * params is a Promise in Next.js 15 App Router; `use(params)` unwraps it.
+ */
 import React, { useEffect, useState, use } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { getBudgetInfoAction } from '@/app/_actions/dbActions'
@@ -24,7 +45,8 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import EditBudget from '../../_components/EditBudget';
 import StatCard from '../../_components/StatCard';
-import { useDashboardDensity } from '@/lib/useDashboardDensity';import { getTranslation } from '@/lib/translations'
+import { useDashboardDensity } from '@/lib/useDashboardDensity';
+import { t } from '@/lib/text'
 
 
 
@@ -100,11 +122,11 @@ function ExpensesScreen({ params }) {
         try {
             const result = await deleteBudgetAction(unwrappedParams?.id);
             // console.log("Delete Budget Result:", result);
-            toast.success(getTranslation(language, 'expensesDetailPage.toasts.deleteSuccess'));
+            toast.success(t('expensesDetailPage.toasts.deleteSuccess'));
             router.push('/dashboard/budgets'); // กลับไปหน้ารายการ Budgets หลังจากลบเสร็จ
         } catch (error) {
             console.error("Error deleting budget:", error);
-            toast.error(getTranslation(language, 'expensesDetailPage.toasts.deleteFailed'));
+            toast.error(t('expensesDetailPage.toasts.deleteFailed'));
         }
     }
 
@@ -113,9 +135,9 @@ function ExpensesScreen({ params }) {
                  <div className='rounded-2xl border bg-linear-to-br from-white to-slate-50 px-4 py-4 shadow-sm sm:px-6 dark:border-slate-700 dark:from-slate-900 dark:to-slate-900'>
                      <div className='flex flex-wrap items-center justify-between gap-3'>
                          <div>
-                             <p className='text-xs font-semibold uppercase tracking-[0.18em] text-amber-600'>{getTranslation(language, 'expensesDetailPage.label')}</p>
-                             <h1 className='mt-1 text-2xl font-bold tracking-tight sm:text-3xl'>{getTranslation(language, 'expensesDetailPage.heading')}</h1>
-                             <p className='mt-1 text-sm text-slate-500'>{getTranslation(language, 'expensesDetailPage.subtitle')}</p>
+                             <p className='text-xs font-semibold uppercase tracking-[0.18em] text-amber-600'>{t('expensesDetailPage.label')}</p>
+                             <h1 className='mt-1 text-2xl font-bold tracking-tight sm:text-3xl'>{t('expensesDetailPage.heading')}</h1>
+                             <p className='mt-1 text-sm text-slate-500'>{t('expensesDetailPage.subtitle')}</p>
                          </div>
                                     <div className='flex gap-2 items-center'>
                 <div className='inline-flex h-10 items-center rounded-md border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-900'>
@@ -124,35 +146,35 @@ function ExpensesScreen({ params }) {
                         onClick={() => setDensity('compact')}
                         className={`rounded px-2 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${density === 'compact' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'}`}
                     >
-                        {getTranslation(language, 'density.compact')}
+                        {t('density.compact')}
                     </button>
                     <button
                         type='button'
                         onClick={() => setDensity('comfortable')}
                         className={`rounded px-2 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${density === 'comfortable' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'}`}
                     >
-                        {getTranslation(language, 'density.comfort')}
+                        {t('density.comfort')}
                     </button>
                     <button
                         type='button'
                         onClick={() => setDensity('auto')}
                         className={`rounded px-2 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${density === 'auto' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'}`}
-                        title={`${getTranslation(language, 'density.autoModeTooltip')}${resolvedDensity}`}
+                        title={`${t('density.autoModeTooltip')}${resolvedDensity}`}
                     >
                         <span className='inline-flex items-center gap-1'>
                           <MonitorCog className='h-3.5 w-3.5' />
-                          {getTranslation(language, 'density.auto')}
+                          {t('density.auto')}
                         </span>
                     </button>
                                         <button
                                                 type='button'
                                                 onClick={resetDensity}
                                                 className='rounded px-2 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100 cursor-pointer dark:text-slate-300 dark:hover:bg-slate-700'
-                                                title={getTranslation(language, 'density.resetTooltip')}
+                                                title={t('density.resetTooltip')}
                                         >
                                                 <span className='inline-flex items-center gap-1'>
                                                     <RotateCcw className='h-3.5 w-3.5' />
-                                                    {getTranslation(language, 'density.reset')}
+                                                    {t('density.reset')}
                                                 </span>
                                         </button>
                 </div>
@@ -161,18 +183,18 @@ function ExpensesScreen({ params }) {
               <AlertDialog>
                   <AlertDialogTrigger asChild>
                             <Button className='h-10 gap-2 cursor-pointer hover:bg-red-800' variant="destructive">
-                        <Trash/> {getTranslation(language, 'delete')}</Button>
+                        <Trash/> {t('delete')}</Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent suppressHydrationWarning>
                       <AlertDialogHeader>
-                          <AlertDialogTitle>{getTranslation(language, 'expensesDetailPage.deleteDialog.title')}</AlertDialogTitle>
+                          <AlertDialogTitle>{t('expensesDetailPage.deleteDialog.title')}</AlertDialogTitle>
                           <AlertDialogDescription>
-                              {getTranslation(language, 'expensesDetailPage.deleteDialog.description')}
+                              {t('expensesDetailPage.deleteDialog.description')}
                           </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                          <AlertDialogCancel>{getTranslation(language, 'cancel')}</AlertDialogCancel>
-                          <AlertDialogAction onClick={() =>deleteBudget()}>{getTranslation(language, 'expensesDetailPage.deleteDialog.confirm')}</AlertDialogAction>
+                          <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                          <AlertDialogAction onClick={() =>deleteBudget()}>{t('expensesDetailPage.deleteDialog.confirm')}</AlertDialogAction>
                       </AlertDialogFooter>
                   </AlertDialogContent>
               </AlertDialog>
@@ -182,36 +204,36 @@ function ExpensesScreen({ params }) {
                     <div className='mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4'>
                                                 <StatCard
                                                     loading={!isLoaded || isLoadingBudget}
-                                                    title={getTranslation(language, 'expensesDetailPage.stats.budgetAmount')}
+                                                    title={t('expensesDetailPage.stats.budgetAmount')}
                                                     value={`฿${budgetAmount.toLocaleString('th-TH')}`}
-                                                    caption={getTranslation(language, 'expensesDetailPage.stats.plannedCapacity')}
+                                                    caption={t('expensesDetailPage.stats.plannedCapacity')}
                                                     formula='budget.amount'
                                                     tone='white'
                                                     points={[budgetAmount * 0.6, budgetAmount * 0.7, budgetAmount * 0.85, budgetAmount]}
                                                 />
                                                 <StatCard
                                                     loading={!isLoaded || isLoadingBudget || isLoadingExpenses}
-                                                    title={getTranslation(language, 'expensesDetailPage.stats.totalSpend')}
+                                                    title={t('expensesDetailPage.stats.totalSpend')}
                                                     value={`฿${totalSpend.toLocaleString('th-TH')}`}
-                                                    caption={getTranslation(language, 'expensesDetailPage.stats.currentUsage')}
+                                                    caption={t('expensesDetailPage.stats.currentUsage')}
                                                     formula='SUM(expenses.amount by budgetId)'
                                                     tone='slate'
                                                     points={expensesList.slice(-10).map((item) => Number(item?.amount || 0))}
                                                 />
                                                 <StatCard
                                                     loading={!isLoaded || isLoadingBudget}
-                                                    title={getTranslation(language, 'expensesDetailPage.stats.remaining')}
+                                                    title={t('expensesDetailPage.stats.remaining')}
                                                     value={`฿${remaining.toLocaleString('th-TH')}`}
-                                                    caption={getTranslation(language, 'expensesDetailPage.stats.leftToUse')}
+                                                    caption={t('expensesDetailPage.stats.leftToUse')}
                                                     formula='Budget Amount - Total Spend'
                                                     tone='emerald'
                                                     points={[remaining + 1800, remaining + 1200, remaining + 400, remaining]}
                                                 />
                                                 <StatCard
                                                     loading={!isLoaded || isLoadingExpenses}
-                                                    title={getTranslation(language, 'expensesDetailPage.stats.expenseItems')}
+                                                    title={t('expensesDetailPage.stats.expenseItems')}
                                                     value={totalItems}
-                                                    caption={getTranslation(language, 'expensesDetailPage.stats.entriesInBudget')}
+                                                    caption={t('expensesDetailPage.stats.entriesInBudget')}
                                                     formula='COUNT(expenses in selected budget)'
                                                     tone='amber'
                                                     points={expensesList.slice(-10).map((_, index) => index + 1)}

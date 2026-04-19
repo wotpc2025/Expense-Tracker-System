@@ -1,5 +1,23 @@
+/**
+ * BudgetItem.jsx — Single Budget Card
+ *
+ * Displays one budget as a clickable card linking to /dashboard/expenses/[id].
+ * Shows: emoji icon, name, expense count, budget limit, spend progress bar,
+ * and remaining balance.
+ *
+ * Progress bar:
+ *   - calculateProgressPercentage() = (totalSpend / amount) * 100, capped at 100%.
+ *   - Visually indicates how close the budget is to its limit.
+ *
+ * Density prop controls padding and icon size:
+ *   - 'comfortable' : standard sizing (default)
+ *   - 'compact'     : reduced padding for dense layouts (BudgetList compact mode)
+ *
+ * Props:
+ *   budget  {object}            - budget data including totalSpend, totalItem, amount
+ *   density {'comfortable'|'compact'} - layout density mode
+ */
 import Link from 'next/link'
-import React from 'react'
 import { getTranslation } from '@/lib/translations'
 
 function BudgetItem({ budget, density = 'comfortable' }) {

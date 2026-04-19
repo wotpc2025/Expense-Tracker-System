@@ -1,10 +1,30 @@
 "use client"
-
+/**
+ * reports/page.jsx — Reports & Analytics Page (/dashboard/reports)
+ *
+ * Full analytics view with date-filtered charts and data tables. Features:
+ *   - Date filter toolbar (month / range / all) via useDashboardDateFilter
+ *   - Line chart  : spending trend over time (daily granularity)
+ *   - Pie chart   : expense breakdown by category
+ *   - Bar chart   : budget vs actual spend per budget
+ *   - Budget performance table with sortable columns
+ *   - Export buttons: CSV (via csvExport.js) and PDF (via jsPDF + autoTable)
+ *
+ * Data flow:
+ *   - Fetches budgetList + expensesList once on mount via Promise.all
+ *   - All derived metrics (totals, trends, pie data) are computed with useMemo
+ *     so calculations only re-run when filter or raw data changes
+ *
+ * Dependencies:
+ *   - recharts for all chart rendering
+ *   - jsPDF + jspdf-autotable for server-free PDF generation
+ *   - moment.js for date parsing and locale formatting
+ */
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useTheme } from 'next-themes'
 import { getBudgetListAction, getAllExpensesAction } from '@/app/_actions/dbActions'
-import { getTranslation } from '@/lib/translations'
+import { t } from '@/lib/text'
 import { useDashboardDateFilter } from '@/lib/useDashboardDateFilter'
 import { getCategoryColor } from '@/lib/expenseCategories'
 import { EXPORT_LANGUAGE_OPTIONS, exportRowsToCsv, sanitizeFileNamePart } from '@/lib/csvExport'
@@ -122,8 +142,8 @@ export default function ReportsPage() {
       : {
         name: 'Budget',
         amount: 'Budget Amount',
-        spent: getTranslation(language, 'reports.actualSpent'),
-        remaining: getTranslation(language, 'reports.remaining'),
+        spent: t('reports.actualSpent'),
+        remaining: t('reports.remaining'),
         ratio: 'Usage Ratio (%)',
       }
 
@@ -259,8 +279,8 @@ export default function ReportsPage() {
     const columnsEN = [
       { key: 'name', label: 'Budget', render: (row) => row.name },
       { key: 'budget', label: 'Budget Amount', render: (row) => formatPdfCurrency(row.budget) },
-      { key: 'spent', label: getTranslation(language, 'reports.actualSpent'), render: (row) => formatPdfCurrency(row.spent) },
-      { key: 'remaining', label: getTranslation(language, 'reports.remaining'), render: (row) => formatPdfCurrency(row.remaining) },
+      { key: 'spent', label: t('reports.actualSpent'), render: (row) => formatPdfCurrency(row.spent) },
+      { key: 'remaining', label: t('reports.remaining'), render: (row) => formatPdfCurrency(row.remaining) },
       { key: 'ratio', label: 'Usage Ratio (%)', render: (row) => `${row.ratio.toFixed(2)}%` },
     ]
 
@@ -639,7 +659,7 @@ export default function ReportsPage() {
     : null
 
   const getCategoryLabel = (categoryKey) => {
-    const translated = getTranslation(language, `categories.${categoryKey}`)
+    const translated = t(`categories.${categoryKey}`)
     return translated === `categories.${categoryKey}` ? categoryKey : translated
   }
 
@@ -672,8 +692,8 @@ export default function ReportsPage() {
   })
 
   // Budget vs Actual (all budgets) - localized keys
-  const budgetKey = getTranslation(language, 'reports.budget')
-  const spentKey = getTranslation(language, 'reports.actualSpent')
+  const budgetKey = t('reports.budget')
+  const spentKey = t('reports.actualSpent')
   const budgetVsActual = filteredBudgetList.map(b => ({
     name: b.name.length > 11 ? b.name.slice(0, 10) + '…' : b.name,
     [budgetKey]: Number(b.amount),
@@ -688,10 +708,10 @@ export default function ReportsPage() {
   // ── KPI cards config ──────────────────────────────────────────────────────────
   const kpiCards = [
     {
-      title: dateFilterMode === 'month' ? getTranslation(language, 'expensesStats.thisMonth') : (language === 'th' ? 'ยอดตามช่วงเวลา' : 'Period Total'),
+      title: dateFilterMode === 'month' ? t('expensesStats.thisMonth') : (language === 'th' ? 'ยอดตามช่วงเวลา' : 'Period Total'),
       value: fmt(periodTotal),
       sub: periodChange !== null
-        ? `${periodChange > 0 ? '▲' : '▼'} ${Math.abs(periodChange).toFixed(1)}% ${getTranslation(language, 'reports.fromLastMonth')}`
+        ? `${periodChange > 0 ? '▲' : '▼'} ${Math.abs(periodChange).toFixed(1)}% ${t('reports.fromLastMonth')}`
         : periodLabel,
       positive: periodChange !== null ? periodChange <= 0 : true,
       showTrend: periodChange !== null,
@@ -700,15 +720,15 @@ export default function ReportsPage() {
       bg: 'bg-violet-50 dark:bg-violet-900/30',
     },
     {
-      title: getTranslation(language, 'expensesStats.totalAmount'),
+      title: t('expensesStats.totalAmount'),
       value: fmt(overallTotal),
-      sub: `${expensesList.length} ${getTranslation(language, 'reports.allTransactions')}`,
+      sub: `${expensesList.length} ${t('reports.allTransactions')}`,
       Icon: Receipt,
       color: 'text-blue-600 dark:text-blue-400',
       bg: 'bg-blue-50 dark:bg-blue-900/30',
     },
     {
-      title: getTranslation(language, 'expensesStats.avgPerDay'),
+      title: t('expensesStats.avgPerDay'),
       value: fmt(avgPerDay),
       sub: `${periodDays} ${language === 'th' ? 'วันในช่วงที่เลือก' : 'days in selected period'}`,
       Icon: CalendarDays,
@@ -716,9 +736,9 @@ export default function ReportsPage() {
       bg: 'bg-emerald-50 dark:bg-emerald-900/30',
     },
     {
-      title: getTranslation(language, 'expensesStats.topCategory'),
+      title: t('expensesStats.topCategory'),
       value: topCategory ? getCategoryLabel(topCategory[0]) : '—',
-      sub: topCategory ? fmt(topCategory[1]) : getTranslation(language, 'reports.noExpenseData'),
+      sub: topCategory ? fmt(topCategory[1]) : t('reports.noExpenseData'),
       Icon: Tag,
       color: 'text-amber-600 dark:text-amber-400',
       bg: 'bg-amber-50 dark:bg-amber-900/30',
@@ -751,10 +771,10 @@ export default function ReportsPage() {
       <div className='flex items-start justify-between gap-3 flex-wrap'>
         <div>
           <h2 className='text-2xl font-bold text-slate-800 dark:text-slate-100'>
-            {getTranslation(language, 'reports.title')}
+            {t('reports.title')}
           </h2>
           <p className='text-sm text-slate-500 dark:text-slate-400 mt-1'>
-            {getTranslation(language, 'reports.subtitle')} — {periodLabel}
+            {t('reports.subtitle')} — {periodLabel}
           </p>
         </div>
         <div className='relative' ref={exportMenuRef}>
@@ -1011,8 +1031,8 @@ export default function ReportsPage() {
 
         {/* Monthly Line Chart */}
         <div className='border rounded-2xl p-5 bg-white dark:border-slate-700 dark:bg-slate-800'>
-          <h3 className='font-semibold text-slate-700 dark:text-slate-200'>{getTranslation(language, 'reports.monthlyTrend')}</h3>
-          <p className='text-xs text-slate-400 dark:text-slate-500 mb-4'>{getTranslation(language, 'reports.trendDesc')}</p>
+          <h3 className='font-semibold text-slate-700 dark:text-slate-200'>{t('reports.monthlyTrend')}</h3>
+          <p className='text-xs text-slate-400 dark:text-slate-500 mb-4'>{t('reports.trendDesc')}</p>
           <ResponsiveContainer width='100%' height={220}>
             <LineChart data={monthlyData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray='3 3' stroke={gridStroke} />
@@ -1025,7 +1045,7 @@ export default function ReportsPage() {
                 tickFormatter={v => v >= 1000 ? `฿${(v / 1000).toFixed(0)}K` : `฿${v}`}
               />
               <Tooltip
-                formatter={(v) => [fmt(v), getTranslation(language, 'reports.actualSpent')]}
+                formatter={(v) => [fmt(v), t('reports.actualSpent')]}
                 contentStyle={ttStyle}
                 cursor={{ stroke: isDark ? '#475569' : '#cbd5e1', strokeWidth: 1 }}
               />
@@ -1043,8 +1063,8 @@ export default function ReportsPage() {
 
         {/* Category Donut */}
         <div className='border rounded-2xl p-5 bg-white dark:border-slate-700 dark:bg-slate-800'>
-          <h3 className='font-semibold text-slate-700 dark:text-slate-200'>{getTranslation(language, 'reports.byCategoryPie')}</h3>
-          <p className='text-xs text-slate-400 dark:text-slate-500 mb-4'>{getTranslation(language, 'reports.byCategoryDesc')}</p>
+          <h3 className='font-semibold text-slate-700 dark:text-slate-200'>{t('reports.byCategoryPie')}</h3>
+          <p className='text-xs text-slate-400 dark:text-slate-500 mb-4'>{t('reports.byCategoryDesc')}</p>
           {categoryPieData.length > 0 ? (
             <ResponsiveContainer width='100%' height={220}>
               <PieChart>
@@ -1074,7 +1094,7 @@ export default function ReportsPage() {
             </ResponsiveContainer>
           ) : (
             <div className='flex items-center justify-center h-55 text-slate-400 dark:text-slate-500 text-sm'>
-              {getTranslation(language, 'reports.noExpenseData')}
+              {t('reports.noExpenseData')}
             </div>
           )}
         </div>
@@ -1082,9 +1102,9 @@ export default function ReportsPage() {
 
       {/* ── Budget vs Actual ── */}
       <div className='border rounded-2xl p-5 bg-white dark:border-slate-700 dark:bg-slate-800'>
-        <h3 className='font-semibold text-slate-700 dark:text-slate-200'>{getTranslation(language, 'reports.budgetVsActual')}</h3>
+        <h3 className='font-semibold text-slate-700 dark:text-slate-200'>{t('reports.budgetVsActual')}</h3>
         <p className='text-xs text-slate-400 dark:text-slate-500 mb-4'>
-          {getTranslation(language, 'reports.budgetVsActualDesc')}
+          {t('reports.budgetVsActualDesc')}
         </p>
         {budgetVsActual.length > 0 ? (
           <ResponsiveContainer width='100%' height={260}>
@@ -1110,7 +1130,7 @@ export default function ReportsPage() {
           </ResponsiveContainer>
         ) : (
           <div className='flex items-center justify-center h-65 text-slate-400 dark:text-slate-500 text-sm'>
-            {getTranslation(language, 'reports.noBudgetData')}
+            {t('reports.noBudgetData')}
           </div>
         )}
       </div>
@@ -1118,7 +1138,7 @@ export default function ReportsPage() {
       {/* ── Budget Performance Table ── */}
       {filteredBudgetList.length > 0 && (
         <div className='border rounded-2xl p-5 bg-white dark:border-slate-700 dark:bg-slate-800'>
-          <h3 className='font-semibold text-slate-700 dark:text-slate-200 mb-4'>{getTranslation(language, 'reports.budgetPerformance')}</h3>
+          <h3 className='font-semibold text-slate-700 dark:text-slate-200 mb-4'>{t('reports.budgetPerformance')}</h3>
           <div className='overflow-x-auto'>
             <table className='w-full text-sm'>
               <thead>
@@ -1130,7 +1150,7 @@ export default function ReportsPage() {
                       className={`pb-3 font-medium select-none cursor-pointer group ${align === 'right' ? 'text-right pr-4' : 'text-left'} ${key === 'pct' ? 'w-36' : ''} ${sortKey === key ? 'text-indigo-500 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'} transition-colors`}
                     >
                       <span className={`inline-flex items-center gap-1 ${align === 'right' ? 'flex-row-reverse' : ''}`}>
-                        {getTranslation(language, tKey)}
+                        {t(tKey)}
                         {sortKey === key
                           ? (sortDir === 'asc' ? <ChevronUp className='h-3.5 w-3.5' /> : <ChevronDown className='h-3.5 w-3.5' />)
                           : <ChevronsUpDown className='h-3.5 w-3.5 opacity-0 group-hover:opacity-50 transition-opacity' />}

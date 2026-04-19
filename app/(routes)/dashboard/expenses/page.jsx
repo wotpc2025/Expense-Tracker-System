@@ -1,5 +1,18 @@
 "use client"
-
+/**
+ * expenses/page.jsx — All Expenses List Page (/dashboard/expenses)
+ *
+ * Displays every expense across ALL budgets for the current user.
+ * Features:
+ *   - Date filter toolbar (month / range / all) synced with useDashboardDateFilter
+ *   - StatCard row: total expenses count, total spend, date range label
+ *   - ExpensesListTable: ag-Grid table with inline edit, delete, CSV export
+ *
+ * Data flow:
+ *   - getAllExpensesAction(email) fetches all rows once on load
+ *   - filteredExpenses is derived with useMemo from the active date filter
+ *   - Density preference is read from useDashboardDensity (shared with budgets page)
+ */
 import React, { useEffect, useMemo, useState } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { getAllExpensesAction } from '@/app/_actions/dbActions'
@@ -7,7 +20,7 @@ import ExpensesListTable from '../budgets/_components/ExpensesListTable'
 import StatCard from '../_components/StatCard'
 import { useDashboardDensity } from '@/lib/useDashboardDensity'
 import { useDashboardDateFilter } from '@/lib/useDashboardDateFilter'
-import { getTranslation } from '@/lib/translations'
+import { t } from '@/lib/text'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -171,9 +184,9 @@ function ExpensesPage() {
   return (
     <section className='mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8'>
       <div className='rounded-2xl border bg-linear-to-br from-white to-slate-50 px-4 py-4 shadow-sm sm:px-6 dark:border-slate-700 dark:from-slate-900 dark:to-slate-900'>
-        <p className='text-xs font-semibold uppercase tracking-[0.18em] text-amber-600'>{getTranslation(language, 'expensesPage.title')}</p>
-        <h1 className='mt-1 text-2xl font-bold tracking-tight sm:text-3xl'>{getTranslation(language, 'expensesPage.heading')}</h1>
-        <p className='mt-1 text-sm text-slate-500'>{getTranslation(language, 'expensesPage.subtitle')}</p>
+        <p className='text-xs font-semibold uppercase tracking-[0.18em] text-amber-600'>{t('expensesPage.title')}</p>
+        <h1 className='mt-1 text-2xl font-bold tracking-tight sm:text-3xl'>{t('expensesPage.heading')}</h1>
+        <p className='mt-1 text-sm text-slate-500'>{t('expensesPage.subtitle')}</p>
       </div>
 
       <div className='mt-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900'>
@@ -356,37 +369,37 @@ function ExpensesPage() {
       <div className='mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4'>
         <StatCard
           loading={!isLoaded || isFetching}
-          title={dateFilterMode === 'month' ? getTranslation(language, 'expensesStats.thisMonth') : (language === 'th' ? 'ยอดตามช่วงเวลา' : 'Period Total')}
+          title={dateFilterMode === 'month' ? t('expensesStats.thisMonth') : (language === 'th' ? 'ยอดตามช่วงเวลา' : 'Period Total')}
           value={`฿${summary.periodTotal.toLocaleString('th-TH')}`}
           caption={summary.periodLabel}
-          formula={getTranslation(language, 'expensesStats.thisMonthFormula')}
+          formula={t('expensesStats.thisMonthFormula')}
           tone='amber'
           points={filteredExpenses.slice(-10).map(e => Number(e.amount || 0))}
         />
         <StatCard
           loading={!isLoaded || isFetching}
-          title={getTranslation(language, 'expensesStats.totalAmount')}
+          title={t('expensesStats.totalAmount')}
           value={`฿${summary.totalAmount.toLocaleString('th-TH')}`}
-          caption={`${expensesList.length} ${getTranslation(language, 'expensesStats.allRecords')}`}
-          formula={getTranslation(language, 'expensesStats.totalAmountFormula')}
+          caption={`${expensesList.length} ${t('expensesStats.allRecords')}`}
+          formula={t('expensesStats.totalAmountFormula')}
           tone='slate'
           points={filteredExpenses.slice(-10).map(e => Number(e.amount || 0))}
         />
         <StatCard
           loading={!isLoaded || isFetching}
-          title={getTranslation(language, 'expensesStats.avgPerDay')}
+          title={t('expensesStats.avgPerDay')}
           value={`฿${summary.avgPerDay.toLocaleString('th-TH', { maximumFractionDigits: 0 })}`}
           caption={`${summary.periodDays} ${language === 'th' ? 'วันในช่วงที่เลือก' : 'days in selected period'}`}
-          formula={getTranslation(language, 'expensesStats.avgPerDayFormula')}
+          formula={t('expensesStats.avgPerDayFormula')}
           tone='emerald'
           points={Array.from({ length: summary.periodDays }, (_, i) => i + 1).slice(-10).map(d => summary.periodTotal / d)}
         />
         <StatCard
           loading={!isLoaded || isFetching}
-          title={getTranslation(language, 'expensesStats.topCategory')}
+          title={t('expensesStats.topCategory')}
           value={summary.topCategory}
           caption={summary.topCategoryAmount > 0 ? `฿${summary.topCategoryAmount.toLocaleString('th-TH')}` : '—'}
-          formula={getTranslation(language, 'expensesStats.topCategoryFormula')}
+          formula={t('expensesStats.topCategoryFormula')}
           tone='white'
           points={filteredExpenses.slice(-10).map(e => Number(e.amount || 0))}
         />

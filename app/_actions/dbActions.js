@@ -1,4 +1,61 @@
-"use server" // บอก Next.js ว่าให้รันโค้ดนี้ที่ Server เท่านั้น
+"use server"
+/**
+ * dbActions.js — All Server Actions (CRUD + Admin Operations)
+ *
+ * This file is the single source of truth for all database mutations and
+ * privileged reads in the system. Every exported function runs server-side
+ * ("use server" directive) and is called from Client Components using the
+ * Next.js Server Actions mechanism (no manual API routes needed).
+ *
+ * ── SECTIONS ──────────────────────────────────────────────────────────────────
+ *
+ *  Helpers (internal)
+ *    toIsoDateTime        — normalizes Date / string → ISO string
+ *    getInsertId          — extracts numeric insert ID from driver response
+ *    getAffectedRows      — extracts affected-row count from driver response
+ *    getCurrentActorEmail — resolves caller email for audit logs
+ *    createAdminAuditLogEntry — best-effort audit INSERT helper
+ *
+ *  Auth
+ *    getCurrentUserAdminStatusAction — checks if current Clerk user is admin
+ *
+ *  Budgets
+ *    checkUserBudgetsAction    — check if user has any budgets (redirect guard)
+ *    createBudgetAction        — INSERT new budget row
+ *    getBudgetListAction       — SELECT budgets with totalSpend + totalItem aggregates
+ *    getBudgetInfoAction       — SELECT single budget with spend aggregate
+ *    updateBudgetAction        — UPDATE budget fields (name, amount, icon, category)
+ *    deleteBudgetAction        — DELETE budget + all child expenses
+ *    syncBudgetCategoryToExpensesAction — bulk UPDATE expense categories for a budget
+ *
+ *  Expenses
+ *    addNewExpenseAction       — INSERT single expense row
+ *    addBulkExpensesAction     — bulk INSERT from AI receipt scan line items
+ *    getExpensesListAction     — SELECT expenses for one budget
+ *    getAllExpensesAction       — SELECT all expenses for a user (cross-budget)
+ *    updateExpenseAction       — UPDATE expense fields
+ *    deleteExpenseAction       — DELETE single expense row
+ *
+ *  Admin — Monitoring
+ *    getAdminMonitoringDashboardAction — aggregated overview + alerts + security telemetry
+ *    setAdminAlertStatusAction         — acknowledge / dismiss an alert
+ *
+ *  Admin — Users
+ *    getAdminUsersSummaryAction — per-email aggregate stats
+ *    getAdminUserDetailAction   — per-budget breakdown for one user
+ *
+ *  Admin — Database Management
+ *    getAdminDatabaseManagementAction — raw rows from all 4 tables for admin DB view
+ *
+ *  Admin — Bulk Operations
+ *    adminBulkDeleteExpensesAction — delete filtered expenses in one DB operation
+ *    adminBulkSetCategoryAction    — update category on filtered expenses
+ *
+ * ── SECURITY NOTES ────────────────────────────────────────────────────────────
+ *   All data mutations validate inputs via toMoneyNumber() and toDateValue()
+ *   before writing to the DB. Admin-only actions call currentUser() and check
+ *   isAdminUser() before executing any privileged query.
+ */
 
 import { db } from '@/utils/dbConfig'
 import { AdminAlerts, AdminAuditLogs, Budgets, Expenses } from '@/utils/schema'
@@ -8,6 +65,9 @@ import { toDateValue, toMoneyNumber } from '@/lib/dataNormalization'
 import { getSecurityTelemetrySnapshot } from '@/lib/securityTelemetry'
 import { isAdminUser } from '@/lib/adminAccess'
 
+// ── Internal Helpers ──────────────────────────────────────────────────────────
+
+// Convert Date-like values to ISO strings so dashboard payloads are consistent.
 const toIsoDateTime = (value) => {
     if (!value) return null;
     const date = value instanceof Date ? value : new Date(value);
@@ -15,28 +75,35 @@ const toIsoDateTime = (value) => {
     return date.toISOString();
 }
 
+// Normalize driver-specific insert response shape into a single numeric id.
 const getInsertId = (result) => {
     const value = result?.[0]?.insertId ?? result?.insertId ?? null;
     const parsed = Number(value);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
+// Normalize update/delete response shape into affected-row count.
 const getAffectedRows = (result) => {
     const value = result?.[0]?.affectedRows ?? result?.affectedRows ?? 0;
     const parsed = Number(value);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
+// Resolve caller identity for audit logging on privileged operations.
 const getCurrentActorEmail = async () => {
     const user = await currentUser();
     return String(user?.primaryEmailAddress?.emailAddress || '').toLowerCase() || null;
 }
 
+// ── Auth ──────────────────────────────────────────────────────────────────────
+
+// Lightweight action used by UI guard checks.
 export async function getCurrentUserAdminStatusAction() {
     const user = await currentUser();
     return isAdminUser(user, process.env.ADMIN_EMAILS);
 }
 
+// Best-effort audit trail: this must never throw to business actions.
 const createAdminAuditLogEntry = async ({ action, targetType, targetCount, message }) => {
     try {
         const actorEmail = await getCurrentActorEmail();
@@ -54,7 +121,7 @@ const createAdminAuditLogEntry = async ({ action, targetType, targetCount, messa
 }
 
 
-
+// ── Budgets ───────────────────────────────────────────────────────────────────
 
 export async function checkUserBudgetsAction(email) {
   if (!email) return [];
@@ -64,6 +131,7 @@ export async function checkUserBudgetsAction(email) {
   return result;
 }
 
+// Core create-budget transaction used by dashboard budget module.
 export async function createBudgetAction(data) {
     try {
         const normalizedAmount = toMoneyNumber(data.amount)
@@ -124,7 +192,9 @@ export async function getBudgetInfoAction(email, budgetId) {
     }
 }
 
-// ✅ เพิ่มฟังก์ชันนี้สำหรับเพิ่ม Expense ใหม่
+// ── Expenses ──────────────────────────────────────────────────────────────────
+
+// Core create-expense transaction with amount/date normalization.
 export async function addNewExpenseAction(data) {
     try {
         const normalizedAmount = toMoneyNumber(data.amount)
@@ -158,6 +228,7 @@ export async function addNewExpenseAction(data) {
     }
 }
 
+// Bulk insert path fed by AI receipt scan review/confirm flow.
 export async function addBulkExpensesAction(payload) {
     try {
         const budgetId = Number(payload?.budgetId);
@@ -400,6 +471,9 @@ export const getBudgetListAction = async (email) => {
   }
 }
 
+// ── Admin — Monitoring ────────────────────────────────────────────────────────
+
+// Aggregate telemetry + data quality + security readiness for admin dashboard.
 export async function getAdminMonitoringDashboardAction() {
     try {
         const telemetry = getSecurityTelemetrySnapshot();
@@ -663,6 +737,8 @@ export async function setAdminAlertStatusAction(alertKey, acknowledged) {
     }
 }
 
+// ── Admin — Users ─────────────────────────────────────────────────────────────
+
 export async function getAdminUsersSummaryAction() {
     try {
         const rows = await db.select({
@@ -765,6 +841,9 @@ export async function getAdminUserDetailAction(email) {
     }
 }
 
+// ── Admin — Database Management ───────────────────────────────────────────────
+
+// Fetch raw management datasets for admin workbench tables.
 export async function getAdminDatabaseManagementAction() {
     try {
         const [budgetRows, expenseRows, alertRows, auditRows] = await Promise.all([
@@ -893,6 +972,8 @@ export async function adminBulkSetCategoryAction(expenseIds, categoryName) {
     }
 }
 
+// ── Admin — Bulk Operations ───────────────────────────────────────────────────
+
 export async function adminBulkDeleteExpensesAction(expenseIds) {
     try {
         const ids = Array.isArray(expenseIds)
@@ -924,6 +1005,7 @@ export async function adminBulkDeleteExpensesAction(expenseIds) {
 
 
 // ✅ ฟังก์ชันสำหรับดึงรายการค่าใช้จ่าย (Expenses) ทั้งหมด ของผู้ใช้ตาม Email (สำหรับหน้า Dashboard)
+// User-scoped expense listing for dashboard/report pages.
 export async function getAllExpensesAction(email) {
     if (!email) return [];
     try {

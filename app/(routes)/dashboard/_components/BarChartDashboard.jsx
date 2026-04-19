@@ -1,12 +1,31 @@
+/**
+ * BarChartDashboard.jsx — Budget vs. Spend Bar Chart
+ *
+ * Renders a grouped bar chart comparing each budget's total amount against
+ * its actual totalSpend. Built with Recharts inside the shadcn/ui
+ * ChartContainer for consistent theming.
+ *
+ * Chart config:
+ *   - 'amount'    bar: budget limit (chart color var --chart-2)
+ *   - 'totalSpend' bar: actual spend (chart color var --chart-1)
+ *   - XAxis: budget name (truncated to 8 chars)
+ *   - YAxis: Thai Baht currency values
+ *
+ * Empty state: shows a dashed bordered placeholder when budgetList is empty.
+ *
+ * Props:
+ *   budgetList {object[]}  - budget objects with { name, amount, totalSpend }
+ */
 import React from 'react'
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis } from 'recharts'
 import {
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
-} from '@/components/ui/chart'import { getTranslation } from '@/lib/translations'
+} from '@/components/ui/chart'
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis } from 'recharts'
+import { getTranslation } from '@/lib/translations'
 
 function getChartConfig(language, getTranslation) {
   return {

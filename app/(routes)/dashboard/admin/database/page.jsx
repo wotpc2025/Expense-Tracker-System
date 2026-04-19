@@ -1,7 +1,27 @@
 "use client"
-
+/**
+ * admin/database/page.jsx — Admin Database Management Page (/dashboard/admin/database)
+ *
+ * Provides a read-only view into all four database tables:
+ *   Budgets | Expenses | AdminAlerts | AdminAuditLogs
+ *
+ * Features:
+ *   - Tab bar to switch between table views
+ *   - Summary bar: row counts per table
+ *   - Full-text search (JSON.stringify filter) across all columns
+ *   - Sortable columns (SortableHeader sub-component)
+ *   - Pagination with configurable rows-per-page
+ *   - Row click expands a detail panel (JSON dump)
+ *
+ * Data flow:
+ *   - getAdminDatabaseManagementAction() fetches all four tables at once
+ *   - All filtering and sorting is done client-side with useMemo
+ *
+ * This page is read-only — no mutations are triggered from here.
+ * Destructive operations (bulk delete, etc.) live in admin/page.jsx.
+ */
 import React, { useEffect, useMemo, useState } from 'react'
-import { getAdminDatabaseManagementAction } from '@/app/_actions/dbActions'import { getTranslation } from '@/lib/translations'
+import { t } from '@/lib/text'
 import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Database, Receipt, ScrollText, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -146,11 +166,11 @@ export default function AdminDatabasePage() {
   const activeRowCount = data.tableCounts?.[activeView] || 0
 
   const cards = [
-    { key: 'users', label: getTranslation(language, 'adminDatabase.cards.users'), value: data.summary.users, icon: Users, iconClass: 'text-sky-500' },
-    { key: 'budgets', label: getTranslation(language, 'adminDatabase.cards.budgets'), value: data.summary.budgets, icon: Database, iconClass: 'text-indigo-500' },
-    { key: 'expenses', label: getTranslation(language, 'adminDatabase.cards.expenses'), value: data.summary.expenses, icon: Receipt, iconClass: 'text-emerald-500' },
-    { key: 'activeAlerts', label: getTranslation(language, 'adminDatabase.cards.activeAlerts'), value: data.summary.activeAlerts, icon: AlertTriangle, iconClass: 'text-amber-500' },
-    { key: 'auditEvents', label: getTranslation(language, 'adminDatabase.cards.auditEvents'), value: data.summary.auditEvents, icon: ScrollText, iconClass: 'text-rose-500' },
+    { key: 'users', label: t('adminDatabase.cards.users'), value: data.summary.users, icon: Users, iconClass: 'text-sky-500' },
+    { key: 'budgets', label: t('adminDatabase.cards.budgets'), value: data.summary.budgets, icon: Database, iconClass: 'text-indigo-500' },
+    { key: 'expenses', label: t('adminDatabase.cards.expenses'), value: data.summary.expenses, icon: Receipt, iconClass: 'text-emerald-500' },
+    { key: 'activeAlerts', label: t('adminDatabase.cards.activeAlerts'), value: data.summary.activeAlerts, icon: AlertTriangle, iconClass: 'text-amber-500' },
+    { key: 'auditEvents', label: t('adminDatabase.cards.auditEvents'), value: data.summary.auditEvents, icon: ScrollText, iconClass: 'text-rose-500' },
   ]
 
   const detailEntries = useMemo(() => {
@@ -171,10 +191,10 @@ export default function AdminDatabasePage() {
 
     try {
       await navigator.clipboard.writeText(JSON.stringify(selectedRow.data, null, 2))
-      toast.success(getTranslation(language, 'adminDatabase.detail.copySuccess'))
+      toast.success(t('adminDatabase.detail.copySuccess'))
     } catch (error) {
       console.error('Failed to copy row JSON:', error)
-      toast.error(getTranslation(language, 'adminDatabase.detail.copyError'))
+      toast.error(t('adminDatabase.detail.copyError'))
     }
   }
 
@@ -201,12 +221,12 @@ export default function AdminDatabasePage() {
           <thead>
             <tr className='border-b dark:border-slate-700'>
               <SortableHeader label='ID' sortKey='id' sortConfig={sortConfig} onSort={handleSort} />
-              <SortableHeader label={getTranslation(language, 'adminDatabase.columns.name')} sortKey='name' sortConfig={sortConfig} onSort={handleSort} />
-              <SortableHeader label={getTranslation(language, 'adminDatabase.columns.category')} sortKey='category' sortConfig={sortConfig} onSort={handleSort} />
-              <SortableHeader label={getTranslation(language, 'adminDatabase.columns.owner')} sortKey='createdBy' sortConfig={sortConfig} onSort={handleSort} />
-              <SortableHeader label={getTranslation(language, 'adminDatabase.columns.amount')} sortKey='amount' sortConfig={sortConfig} onSort={handleSort} align='right' />
-              <SortableHeader label={getTranslation(language, 'adminDatabase.columns.spend')} sortKey='totalSpend' sortConfig={sortConfig} onSort={handleSort} align='right' />
-              <SortableHeader label={getTranslation(language, 'adminDatabase.columns.items')} sortKey='totalItem' sortConfig={sortConfig} onSort={handleSort} align='right' />
+              <SortableHeader label={t('adminDatabase.columns.name')} sortKey='name' sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label={t('adminDatabase.columns.category')} sortKey='category' sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label={t('adminDatabase.columns.owner')} sortKey='createdBy' sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label={t('adminDatabase.columns.amount')} sortKey='amount' sortConfig={sortConfig} onSort={handleSort} align='right' />
+              <SortableHeader label={t('adminDatabase.columns.spend')} sortKey='totalSpend' sortConfig={sortConfig} onSort={handleSort} align='right' />
+              <SortableHeader label={t('adminDatabase.columns.items')} sortKey='totalItem' sortConfig={sortConfig} onSort={handleSort} align='right' />
             </tr>
           </thead>
           <tbody>
@@ -232,12 +252,12 @@ export default function AdminDatabasePage() {
           <thead>
             <tr className='border-b dark:border-slate-700'>
               <SortableHeader label='ID' sortKey='id' sortConfig={sortConfig} onSort={handleSort} />
-              <SortableHeader label={getTranslation(language, 'adminDatabase.columns.name')} sortKey='name' sortConfig={sortConfig} onSort={handleSort} />
-              <SortableHeader label={getTranslation(language, 'adminDatabase.columns.budget')} sortKey='budgetName' sortConfig={sortConfig} onSort={handleSort} />
-              <SortableHeader label={getTranslation(language, 'adminDatabase.columns.category')} sortKey='category' sortConfig={sortConfig} onSort={handleSort} />
-              <SortableHeader label={getTranslation(language, 'adminDatabase.columns.owner')} sortKey='createdBy' sortConfig={sortConfig} onSort={handleSort} />
-              <SortableHeader label={getTranslation(language, 'adminDatabase.columns.amount')} sortKey='amount' sortConfig={sortConfig} onSort={handleSort} align='right' />
-              <SortableHeader label={getTranslation(language, 'adminDatabase.columns.date')} sortKey='createdAt' sortConfig={sortConfig} onSort={handleSort} align='right' />
+              <SortableHeader label={t('adminDatabase.columns.name')} sortKey='name' sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label={t('adminDatabase.columns.budget')} sortKey='budgetName' sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label={t('adminDatabase.columns.category')} sortKey='category' sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label={t('adminDatabase.columns.owner')} sortKey='createdBy' sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label={t('adminDatabase.columns.amount')} sortKey='amount' sortConfig={sortConfig} onSort={handleSort} align='right' />
+              <SortableHeader label={t('adminDatabase.columns.date')} sortKey='createdAt' sortConfig={sortConfig} onSort={handleSort} align='right' />
             </tr>
           </thead>
           <tbody>
@@ -263,10 +283,10 @@ export default function AdminDatabasePage() {
           <thead>
             <tr className='border-b dark:border-slate-700'>
               <SortableHeader label='ID' sortKey='id' sortConfig={sortConfig} onSort={handleSort} />
-              <SortableHeader label={getTranslation(language, 'adminDatabase.columns.key')} sortKey='alertKey' sortConfig={sortConfig} onSort={handleSort} />
-              <SortableHeader label={getTranslation(language, 'adminDatabase.columns.status')} sortKey='status' sortConfig={sortConfig} onSort={handleSort} />
-              <SortableHeader label={getTranslation(language, 'adminDatabase.columns.actor')} sortKey='acknowledgedBy' sortConfig={sortConfig} onSort={handleSort} />
-              <SortableHeader label={getTranslation(language, 'adminDatabase.columns.date')} sortKey='acknowledgedAt' sortConfig={sortConfig} onSort={handleSort} align='right' />
+              <SortableHeader label={t('adminDatabase.columns.key')} sortKey='alertKey' sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label={t('adminDatabase.columns.status')} sortKey='status' sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label={t('adminDatabase.columns.actor')} sortKey='acknowledgedBy' sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label={t('adminDatabase.columns.date')} sortKey='acknowledgedAt' sortConfig={sortConfig} onSort={handleSort} align='right' />
             </tr>
           </thead>
           <tbody>
@@ -289,10 +309,10 @@ export default function AdminDatabasePage() {
         <thead>
           <tr className='border-b dark:border-slate-700'>
             <SortableHeader label='ID' sortKey='id' sortConfig={sortConfig} onSort={handleSort} />
-            <SortableHeader label={getTranslation(language, 'adminDatabase.columns.action')} sortKey='action' sortConfig={sortConfig} onSort={handleSort} />
-            <SortableHeader label={getTranslation(language, 'adminDatabase.columns.message')} sortKey='message' sortConfig={sortConfig} onSort={handleSort} />
-            <SortableHeader label={getTranslation(language, 'adminDatabase.columns.actor')} sortKey='actorEmail' sortConfig={sortConfig} onSort={handleSort} />
-            <SortableHeader label={getTranslation(language, 'adminDatabase.columns.date')} sortKey='createdAt' sortConfig={sortConfig} onSort={handleSort} align='right' />
+            <SortableHeader label={t('adminDatabase.columns.action')} sortKey='action' sortConfig={sortConfig} onSort={handleSort} />
+            <SortableHeader label={t('adminDatabase.columns.message')} sortKey='message' sortConfig={sortConfig} onSort={handleSort} />
+            <SortableHeader label={t('adminDatabase.columns.actor')} sortKey='actorEmail' sortConfig={sortConfig} onSort={handleSort} />
+            <SortableHeader label={t('adminDatabase.columns.date')} sortKey='createdAt' sortConfig={sortConfig} onSort={handleSort} align='right' />
           </tr>
         </thead>
         <tbody>
@@ -314,15 +334,15 @@ export default function AdminDatabasePage() {
     <div className='p-5 space-y-5'>
       <div>
         <h2 className='text-2xl font-bold text-slate-800 dark:text-slate-100'>
-          {getTranslation(language, 'adminDatabase.title')}
+          {t('adminDatabase.title')}
         </h2>
         <p className='text-sm text-slate-500 dark:text-slate-400 mt-1'>
-          {getTranslation(language, 'adminDatabase.subtitle')}
+          {t('adminDatabase.subtitle')}
         </p>
       </div>
 
       <div className='rounded-xl border border-sky-200 bg-sky-50/70 p-4 text-sm text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/20 dark:text-sky-200'>
-        {getTranslation(language, 'adminDatabase.readOnlyNote')}
+        {t('adminDatabase.readOnlyNote')}
       </div>
 
       <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4'>
@@ -347,7 +367,7 @@ export default function AdminDatabasePage() {
                 onClick={() => setActiveView(view)}
                 className={`rounded-full px-3 py-1.5 text-sm border transition ${activeView === view ? 'border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900' : 'border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-300'}`}
               >
-                {getTranslation(language, `adminDatabase.views.${view}`)}
+                {t(`adminDatabase.views.${view}`)}
                 <span className='ml-2 rounded-full bg-black/8 px-2 py-0.5 text-xs dark:bg-white/12'>
                   {data.tableCounts?.[view] || 0}
                 </span>
@@ -358,20 +378,20 @@ export default function AdminDatabasePage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={getTranslation(language, 'adminDatabase.searchPlaceholder')}
+            placeholder={t('adminDatabase.searchPlaceholder')}
             className='h-10 w-full lg:w-80 rounded-lg border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900'
           />
         </div>
 
         <div className='flex flex-col gap-3 text-sm text-slate-500 lg:flex-row lg:items-center lg:justify-between'>
           <p>
-            {getTranslation(language, 'adminDatabase.pagination.showing')} {totalRows === 0 ? 0 : startIndex + 1}-{endIndex} {getTranslation(language, 'adminDatabase.pagination.of')} {totalRows}
+            {t('adminDatabase.pagination.showing')} {totalRows === 0 ? 0 : startIndex + 1}-{endIndex} {t('adminDatabase.pagination.of')} {totalRows}
             {' '}
-            {getTranslation(language, 'adminDatabase.pagination.filteredFrom')} {activeRowCount}
+            {t('adminDatabase.pagination.filteredFrom')} {activeRowCount}
           </p>
 
           <div className='flex items-center gap-2'>
-            <label className='text-xs'>{getTranslation(language, 'adminDatabase.pagination.rowsPerPage')}</label>
+            <label className='text-xs'>{t('adminDatabase.pagination.rowsPerPage')}</label>
             <select
               value={rowsPerPage}
               onChange={(e) => setRowsPerPage(Number(e.target.value))}
@@ -387,25 +407,25 @@ export default function AdminDatabasePage() {
               onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
               className='rounded-md border border-slate-200 px-3 py-1.5 disabled:opacity-50 dark:border-slate-700'
             >
-              {getTranslation(language, 'adminDatabase.pagination.previous')}
+              {t('adminDatabase.pagination.previous')}
             </button>
-            <span>{getTranslation(language, 'adminDatabase.pagination.page')} {safePage} {getTranslation(language, 'adminDatabase.pagination.of')} {totalPages}</span>
+            <span>{t('adminDatabase.pagination.page')} {safePage} {t('adminDatabase.pagination.of')} {totalPages}</span>
             <button
               type='button'
               disabled={safePage >= totalPages}
               onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
               className='rounded-md border border-slate-200 px-3 py-1.5 disabled:opacity-50 dark:border-slate-700'
             >
-              {getTranslation(language, 'adminDatabase.pagination.next')}
+              {t('adminDatabase.pagination.next')}
             </button>
           </div>
         </div>
 
         <div className='overflow-x-auto'>
           {loading ? (
-            <div className='py-12 text-center text-slate-400'>{getTranslation(language, 'loading')}</div>
+            <div className='py-12 text-center text-slate-400'>{t('loading')}</div>
           ) : filteredRows.length === 0 ? (
-            <div className='py-12 text-center text-slate-400'>{getTranslation(language, 'adminDatabase.empty')}</div>
+            <div className='py-12 text-center text-slate-400'>{t('adminDatabase.empty')}</div>
           ) : renderTable()}
         </div>
       </div>
@@ -413,18 +433,18 @@ export default function AdminDatabasePage() {
       <Dialog open={Boolean(selectedRow)} onOpenChange={(open) => !open && setSelectedRow(null)}>
         <DialogContent className='max-w-2xl'>
           <DialogHeader>
-            <DialogTitle>{getTranslation(language, 'adminDatabase.detail.title')}</DialogTitle>
+            <DialogTitle>{t('adminDatabase.detail.title')}</DialogTitle>
             <DialogDescription>
               <div className='text-left'>
-                {getTranslation(language, 'adminDatabase.detail.subtitle')} {selectedRow ? getTranslation(language, `adminDatabase.views.${selectedRow.view}`) : ''}
+                {t('adminDatabase.detail.subtitle')} {selectedRow ? t(`adminDatabase.views.${selectedRow.view}`) : ''}
               </div>
             </DialogDescription>
           </DialogHeader>
 
           <div className='rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden'>
             <div className='grid grid-cols-[180px_1fr] bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-900/60 dark:text-slate-400'>
-              <div className='px-4 py-3'>{getTranslation(language, 'adminDatabase.detail.field')}</div>
-              <div className='px-4 py-3'>{getTranslation(language, 'adminDatabase.detail.value')}</div>
+              <div className='px-4 py-3'>{t('adminDatabase.detail.field')}</div>
+              <div className='px-4 py-3'>{t('adminDatabase.detail.value')}</div>
             </div>
             <div className='max-h-[55vh] overflow-auto'>
               {detailEntries.map((entry) => (
@@ -442,7 +462,7 @@ export default function AdminDatabasePage() {
               onClick={copySelectedRowJson}
               className='inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200'
             >
-              {getTranslation(language, 'adminDatabase.detail.copyJson')}
+              {t('adminDatabase.detail.copyJson')}
             </button>
           </DialogFooter>
         </DialogContent>

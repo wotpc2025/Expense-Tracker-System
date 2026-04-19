@@ -1,49 +1,75 @@
+/**
+ * app/api/ai/scan-receipt/route.js — AI Receipt OCR Endpoint
+ *
+ * POST /api/ai/scan-receipt
+ * Content-Type: multipart/form-data  (field name: 'receipt')
+ *
+ * Pipeline:
+ *   1. Auth check          — requires valid Clerk session (userId)
+ *   2. Content-type guard  — must be multipart/form-data
+ *   3. Rate limit check    — 5 requests per 5 minutes per IP (securityTelemetry.js)
+ *   4. File validation     — image only, max 10 MB
+ *   5. Image encoding      — converts to base64 data URL
+ *   6. OpenRouter call     — sends image + extraction prompt to the VL model
+ *   7. JSON extraction     — parses model response (handles markdown fences)
+ *   8. Response shape      — returns { expenseName, amount, lineItems[] }
+ *
+ * Environment variables:
+ *   OPENROUTER_MODEL     — AI model ID (default: qwen/qwen2.5-vl-72b-instruct)
+ *   OPENROUTER_API_KEY   — API key for OpenRouter
+ *
+ * Error handling:
+ *   - mapScanErrorToThai() maps provider error codes to human-readable messages
+ *   - extractJson() handles non-standard JSON responses (markdown fences, etc.)
+ */
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
-import { checkAndTrackReceiptScanRateLimit } from '@/lib/securityTelemetry';
 
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'qwen/qwen2.5-vl-72b-instruct';
 
 function mapScanErrorToThai(errorText, statusCode) {
   const text = String(errorText || '').toLowerCase();
 
+  // Billing-related responses should be surfaced as an actionable credit message.
   if (statusCode === 402 || text.includes('insufficient') || text.includes('credit')) {
-    return 'เครดิต OpenRouter ไม่เพียงพอ กรุณาเติมเครดิตก่อนใช้งาน';
+    return 'OpenRouter credit is insufficient. Please top up and try again.';
   }
 
+  // Quota/rate-limit failures may include retry seconds from provider text.
   if (statusCode === 429 || text.includes('resource_exhausted') || text.includes('quota')) {
     const retryMatch = String(errorText || '').match(/retry in\s+([\d.]+)s/i);
     const retrySeconds = retryMatch?.[1] ? Math.ceil(Number(retryMatch[1])) : null;
     if (retrySeconds) {
-      return `โควต้า AI เต็มชั่วคราว กรุณาลองใหม่อีกประมาณ ${retrySeconds} วินาที`;
+      return `AI quota is temporarily exhausted. Please retry in about ${retrySeconds} seconds.`;
     }
-    return 'โควต้า AI เต็มชั่วคราว กรุณาลองใหม่อีกสักครู่';
+    return 'AI quota is temporarily exhausted. Please try again shortly.';
   }
 
   if (text.includes('api key') || text.includes('permission_denied') || text.includes('unauthenticated')) {
-    return 'ตั้งค่า API Key ไม่ถูกต้องหรือยังไม่มีสิทธิ์ใช้งาน';
+    return 'API key is invalid or permission is not granted.';
   }
 
   if (statusCode === 400 || text.includes('invalid_argument')) {
-    return 'ไม่สามารถอ่านรูปนี้ได้ กรุณาลองรูปที่ชัดขึ้น';
+    return 'This image could not be processed. Please upload a clearer receipt image.';
   }
 
   if (statusCode >= 500) {
-    return 'ระบบ AI ขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้ง';
+    return 'AI service is temporarily unavailable. Please try again.';
   }
 
-  return 'สแกนใบเสร็จไม่สำเร็จ กรุณาลองใหม่อีกครั้ง';
+  return 'Receipt scan failed. Please try again.';
 }
 
 function extractJson(text) {
   if (!text) return null;
 
+  // First attempt: strict JSON response.
   try {
     return JSON.parse(text);
   } catch {
     // Continue to fallback parser.
   }
 
+  // Second attempt: parse JSON inside markdown fence.
   const fenced = text.match(/```json\s*([\s\S]*?)\s*```/i);
   if (fenced?.[1]) {
     try {
@@ -53,6 +79,7 @@ function extractJson(text) {
     }
   }
 
+  // Final attempt: extract by first/last brace pair.
   const firstBrace = text.indexOf('{');
   const lastBrace = text.lastIndexOf('}');
   if (firstBrace >= 0 && lastBrace > firstBrace) {
@@ -68,6 +95,7 @@ function extractJson(text) {
 }
 
 function getRequestIp(request) {
+  // Respect proxy headers first, then fallback to direct header.
   const forwarded = request.headers.get('x-forwarded-for');
   if (forwarded) {
     return forwarded.split(',')[0]?.trim() || 'unknown';
@@ -84,26 +112,28 @@ export async function POST(request) {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json(
-        { error: 'Unauthorized', userMessage: 'กรุณาเข้าสู่ระบบก่อนใช้งาน' },
+        { error: 'Unauthorized', userMessage: 'Please sign in before using receipt scan.' },
         { status: 401 }
       );
     }
 
+    // Accept only multipart uploads to avoid unsupported payload shapes.
     const contentType = String(request.headers.get('content-type') || '').toLowerCase();
     if (!contentType.includes('multipart/form-data')) {
       return NextResponse.json(
-        { error: 'Invalid content type', userMessage: 'รูปแบบข้อมูลไม่ถูกต้อง' },
+        { error: 'Invalid content type', userMessage: 'Invalid request format. Please upload using form-data.' },
         { status: 415 }
       );
     }
 
+    // Lightweight in-memory throttling by client IP.
     const ipAddress = getRequestIp(request);
     const rateLimit = checkAndTrackReceiptScanRateLimit(ipAddress);
     if (!rateLimit.allowed) {
       return NextResponse.json(
         {
           error: 'Rate limit exceeded',
-          userMessage: `มีการใช้งานถี่เกินไป กรุณาลองใหม่ใน ${rateLimit.retryAfterSeconds} วินาที`,
+          userMessage: `Too many requests. Please retry in ${rateLimit.retryAfterSeconds} seconds.`,
         },
         {
           status: 429,
@@ -119,7 +149,7 @@ export async function POST(request) {
       return NextResponse.json(
         {
           error: 'Missing OPENROUTER_API_KEY in environment',
-          userMessage: 'ยังไม่ได้ตั้งค่า OPENROUTER_API_KEY ในระบบ',
+          userMessage: 'OPENROUTER_API_KEY is missing in server environment.',
         },
         { status: 500 }
       );
@@ -130,25 +160,26 @@ export async function POST(request) {
 
     if (!file || typeof file === 'string') {
       return NextResponse.json(
-        { error: 'Receipt image is required', userMessage: 'กรุณาเลือกรูปใบเสร็จก่อน' },
+        { error: 'Receipt image is required', userMessage: 'Please select a receipt image first.' },
         { status: 400 }
       );
     }
 
     if (!file.type?.startsWith('image/')) {
       return NextResponse.json(
-        { error: 'Please upload an image file', userMessage: 'รองรับเฉพาะไฟล์รูปภาพเท่านั้น' },
+        { error: 'Please upload an image file', userMessage: 'Only image files are supported.' },
         { status: 400 }
       );
     }
 
     if (file.size > 5 * 1024 * 1024) {
       return NextResponse.json(
-        { error: 'Image too large', userMessage: 'ขนาดรูปต้องไม่เกิน 5MB' },
+        { error: 'Image too large', userMessage: 'Image size must be 5MB or less.' },
         { status: 400 }
       );
     }
 
+    // Encode image as Data URL because OpenRouter multimodal input expects image_url.
     const bytes = await file.arrayBuffer();
     const base64Image = Buffer.from(bytes).toString('base64');
     const imageDataUrl = `data:${file.type};base64,${base64Image}`;
@@ -234,12 +265,13 @@ export async function POST(request) {
       return NextResponse.json(
         {
           error: 'Could not parse AI response as JSON',
-          userMessage: 'อ่านข้อมูลจากใบเสร็จไม่สำเร็จ กรุณาลองรูปที่คมชัดขึ้น',
+          userMessage: 'Could not read receipt data. Please upload a clearer image.',
         },
         { status: 500 }
       );
     }
 
+    // Normalize and cap line items to keep UI/render payload predictable.
     const lineItems = Array.isArray(parsed?.lineItems)
       ? parsed.lineItems
           .map((item) => ({
@@ -262,7 +294,7 @@ export async function POST(request) {
   } catch (error) {
     console.error('scan-receipt error:', error);
     return NextResponse.json(
-      { error: 'Failed to scan receipt', userMessage: 'สแกนใบเสร็จไม่สำเร็จ กรุณาลองใหม่อีกครั้ง' },
+      { error: 'Failed to scan receipt', userMessage: 'Receipt scan failed. Please try again.' },
       { status: 500 }
     );
   }

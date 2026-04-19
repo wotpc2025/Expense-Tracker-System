@@ -1,7 +1,18 @@
 "use client"
-
+/**
+ * Hero.jsx — Landing Page Hero Section
+ *
+ * Full-width marketing block shown below the Header on the public landing page.
+ * Contains:
+ *   - Bold headline (2 lines, amber accent) via getTranslation()
+ *   - Subtitle paragraph
+ *   - "Get Started" CTA button linking to /sign-up
+ *   - Dashboard preview screenshot image
+ *
+ * This is a pure presentational component: no state, no data fetching.
+ * Language is hardcoded to 'en' — change to a prop to support switching.
+ */
 import Image from 'next/image'
-import React from 'react'
 import Link from 'next/link'
 import { getTranslation } from '@/lib/translations'
 

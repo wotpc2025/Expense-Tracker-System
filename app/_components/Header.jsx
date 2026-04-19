@@ -1,5 +1,18 @@
 "use client"
-
+/**
+ * Header.jsx — Landing Page Top Navigation Bar
+ *
+ * Displays the Exfinit logo, a personalised time-of-day greeting for signed-in
+ * users, and a conditional CTA / UserButton:
+ *   - Signed in  : shows Clerk <UserButton> (avatar + dropdown)
+ *   - Signed out : shows "Get Started" button that links to /sign-up
+ *
+ * The greeting (morning / afternoon / evening) is computed client-side inside
+ * a useEffect + isClient guard to prevent SSR/hydration mismatch for the
+ * time-dependent string.
+ *
+ * i18n: uses getTranslation() for all visible text.
+ */
 import React, { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'

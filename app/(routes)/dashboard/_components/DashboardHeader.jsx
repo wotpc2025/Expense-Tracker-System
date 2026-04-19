@@ -1,8 +1,19 @@
 "use client"
-
+/**
+ * DashboardHeader.jsx — Dashboard Top Bar
+ *
+ * Renders the sticky top bar inside the dashboard shell:
+ *   - SidebarTrigger: hamburger button to collapse/expand SideNav
+ *   - Time-of-day greeting: computed client-side (morning/afternoon/evening)
+ *   - Clerk UserButton: avatar + dropdown for account management
+ *
+ * The greeting is computed inside a useEffect + isClient guard to avoid
+ * SSR hydration mismatches from time-dependent values.
+ */
 import { UserButton, useUser } from '@clerk/nextjs'
 import React, { useEffect, useState } from 'react'
-import { SidebarTrigger } from '@/components/ui/sidebar'import { getTranslation } from '@/lib/translations'
+import { SidebarTrigger } from '@/components/ui/sidebar'
+import { t } from '@/lib/text'
 
 
 
@@ -23,7 +34,7 @@ function DashboardHeader() {
     } else {
       greetKey = 'greeting.evening';
     }
-    setGreeting(getTranslation(language, greetKey));
+    setGreeting(t(greetKey));
   }, [language]);
 
   return (

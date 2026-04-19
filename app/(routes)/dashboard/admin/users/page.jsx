@@ -1,7 +1,21 @@
 "use client"
-
+/**
+ * admin/users/page.jsx — Admin User Summary Page (/dashboard/admin/users)
+ *
+ * Lists all registered users (by email) with aggregated budget and spending
+ * statistics. Selecting a row expands a detail panel showing per-budget
+ * breakdown for that specific user.
+ *
+ * Data flow:
+ *   - getAdminUsersSummaryAction() → rows: summary row per user email
+ *   - getAdminUserDetailAction(email) → detail: per-budget breakdown for one user
+ *     (called on row click; collapses if the same row is clicked again)
+ *
+ * Formatting helpers (formatCurrency, formatDateTime) are defined locally
+ * to keep the file self-contained.
+ */
 import React, { useEffect, useState } from 'react'
-import { getAdminUserDetailAction, getAdminUsersSummaryAction } from '@/app/_actions/dbActions'import { getTranslation } from '@/lib/translations'
+import { t } from '@/lib/text'
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat('th-TH', {
@@ -56,10 +70,10 @@ export default function AdminUsersPage() {
     <div className='p-5 space-y-5'>
       <div>
         <h2 className='text-2xl font-bold text-slate-800 dark:text-slate-100'>
-          {getTranslation(language, 'adminUsers.title')}
+          {t('adminUsers.title')}
         </h2>
         <p className='text-sm text-slate-500 dark:text-slate-400 mt-1'>
-          {getTranslation(language, 'adminUsers.subtitle')}
+          {t('adminUsers.subtitle')}
         </p>
       </div>
 
@@ -69,18 +83,18 @@ export default function AdminUsersPage() {
           <table className='w-full text-sm'>
             <thead>
               <tr className='border-b dark:border-slate-700'>
-                <th className='text-left pb-2 text-slate-500'>{getTranslation(language, 'adminUsers.columns.email')}</th>
-                <th className='text-right pb-2 text-slate-500'>{getTranslation(language, 'adminUsers.columns.budgets')}</th>
-                <th className='text-right pb-2 text-slate-500'>{getTranslation(language, 'adminUsers.columns.expenses')}</th>
-                <th className='text-right pb-2 text-slate-500'>{getTranslation(language, 'adminUsers.columns.totalBudget')}</th>
-                <th className='text-right pb-2 text-slate-500'>{getTranslation(language, 'adminUsers.columns.totalSpend')}</th>
+                <th className='text-left pb-2 text-slate-500'>{t('adminUsers.columns.email')}</th>
+                <th className='text-right pb-2 text-slate-500'>{t('adminUsers.columns.budgets')}</th>
+                <th className='text-right pb-2 text-slate-500'>{t('adminUsers.columns.expenses')}</th>
+                <th className='text-right pb-2 text-slate-500'>{t('adminUsers.columns.totalBudget')}</th>
+                <th className='text-right pb-2 text-slate-500'>{t('adminUsers.columns.totalSpend')}</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr>
                   <td colSpan={5} className='py-8 text-center text-slate-400'>
-                    {getTranslation(language, 'loading')}
+                    {t('loading')}
                   </td>
                 </tr>
               )}
@@ -104,7 +118,7 @@ export default function AdminUsersPage() {
               {!loading && rows.length === 0 && (
                 <tr>
                   <td colSpan={5} className='py-8 text-center text-slate-400'>
-                    {getTranslation(language, 'adminUsers.empty')}
+                    {t('adminUsers.empty')}
                   </td>
                 </tr>
               )}
@@ -115,18 +129,18 @@ export default function AdminUsersPage() {
 
         <div className='rounded-xl border p-4 bg-white dark:bg-slate-800 dark:border-slate-700'>
           <h3 className='font-semibold text-slate-700 dark:text-slate-200 mb-3'>
-            {getTranslation(language, 'adminUsers.detail.title')}
+            {t('adminUsers.detail.title')}
           </h3>
 
           {!selectedEmail && (
             <p className='text-sm text-slate-500'>
-              {getTranslation(language, 'adminUsers.detail.selectUser')}
+              {t('adminUsers.detail.selectUser')}
             </p>
           )}
 
           {detailLoading && (
             <p className='text-sm text-slate-500'>
-              {getTranslation(language, 'loading')}
+              {t('loading')}
             </p>
           )}
 
@@ -135,16 +149,16 @@ export default function AdminUsersPage() {
               <div className='rounded-lg bg-slate-50 dark:bg-slate-900/60 p-3 text-sm'>
                 <p className='font-medium text-slate-700 dark:text-slate-200 break-all'>{detail.email}</p>
                 <div className='grid grid-cols-2 gap-2 mt-2 text-slate-600 dark:text-slate-300'>
-                  <p>{getTranslation(language, 'adminUsers.columns.budgets')}: {detail.summary?.budgets || 0}</p>
-                  <p>{getTranslation(language, 'adminUsers.columns.expenses')}: {detail.summary?.expenses || 0}</p>
-                  <p>{getTranslation(language, 'adminUsers.columns.totalBudget')}: {formatCurrency(detail.summary?.totalBudget || 0)}</p>
-                  <p>{getTranslation(language, 'adminUsers.columns.totalSpend')}: {formatCurrency(detail.summary?.totalSpend || 0)}</p>
+                  <p>{t('adminUsers.columns.budgets')}: {detail.summary?.budgets || 0}</p>
+                  <p>{t('adminUsers.columns.expenses')}: {detail.summary?.expenses || 0}</p>
+                  <p>{t('adminUsers.columns.totalBudget')}: {formatCurrency(detail.summary?.totalBudget || 0)}</p>
+                  <p>{t('adminUsers.columns.totalSpend')}: {formatCurrency(detail.summary?.totalSpend || 0)}</p>
                 </div>
               </div>
 
               <div>
                 <p className='text-sm font-medium text-slate-700 dark:text-slate-200 mb-2'>
-                  {getTranslation(language, 'adminUsers.detail.recentExpenses')}
+                  {t('adminUsers.detail.recentExpenses')}
                 </p>
                 <div className='space-y-2 max-h-72 overflow-auto'>
                   {(detail.recentExpenses || []).map((item) => (
@@ -154,7 +168,7 @@ export default function AdminUsersPage() {
                     </div>
                   ))}
                   {(!detail.recentExpenses || detail.recentExpenses.length === 0) && (
-                    <p className='text-sm text-slate-500'>{getTranslation(language, 'adminUsers.empty')}</p>
+                    <p className='text-sm text-slate-500'>{t('adminUsers.empty')}</p>
                   )}
                 </div>
               </div>

@@ -1,4 +1,26 @@
 "use client"
+/**
+ * BudgetList.jsx — Budget Grid with Filters and Stats
+ *
+ * The primary budget management view, rendered inside budgets/page.jsx and
+ * also referenced from the main dashboard for the budget card grid.
+ *
+ * Features:
+ *   - Date filter toolbar (month / date range / all) via useDashboardDateFilter
+ *   - View toggle: grid vs. list layout
+ *   - Density toggle: comfortable / compact / auto via useDashboardDensity
+ *   - StatCard row: total budget, total spend, remaining, active budget count
+ *   - CreateBudget dialog card (first card in the grid)
+ *   - BudgetItem cards: filtered by the active date range (only budgets that
+ *     have at least one expense in the selected period are shown for month/range)
+ *
+ * Data flow:
+ *   - getBudgetListAction(email)  → budgetList
+ *   - getAllExpensesAction(email) → expensesList
+ *     Both are fetched in parallel via Promise.all on mount and after any
+ *     CreateBudget / EditBudget mutation.
+ *   - filteredBudgetList is derived client-side with useMemo from the date filter.
+ */
 import React, { useEffect, useMemo, useState } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { getAllExpensesAction, getBudgetListAction } from '@/app/_actions/dbActions'
@@ -7,7 +29,7 @@ import CreateBudget from './CreateBudget'
 import { CalendarDays, LayoutGrid, List, MonitorCog, PiggyBank, RotateCcw, ScanLine } from 'lucide-react'
 import StatCard from '../../_components/StatCard'
 import { useDashboardDensity } from '@/lib/useDashboardDensity'
-import { getTranslation } from '@/lib/translations'
+import { t } from '@/lib/text'
 import { useDashboardDateFilter } from '@/lib/useDashboardDateFilter'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -352,37 +374,37 @@ function BudgetList() {
       <div className='mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:mb-5'>
         <StatCard
           loading={!isLoaded || isFetching}
-          title={getTranslation(language, 'budgetStats.totalBudget')}
+          title={t('budgetStats.totalBudget')}
           value={`฿${summary.totalBudget.toLocaleString(currencyLocale)}`}
-          caption={getTranslation(language, 'budgetStats.budgetCapacity')}
-          formula={getTranslation(language, 'budgetStats.totalBudgetFormula')}
+          caption={t('budgetStats.budgetCapacity')}
+          formula={t('budgetStats.totalBudgetFormula')}
           tone='amber'
           points={filteredBudgetList.slice(-6).map((item) => Number(item?.amount || 0))}
         />
         <StatCard
           loading={!isLoaded || isFetching}
-          title={getTranslation(language, 'budgetStats.totalSpend')}
+          title={t('budgetStats.totalSpend')}
           value={`฿${summary.totalSpend.toLocaleString(currencyLocale)}`}
-          caption={getTranslation(language, 'budgetStats.moneyUsed')}
-          formula={getTranslation(language, 'budgetStats.totalSpendFormula')}
+          caption={t('budgetStats.moneyUsed')}
+          formula={t('budgetStats.totalSpendFormula')}
           tone='slate'
           points={filteredBudgetList.slice(-6).map((item) => Number(item?.totalSpend || 0))}
         />
         <StatCard
           loading={!isLoaded || isFetching}
-          title={getTranslation(language, 'budgetStats.remaining')}
+          title={t('budgetStats.remaining')}
           value={`฿${Math.max(summary.remaining, 0).toLocaleString(currencyLocale)}`}
-          caption={getTranslation(language, 'budgetStats.availableNow')}
-          formula={getTranslation(language, 'budgetStats.remainingFormula')}
+          caption={t('budgetStats.availableNow')}
+          formula={t('budgetStats.remainingFormula')}
           tone='emerald'
           points={filteredBudgetList.slice(-6).map((item) => Math.max(Number(item?.amount || 0) - Number(item?.totalSpend || 0), 0))}
         />
         <StatCard
           loading={!isLoaded || isFetching}
-          title={getTranslation(language, 'budgetStats.activeBudgets')}
+          title={t('budgetStats.activeBudgets')}
           value={summary.activeBudgets}
-          caption={getTranslation(language, 'budgetStats.currentPlans')}
-          formula={getTranslation(language, 'budgetStats.activeBudgetsFormula')}
+          caption={t('budgetStats.currentPlans')}
+          formula={t('budgetStats.activeBudgetsFormula')}
           tone='white'
           points={filteredBudgetList.slice(-6).map((item, index) => index + 1)}
         />
@@ -395,12 +417,12 @@ function BudgetList() {
             <button className='inline-flex h-10 items-center overflow-hidden rounded-xl border border-amber-400 shadow-sm cursor-pointer group transition-all hover:shadow-md dark:border-amber-600'>
               <span className='flex items-center gap-2 bg-amber-500 px-4 h-full text-white text-sm font-semibold group-hover:bg-amber-600 transition-colors'>
                 <PiggyBank className='h-4 w-4 shrink-0' />
-                {getTranslation(language, 'budgets.createNew')}
+                {t('budgets.createNew')}
               </span>
               <span className='w-px self-stretch bg-amber-300 dark:bg-amber-600' />
               <span className='flex items-center gap-2 px-4 h-full text-amber-700 dark:text-amber-300 text-sm font-medium bg-amber-50 dark:bg-amber-950/40 group-hover:bg-amber-100 dark:group-hover:bg-amber-900/40 transition-colors'>
                 <ScanLine className='h-4 w-4 shrink-0' />
-                {getTranslation(language, 'createBudget.scanReceipt')}
+                {t('createBudget.scanReceipt')}
               </span>
             </button>
           }
@@ -415,7 +437,7 @@ function BudgetList() {
             }`}
           >
             <List className='h-3.5 w-3.5' />
-            {getTranslation(language, 'density.compact')}
+            {t('density.compact')}
           </button>
           <button
             type='button'
@@ -425,7 +447,7 @@ function BudgetList() {
             }`}
           >
             <LayoutGrid className='h-3.5 w-3.5' />
-            {getTranslation(language, 'density.comfort')}
+            {t('density.comfort')}
           </button>
           <button
             type='button'
@@ -436,16 +458,16 @@ function BudgetList() {
             title={`Auto mode is currently ${resolvedDensity}`}
           >
             <MonitorCog className='h-3.5 w-3.5' />
-            {getTranslation(language, 'density.auto')}
+            {t('density.auto')}
           </button>
           <button
             type='button'
             onClick={resetDensity}
             className='inline-flex items-center gap-1 rounded px-2 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100 cursor-pointer dark:text-slate-300 dark:hover:bg-slate-700'
-            title={getTranslation(language, 'expensesTable.resetDensity')}
+            title={t('expensesTable.resetDensity')}
           >
             <RotateCcw className='h-3.5 w-3.5' />
-            {getTranslation(language, 'expensesTable.reset')}
+            {t('expensesTable.reset')}
           </button>
         </div>
       </div>

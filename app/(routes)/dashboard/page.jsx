@@ -1,4 +1,26 @@
 "use client"
+/**
+ * dashboard/page.jsx — Main Dashboard Page
+ *
+ * The primary view for regular users after sign-in. Shows:
+ *   - Date filter toolbar (month / date range / all time)
+ *   - CardInfo: 3 summary stat cards (total budget, total spend, active budgets)
+ *   - BarChartDashboard: budget vs. spend bar chart
+ *   - BudgetItem grid: card per budget with spend progress
+ *   - ExpensesListTable: recent expenses table
+ *
+ * Data flow:
+ *   - getBudgetListAction(email)   → budgetList state
+ *   - getAllExpensesAction(email)   → expensesList state
+ *   - Both are filtered client-side by the active dateFilter (no server round-trip)
+ *
+ * Admin redirect:
+ *   - After Clerk loads, getCurrentUserAdminStatusAction() is called.
+ *   - If the user is an admin they are immediately redirected to /dashboard/admin.
+ *
+ * Dependencies: moment.js for date parsing, useDashboardDateFilter for
+ * shared filter state that syncs with BudgetList and ExpensesPage tabs.
+ */
 import { useUser } from '@clerk/nextjs'
 import React, { useEffect, useMemo, useState } from 'react'
 import CardInfo from './_components/CardInfo';
@@ -6,7 +28,7 @@ import { getAllExpensesAction, getBudgetListAction, getCurrentUserAdminStatusAct
 import BarChartDashboard from './_components/BarChartDashboard';
 import BudgetItem from './budgets/_components/BudgetItem';
 import ExpensesListTable from './budgets/_components/ExpensesListTable';
-import { getTranslation } from '@/lib/translations'
+import { t } from '@/lib/text'
 import { useRouter } from 'next/navigation';
 import { isAdminByRole } from '@/lib/adminAccess';
 import { useDashboardDateFilter } from '@/lib/useDashboardDateFilter'
@@ -204,9 +226,9 @@ function Dashboard() {
   return (
     <section className='mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8'>
        <div className='rounded-2xl border bg-linear-to-br from-white to-slate-50 px-4 py-4 shadow-sm sm:px-6 dark:border-slate-700 dark:from-slate-900 dark:to-slate-900'>
-         <p className='text-xs font-semibold uppercase tracking-[0.18em] text-amber-600'>{getTranslation(language, 'dashboard.title')} Overview</p>
-         <h1 className='mt-1 text-2xl font-bold tracking-tight sm:text-3xl'>{getTranslation(language, 'dashboard.welcome')}, {user?.fullName} ✌️</h1>
-         <p className='mt-1 text-sm text-slate-500'>{getTranslation(language, 'dashboard.title')} - {periodLabel}</p>
+         <p className='text-xs font-semibold uppercase tracking-[0.18em] text-amber-600'>{t('dashboard.title')} Overview</p>
+         <h1 className='mt-1 text-2xl font-bold tracking-tight sm:text-3xl'>{t('dashboard.welcome')}, {user?.fullName} ✌️</h1>
+         <p className='mt-1 text-sm text-slate-500'>{t('dashboard.title')} - {periodLabel}</p>
        </div>
 
        <div className='mt-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900'>
@@ -402,7 +424,7 @@ function Dashboard() {
 
           </div>
           <div className='flex flex-col gap-5 self-start'>
-            <h2 className='text-lg font-bold'>{getTranslation(language, 'dashboard.latestBudgets')}</h2>
+            <h2 className='text-lg font-bold'>{t('dashboard.latestBudgets')}</h2>
             {filteredBudgetList.slice(0, 4).map((budget,index) => (
                <BudgetItem key={index} budget={budget}/>
             ))}
