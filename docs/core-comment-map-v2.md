@@ -1,8 +1,8 @@
-# Expense Tracker — Complete Code Comment Map
+# Expense Management System — Complete Code Comment Map
 
-> **Purpose (EN):** Quick-reference knowledge base for presentation Q&A. Every file in the system is listed with its role, key exports/functions, and where to find the most important logic.
+> **Purpose (EN):** Quick-reference knowledge base. Every file in the system is listed with its role, key exports/functions, and where to find the most important logic.
 >
-> **วัตถุประสงค์ (TH):** แผนที่รวมคอมเมนต์ครบทุกไฟล์ในระบบ ใช้เป็นฐานข้อมูลสำหรับตอบคำถามระหว่างการนำเสนอ แต่ละไฟล์ระบุหน้าที่ ฟังก์ชันสำคัญ และตำแหน่ง logic ที่ควรรู้
+> **วัตถุประสงค์ (TH):** แผนที่รวมคอมเมนต์ครบทุกไฟล์ในระบบ ใช้เป็นฐานข้อมูล แต่ละไฟล์ระบุหน้าที่ ฟังก์ชันสำคัญ และตำแหน่ง logic ที่ควรรู้
 
 ---
 
