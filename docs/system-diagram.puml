@@ -1,5 +1,7 @@
 @startuml ExpenseManagementSystemDiagram
 skinparam defaultFontName Tahoma
+skinparam defaultFontSize 22
+skinparam titleFontSize 26
 skinparam dpi 160
 skinparam shadowing false
 skinparam backgroundColor white
@@ -13,21 +15,25 @@ actor "ผู้ใช้ (User)" as USER
 actor "ผู้ดูแลระบบ (Admin)" as ADMIN
 
 node "Web Browser\n(Chrome / Edge)" as BROWSER
-
+cloud "Cloudflare Zero Trust\n(Access Gateway)" as CF
+node "Nginx Proxy Manager\n(Reverse Proxy)" as NGINX
 node "Expense Management Web Application\nNext.js (Frontend + Backend/API)" as APP
-
+database "MySQL Database (MariaDB)\nexpense_tracker\n- users\n- budgets\n- expenses\n- admin_alerts\n- admin_audit_logs" as DB
 cloud "Clerk\nAuthentication Service" as CLERK
 cloud "OpenRouter AI\nReceipt Scan Service" as OAI
-
-database "MySQL Database\nexpense_tracker\n- users\n- budgets\n- expenses\n- admin_alerts\n- admin_audit_logs" as DB
 
 USER --> BROWSER : ใช้งานผ่านเว็บ
 ADMIN --> BROWSER : ใช้งานผ่านเว็บ
 
-BROWSER <--> APP : HTTPS Request/Response
-APP <--> CLERK : Auth / Session Verification
+BROWSER --> CF : HTTPS
+CF --> NGINX : Cloudflare Tunnel
+NGINX --> APP : Reverse Proxy (port 3068)
 APP <--> DB : Drizzle ORM + mysql2
+APP <--> CLERK : Auth / Session Verification
 APP <--> OAI : AI Receipt Scan API
+
+DB -[hidden]right- CLERK
+CLERK -[hidden]right- OAI
 
 note right of DB
 ตาราง users เป็น local profile mirror
