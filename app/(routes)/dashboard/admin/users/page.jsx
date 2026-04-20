@@ -15,6 +15,7 @@
  * to keep the file self-contained.
  */
 import React, { useEffect, useState } from 'react'
+import { getAdminUserDetailAction, getAdminUsersSummaryAction } from '@/app/_actions/dbActions'
 import { t } from '@/lib/text'
 
 const formatCurrency = (value) =>
@@ -106,7 +107,8 @@ export default function AdminUsersPage() {
                   onClick={() => openDetail(row.email)}
                 >
                   <td className='py-2 pr-3 text-slate-700 dark:text-slate-200'>
-                    <span className='underline decoration-dotted'>{row.email}</span>
+                    <p className='font-medium'>{row.displayName || row.email || '-'}</p>
+                    <span className='text-xs text-slate-500 underline decoration-dotted'>{row.email || '-'}</span>
                   </td>
                   <td className='py-2 pr-3 text-right text-slate-700 dark:text-slate-200'>{row.budgets}</td>
                   <td className='py-2 pr-3 text-right text-slate-700 dark:text-slate-200'>{row.expenses}</td>
@@ -147,7 +149,8 @@ export default function AdminUsersPage() {
           {!detailLoading && selectedEmail && detail && (
             <div className='space-y-3'>
               <div className='rounded-lg bg-slate-50 dark:bg-slate-900/60 p-3 text-sm'>
-                <p className='font-medium text-slate-700 dark:text-slate-200 break-all'>{detail.email}</p>
+                <p className='font-medium text-slate-700 dark:text-slate-200 break-all'>{detail.displayName || detail.email}</p>
+                <p className='text-xs text-slate-500 mt-1 break-all'>{detail.email}</p>
                 <div className='grid grid-cols-2 gap-2 mt-2 text-slate-600 dark:text-slate-300'>
                   <p>{t('adminUsers.columns.budgets')}: {detail.summary?.budgets || 0}</p>
                   <p>{t('adminUsers.columns.expenses')}: {detail.summary?.expenses || 0}</p>

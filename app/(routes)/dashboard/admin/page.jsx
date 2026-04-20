@@ -54,6 +54,22 @@ const formatDateTime = (value) => {
   return date.toLocaleString('th-TH')
 }
 
+const getOwnerKey = (row) => {
+  const userId = Number(row?.createdByUserId || 0)
+  if (Number.isInteger(userId) && userId > 0) return `uid:${userId}`
+
+  const email = String(row?.createdBy || '').trim().toLowerCase()
+  return email ? `email:${email}` : ''
+}
+
+const getOwnerLabel = (row) => {
+  const label = String(row?.createdByLabel || '').trim()
+  if (label) return label
+
+  const email = String(row?.createdBy || '').trim().toLowerCase()
+  return email || '-'
+}
+
 export default function AdminDashboardPage() {
   const language = 'en';const [loading, setLoading] = useState(true)
   const [working, setWorking] = useState(false)
@@ -153,11 +169,19 @@ export default function AdminDashboardPage() {
   }, [datePreset, startDate, endDate])
 
   const userOptions = useMemo(() => {
-    const set = new Set()
+    const map = new Map()
     adminData.expenseRows.forEach((row) => {
-      if (row.createdBy) set.add(String(row.createdBy).toLowerCase())
+      const key = getOwnerKey(row)
+      if (!key) return
+
+      if (!map.has(key)) {
+        map.set(key, getOwnerLabel(row))
+      }
     })
-    return Array.from(set).sort()
+
+    return Array.from(map.entries())
+      .sort((left, right) => String(left[1]).localeCompare(String(right[1]), undefined, { sensitivity: 'base' }))
+      .map(([value, label]) => ({ value, label }))
   }, [adminData.expenseRows])
 
   const categoryOptions = useMemo(() => {
@@ -173,7 +197,7 @@ export default function AdminDashboardPage() {
       const date = parseDate(row.createdAt)
       if (dateRange.from && (!date || date < dateRange.from)) return false
       if (dateRange.to && (!date || date > dateRange.to)) return false
-      if (selectedUser !== 'all' && String(row.createdBy || '').toLowerCase() !== selectedUser) return false
+      if (selectedUser !== 'all' && getOwnerKey(row) !== selectedUser) return false
       if (selectedCategory !== 'all' && String(row.category || '').trim() !== selectedCategory) return false
       return true
     })
@@ -207,7 +231,7 @@ export default function AdminDashboardPage() {
     })
 
     const budgetsOverLimit = adminData.budgetRows.filter((budget) => {
-      if (selectedUser !== 'all' && String(budget.createdBy || '').toLowerCase() !== selectedUser) return false
+      if (selectedUser !== 'all' && getOwnerKey(budget) !== selectedUser) return false
       const spent = budgetSpendMap.get(budget.id) || 0
       return spent > Number(budget.amount || 0)
     }).length
@@ -222,7 +246,7 @@ export default function AdminDashboardPage() {
   }, [filteredExpenses, adminData.budgetRows, selectedUser])
 
   const filteredOverview = useMemo(() => {
-    const userSet = new Set(filteredExpenses.map((row) => String(row.createdBy || '').toLowerCase()).filter(Boolean))
+    const userSet = new Set(filteredExpenses.map((row) => getOwnerKey(row)).filter(Boolean))
     const budgetSet = new Set(filteredExpenses.map((row) => Number(row.budgetId || 0)).filter(Boolean))
     const totalSpend = filteredExpenses.reduce((sum, row) => sum + Number(row.amount || 0), 0)
     const totalExpenses = filteredExpenses.length
@@ -257,7 +281,7 @@ export default function AdminDashboardPage() {
     return (adminData.auditRows || []).slice(0, 12).map((row) => ({
       id: row.id,
       event: row.message,
-      actor: row.actorEmail,
+      actor: row.actorLabel || row.actorEmail,
       createdAt: row.createdAt,
     }))
   }, [adminData.auditRows])
@@ -391,7 +415,7 @@ export default function AdminDashboardPage() {
 
           <select value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)} className='h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900'>
             <option value='all'>{getTranslation(language, 'admin.filters.allUsers')}</option>
-            {userOptions.map((email) => <option key={email} value={email}>{email}</option>)}
+            {userOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
 
           <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className='h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900'>

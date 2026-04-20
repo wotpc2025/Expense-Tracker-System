@@ -21,6 +21,7 @@
  * Destructive operations (bulk delete, etc.) live in admin/page.jsx.
  */
 import React, { useEffect, useMemo, useState } from 'react'
+import { getAdminDatabaseManagementAction } from '@/app/_actions/dbActions'
 import { t } from '@/lib/text'
 import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Database, Receipt, ScrollText, Users } from 'lucide-react'
 import { toast } from 'sonner'
@@ -223,7 +224,7 @@ export default function AdminDatabasePage() {
               <SortableHeader label='ID' sortKey='id' sortConfig={sortConfig} onSort={handleSort} />
               <SortableHeader label={t('adminDatabase.columns.name')} sortKey='name' sortConfig={sortConfig} onSort={handleSort} />
               <SortableHeader label={t('adminDatabase.columns.category')} sortKey='category' sortConfig={sortConfig} onSort={handleSort} />
-              <SortableHeader label={t('adminDatabase.columns.owner')} sortKey='createdBy' sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label={t('adminDatabase.columns.owner')} sortKey='createdByLabel' sortConfig={sortConfig} onSort={handleSort} />
               <SortableHeader label={t('adminDatabase.columns.amount')} sortKey='amount' sortConfig={sortConfig} onSort={handleSort} align='right' />
               <SortableHeader label={t('adminDatabase.columns.spend')} sortKey='totalSpend' sortConfig={sortConfig} onSort={handleSort} align='right' />
               <SortableHeader label={t('adminDatabase.columns.items')} sortKey='totalItem' sortConfig={sortConfig} onSort={handleSort} align='right' />
@@ -235,7 +236,7 @@ export default function AdminDatabasePage() {
                 <td className='py-2 pr-3 text-slate-500'>{row.id}</td>
                 <td className='py-2 pr-3 text-slate-700 dark:text-slate-200'>{row.icon || '•'} {row.name}</td>
                 <td className='py-2 pr-3 text-slate-500'>{row.category || '-'}</td>
-                <td className='py-2 pr-3 text-slate-500'>{row.createdBy || '-'}</td>
+                <td className='py-2 pr-3 text-slate-500'>{row.createdByLabel || row.createdBy || '-'}</td>
                 <td className='py-2 pr-3 text-right text-slate-700 dark:text-slate-200'>{formatCurrency(row.amount)}</td>
                 <td className='py-2 pr-3 text-right text-slate-700 dark:text-slate-200'>{formatCurrency(row.totalSpend)}</td>
                 <td className='py-2 text-right text-slate-700 dark:text-slate-200'>{row.totalItem}</td>
@@ -255,7 +256,7 @@ export default function AdminDatabasePage() {
               <SortableHeader label={t('adminDatabase.columns.name')} sortKey='name' sortConfig={sortConfig} onSort={handleSort} />
               <SortableHeader label={t('adminDatabase.columns.budget')} sortKey='budgetName' sortConfig={sortConfig} onSort={handleSort} />
               <SortableHeader label={t('adminDatabase.columns.category')} sortKey='category' sortConfig={sortConfig} onSort={handleSort} />
-              <SortableHeader label={t('adminDatabase.columns.owner')} sortKey='createdBy' sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label={t('adminDatabase.columns.owner')} sortKey='createdByLabel' sortConfig={sortConfig} onSort={handleSort} />
               <SortableHeader label={t('adminDatabase.columns.amount')} sortKey='amount' sortConfig={sortConfig} onSort={handleSort} align='right' />
               <SortableHeader label={t('adminDatabase.columns.date')} sortKey='createdAt' sortConfig={sortConfig} onSort={handleSort} align='right' />
             </tr>
@@ -267,7 +268,7 @@ export default function AdminDatabasePage() {
                 <td className='py-2 pr-3 text-slate-700 dark:text-slate-200'>{row.name}</td>
                 <td className='py-2 pr-3 text-slate-500'>{row.budgetName || '-'}</td>
                 <td className='py-2 pr-3 text-slate-500'>{row.category || '-'}</td>
-                <td className='py-2 pr-3 text-slate-500'>{row.createdBy || '-'}</td>
+                <td className='py-2 pr-3 text-slate-500'>{row.createdByLabel || row.createdBy || '-'}</td>
                 <td className='py-2 pr-3 text-right text-slate-700 dark:text-slate-200'>{formatCurrency(row.amount)}</td>
                 <td className='py-2 text-right text-slate-500'>{formatDateTime(row.createdAt)}</td>
               </tr>
@@ -285,7 +286,7 @@ export default function AdminDatabasePage() {
               <SortableHeader label='ID' sortKey='id' sortConfig={sortConfig} onSort={handleSort} />
               <SortableHeader label={t('adminDatabase.columns.key')} sortKey='alertKey' sortConfig={sortConfig} onSort={handleSort} />
               <SortableHeader label={t('adminDatabase.columns.status')} sortKey='status' sortConfig={sortConfig} onSort={handleSort} />
-              <SortableHeader label={t('adminDatabase.columns.actor')} sortKey='acknowledgedBy' sortConfig={sortConfig} onSort={handleSort} />
+              <SortableHeader label={t('adminDatabase.columns.actor')} sortKey='acknowledgedByLabel' sortConfig={sortConfig} onSort={handleSort} />
               <SortableHeader label={t('adminDatabase.columns.date')} sortKey='acknowledgedAt' sortConfig={sortConfig} onSort={handleSort} align='right' />
             </tr>
           </thead>
@@ -295,7 +296,7 @@ export default function AdminDatabasePage() {
                 <td className='py-2 pr-3 text-slate-500'>{row.id}</td>
                 <td className='py-2 pr-3 text-slate-700 dark:text-slate-200'>{row.alertKey}</td>
                 <td className='py-2 pr-3 text-slate-500'>{row.status}</td>
-                <td className='py-2 pr-3 text-slate-500'>{row.acknowledgedBy || '-'}</td>
+                <td className='py-2 pr-3 text-slate-500'>{row.acknowledgedByLabel || row.acknowledgedBy || '-'}</td>
                 <td className='py-2 text-right text-slate-500'>{formatDateTime(row.acknowledgedAt)}</td>
               </tr>
             ))}
@@ -311,7 +312,7 @@ export default function AdminDatabasePage() {
             <SortableHeader label='ID' sortKey='id' sortConfig={sortConfig} onSort={handleSort} />
             <SortableHeader label={t('adminDatabase.columns.action')} sortKey='action' sortConfig={sortConfig} onSort={handleSort} />
             <SortableHeader label={t('adminDatabase.columns.message')} sortKey='message' sortConfig={sortConfig} onSort={handleSort} />
-            <SortableHeader label={t('adminDatabase.columns.actor')} sortKey='actorEmail' sortConfig={sortConfig} onSort={handleSort} />
+            <SortableHeader label={t('adminDatabase.columns.actor')} sortKey='actorLabel' sortConfig={sortConfig} onSort={handleSort} />
             <SortableHeader label={t('adminDatabase.columns.date')} sortKey='createdAt' sortConfig={sortConfig} onSort={handleSort} align='right' />
           </tr>
         </thead>
@@ -321,7 +322,7 @@ export default function AdminDatabasePage() {
               <td className='py-2 pr-3 text-slate-500'>{row.id}</td>
               <td className='py-2 pr-3 text-slate-700 dark:text-slate-200'>{row.action}</td>
               <td className='py-2 pr-3 text-slate-500'>{row.message}</td>
-              <td className='py-2 pr-3 text-slate-500'>{row.actorEmail || '-'}</td>
+              <td className='py-2 pr-3 text-slate-500'>{row.actorLabel || row.actorEmail || '-'}</td>
               <td className='py-2 text-right text-slate-500'>{formatDateTime(row.createdAt)}</td>
             </tr>
           ))}
