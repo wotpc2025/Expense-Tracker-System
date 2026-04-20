@@ -15,66 +15,66 @@
 
 ตาราง ก-1 พจนานุกรมข้อมูลตารางข้อมูลผู้ใช้งาน (users)
 ชื่อ Attribute | คำอธิบาย | ชนิดของข้อมูล | ตัวอย่าง
-id | รหัสผู้ใช้งานภายในระบบ | int | 18
-clerkUserId | รหัสผู้ใช้จาก Clerk | varchar(191) | user_2q7mA8xY...
-email | อีเมลผู้ใช้งาน | varchar(255) | 65160381@go.buu.ac.th
-displayName | ชื่อที่แสดงในระบบ | varchar(255) | Parinya Triyakun
+id | รหัสผู้ใช้งานภายในระบบ | int | 1
+clerkUserId | รหัสผู้ใช้จาก Clerk | varchar(191) | user_36ty60sY8mUjGeQVCmwDp5ynpwz
+email | อีเมลผู้ใช้งาน | varchar(255) | wotpc2025@gmail.com
+displayName | ชื่อที่แสดงในระบบ | varchar(255) | wot pc
 role | สิทธิ์การใช้งาน | varchar(50) | user
 isActive | สถานะการใช้งาน | int | 1
-createdAt | วันและเวลาที่สร้างข้อมูล | timestamp | 2026-04-20 10:30:12
-updatedAt | วันและเวลาที่แก้ไขล่าสุด | timestamp | 2026-04-20 10:30:12
+createdAt | วันและเวลาที่สร้างข้อมูล | timestamp | 2026-04-20 13:20:24
+updatedAt | วันและเวลาที่แก้ไขล่าสุด | timestamp | 2026-04-20 07:38:37
 
 2. ตารางข้อมูลงบประมาณ
 ตาราง budgets ใช้เก็บข้อมูลงบประมาณที่ผู้ใช้งานสร้างขึ้น และเชื่อมโยงเจ้าของงบประมาณผ่านฟิลด์ createdByUserId ดังที่แสดงในตารางที่ ก-2
 
 ตาราง ก-2 พจนานุกรมข้อมูลตารางข้อมูลงบประมาณ (budgets)
 ชื่อ Attribute | คำอธิบาย | ชนิดของข้อมูล | ตัวอย่าง
-id | รหัสเฉพาะของงบประมาณ | int | 1
-name | ชื่องบประมาณ | varchar(255) | ค่าอาหาร
-amount | วงเงินงบประมาณ | decimal(12,2) | 3500.00
-icon | ไอคอนหรืออีโมจิ | varchar(255) | 🍜
-category | หมวดหมู่เริ่มต้น | varchar(255) | Food
-createdBy | อีเมลผู้สร้างงบประมาณ | varchar(255) | user@example.com
-createdByUserId | รหัสผู้ใช้ภายในระบบ (FK -> users.id) | int | 18
+id | รหัสเฉพาะของงบประมาณ | int | 9
+name | ชื่องบประมาณ | varchar(255) | Travel Plan
+amount | วงเงินงบประมาณ | decimal(12,2) | 7500.00
+icon | ไอคอนหรืออีโมจิ | varchar(255) | 🌍
+category | หมวดหมู่เริ่มต้น | varchar(255) | Travel
+createdBy | อีเมลผู้สร้างงบประมาณ | varchar(255) | wotpc2025@gmail.com
+createdByUserId | รหัสผู้ใช้ภายในระบบ (FK -> users.id) | int | 1
 
 3. ตารางข้อมูลค่าใช้จ่าย
 ตาราง expenses ใช้เก็บรายการค่าใช้จ่าย โดยเชื่อมโยงกับตาราง budgets ผ่าน budgetId และเชื่อมโยงผู้สร้างผ่าน createdByUserId ดังที่แสดงในตารางที่ ก-3
 
 ตาราง ก-3 พจนานุกรมข้อมูลตารางข้อมูลค่าใช้จ่าย (expenses)
 ชื่อ Attribute | คำอธิบาย | ชนิดของข้อมูล | ตัวอย่าง
-id | รหัสเฉพาะของรายการค่าใช้จ่าย | int | 91
-name | ชื่อรายการค่าใช้จ่าย | varchar(255) | กาแฟ
-amount | จำนวนเงินค่าใช้จ่าย | decimal(12,2) | 65.00
-budgetId | รหัสงบประมาณที่อ้างอิง (FK -> budgets.id) | int | 1
-createdByUserId | รหัสผู้ใช้ผู้สร้างรายการ (FK -> users.id) | int | 18
-category | หมวดหมู่ค่าใช้จ่าย | varchar(255) | Food
-createdAt | วันและเวลาที่สร้างรายการ | timestamp | 2026-04-20 11:02:10
+id | รหัสเฉพาะของรายการค่าใช้จ่าย | int | 90
+name | ชื่อรายการค่าใช้จ่าย | varchar(255) | สปาเก็ตตี้คาโบนาร่า
+amount | จำนวนเงินค่าใช้จ่าย | decimal(12,2) | 159.00
+budgetId | รหัสงบประมาณที่อ้างอิง (FK -> budgets.id) | int | 21
+createdByUserId | รหัสผู้ใช้ผู้สร้างรายการ (FK -> users.id) | int | 1
+category | หมวดหมู่ค่าใช้จ่าย | varchar(255) | ใบเสร็จร้านอาหาร
+createdAt | วันและเวลาที่สร้างรายการ | timestamp | 2026-04-07 00:00:00
 
 4. ตารางข้อมูลการแจ้งเตือนผู้ดูแลระบบ
 ตาราง admin_alerts ใช้เก็บเหตุการณ์แจ้งเตือนและสถานะการรับทราบ โดยรองรับการอ้างอิงผู้ที่กดรับทราบผ่าน acknowledgedByUserId ดังที่แสดงในตารางที่ ก-4
 
 ตาราง ก-4 พจนานุกรมข้อมูลตารางข้อมูลการแจ้งเตือนผู้ดูแลระบบ (admin_alerts)
 ชื่อ Attribute | คำอธิบาย | ชนิดของข้อมูล | ตัวอย่าง
-id | รหัสแจ้งเตือน | int | 3
-alertKey | คีย์เหตุการณ์แจ้งเตือน | varchar(255) | duplicate-expense-detected
-status | สถานะแจ้งเตือน | varchar(255) | acknowledged
-acknowledgedAt | วันและเวลาที่รับทราบ | timestamp | 2026-04-20 11:15:00
-acknowledgedBy | อีเมลผู้รับทราบ | varchar(255) | admin@example.com
-acknowledgedByUserId | รหัสผู้รับทราบ (FK -> users.id) | int | 1
+id | รหัสแจ้งเตือน | int | 1
+alertKey | คีย์เหตุการณ์แจ้งเตือน | varchar(255) | missing-category
+status | สถานะแจ้งเตือน | varchar(255) | active
+acknowledgedAt | วันและเวลาที่รับทราบ | timestamp | 2026-03-26 08:12:09
+acknowledgedBy | อีเมลผู้รับทราบ | varchar(255) | worldoftanks2.0.2025@gmail.com
+acknowledgedByUserId | รหัสผู้รับทราบ (FK -> users.id) | int | 2
 
 5. ตารางข้อมูลบันทึกการทำงานของผู้ดูแลระบบ
 ตาราง admin_audit_logs ใช้เก็บประวัติการกระทำของผู้ดูแลระบบ และอ้างอิงผู้กระทำผ่าน actorUserId ดังที่แสดงในตารางที่ ก-5
 
 ตาราง ก-5 พจนานุกรมข้อมูลตารางข้อมูลบันทึกการทำงานของผู้ดูแลระบบ (admin_audit_logs)
 ชื่อ Attribute | คำอธิบาย | ชนิดของข้อมูล | ตัวอย่าง
-id | รหัสบันทึกเหตุการณ์ | int | 12
-action | ชื่อการกระทำ | varchar(255) | create_budget
-targetType | ประเภทข้อมูลที่ถูกกระทำ | varchar(255) | budget
+id | รหัสบันทึกเหตุการณ์ | int | 1
+action | ชื่อการกระทำ | varchar(255) | alert_acknowledged
+targetType | ประเภทข้อมูลที่ถูกกระทำ | varchar(255) | alert
 targetCount | จำนวนรายการที่ได้รับผลกระทบ | int | 1
-message | รายละเอียดเหตุการณ์ | varchar(500) | Created budget ค่าอาหาร
-actorEmail | อีเมลผู้กระทำ | varchar(255) | admin@example.com
-actorUserId | รหัสผู้กระทำ (FK -> users.id) | int | 1
-createdAt | วันและเวลาที่บันทึกเหตุการณ์ | timestamp | 2026-04-20 11:20:45
+message | รายละเอียดเหตุการณ์ | varchar(500) | Acknowledged alert missing-category
+actorEmail | อีเมลผู้กระทำ | varchar(255) | worldoftanks2.0.2025@gmail.com
+actorUserId | รหัสผู้กระทำ (FK -> users.id) | int | 2
+createdAt | วันและเวลาที่บันทึกเหตุการณ์ | timestamp | 2026-03-26 07:24:43
 
 สรุปความสัมพันธ์ของข้อมูลตาม ER Diagram ล่าสุด
 1. users -> budgets: ผู้ใช้หนึ่งคนสามารถมีงบประมาณได้หลายรายการ (ผ่าน createdByUserId)
