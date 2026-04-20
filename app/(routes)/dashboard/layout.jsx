@@ -24,7 +24,7 @@ import { useUser } from '@clerk/nextjs'
 // [!code --] import { db } from '@/utils/dbConfig'  <-- ลบทิ้ง!!
 // [!code --] import { Budgets } from '@/utils/schema' <-- ลบทิ้ง!!
 // [!code --] import { eq } from 'drizzle-orm' <-- ลบทิ้ง!!
-import { checkUserBudgetsAction, getCurrentUserAdminStatusAction } from '@/app/_actions/dbActions' // [!code ++] Import ตัวนี้มาแทน
+import { checkUserBudgetsAction, getCurrentUserAdminStatusAction, syncCurrentUserProfileAction } from '@/app/_actions/dbActions' // [!code ++] Import ตัวนี้มาแทน
 import { usePathname, useRouter } from 'next/navigation'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { isAdminByRole } from '@/lib/adminAccess'
@@ -36,9 +36,19 @@ function DashboardLayout({children}) {
 
   useEffect(() => {
     if (!isLoaded || !user) return;
-    if (pathname !== '/dashboard') return;
 
     let isActive = true
+
+    // Keep local users table in sync with Clerk profile on dashboard visits.
+    syncCurrentUserProfileAction().catch((error) => {
+      console.error('User sync failed:', error)
+    })
+
+    if (pathname !== '/dashboard') {
+      return () => {
+        isActive = false
+      }
+    }
 
     if (isAdminByRole(user)) return;
 

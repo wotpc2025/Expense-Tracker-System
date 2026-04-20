@@ -13,7 +13,6 @@
  *    toIsoDateTime        — normalizes Date / string → ISO string
  *    getInsertId          — extracts numeric insert ID from driver response
  *    getAffectedRows      — extracts affected-row count from driver response
- *    getCurrentActorEmail — resolves caller email for audit logs
  *    createAdminAuditLogEntry — best-effort audit INSERT helper
  *
  *  Auth
@@ -58,9 +57,9 @@
  */
 
 import { db } from '@/utils/dbConfig'
-import { AdminAlerts, AdminAuditLogs, Budgets, Expenses } from '@/utils/schema'
+import { AdminAlerts, AdminAuditLogs, Budgets, Expenses, Users } from '@/utils/schema'
 import { currentUser } from '@clerk/nextjs/server'
-import { eq, sql, desc, inArray, and } from 'drizzle-orm'
+import { eq, sql, desc, inArray, and, or } from 'drizzle-orm'
 import { toDateValue, toMoneyNumber } from '@/lib/dataNormalization'
 import { getSecurityTelemetrySnapshot } from '@/lib/securityTelemetry'
 import { isAdminUser } from '@/lib/adminAccess'
@@ -89,10 +88,74 @@ const getAffectedRows = (result) => {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
-// Resolve caller identity for audit logging on privileged operations.
-const getCurrentActorEmail = async () => {
+// Resolve current actor email + users.id for FK-based linkage.
+const getCurrentActorIdentity = async () => {
     const user = await currentUser();
-    return String(user?.primaryEmailAddress?.emailAddress || '').toLowerCase() || null;
+    const clerkUserId = String(user?.id || '').trim();
+    const email = String(user?.primaryEmailAddress?.emailAddress || '').trim().toLowerCase() || null;
+
+    let userId = null;
+
+    if (clerkUserId) {
+        const byClerkId = await db.select({ id: Users.id })
+            .from(Users)
+            .where(eq(Users.clerkUserId, clerkUserId))
+            .limit(1);
+        userId = byClerkId[0]?.id ?? null;
+    }
+
+    if (!userId && email) {
+        const byEmail = await db.select({ id: Users.id })
+            .from(Users)
+            .where(eq(Users.email, email))
+            .limit(1);
+        userId = byEmail[0]?.id ?? null;
+    }
+
+    return { email, userId };
+}
+
+const getUserIdByEmail = async (email) => {
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    if (!normalizedEmail) return null;
+
+    const rows = await db.select({ id: Users.id })
+        .from(Users)
+        .where(eq(Users.email, normalizedEmail))
+        .limit(1);
+
+    return rows[0]?.id ?? null;
+}
+
+const buildBudgetOwnerFilter = (email, userId) => {
+    const filters = [];
+
+    if (Number.isInteger(Number(userId)) && Number(userId) > 0) {
+        filters.push(eq(Budgets.createdByUserId, Number(userId)));
+    }
+
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    if (normalizedEmail) {
+        filters.push(eq(Budgets.createdBy, normalizedEmail));
+    }
+
+    if (filters.length === 0) return null;
+    if (filters.length === 1) return filters[0];
+    return or(...filters);
+}
+
+const normalizeEmail = (value) => String(value || '').trim().toLowerCase() || null;
+
+const getDisplayLabel = (user, fallbackEmail) => {
+    const displayName = String(user?.displayName || '').trim();
+    if (displayName) return displayName;
+    const email = normalizeEmail(user?.email) || normalizeEmail(fallbackEmail);
+    return email || '-';
+}
+
+const normalizeUserId = (value) => {
+    const parsed = Number(value);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -103,16 +166,70 @@ export async function getCurrentUserAdminStatusAction() {
     return isAdminUser(user, process.env.ADMIN_EMAILS);
 }
 
+// Sync current Clerk identity to local users table for reporting and linkage.
+export async function syncCurrentUserProfileAction() {
+    try {
+        const user = await currentUser();
+
+        const clerkUserId = String(user?.id || '').trim();
+        const email = String(user?.primaryEmailAddress?.emailAddress || '').trim().toLowerCase();
+        if (!clerkUserId || !email) {
+            return { success: false, reason: 'missing_user_identity' };
+        }
+
+        const displayName = String(
+            user?.fullName
+            || [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim()
+            || user?.username
+            || email
+        ).trim();
+
+        const roleValue = String(user?.publicMetadata?.role || user?.unsafeMetadata?.role || 'user').trim().toLowerCase();
+        const role = roleValue === 'admin' ? 'admin' : 'user';
+
+        const existing = await db.select({ id: Users.id })
+            .from(Users)
+            .where(eq(Users.clerkUserId, clerkUserId))
+            .limit(1);
+
+        if (existing.length > 0) {
+            await db.update(Users).set({
+                email,
+                displayName,
+                role,
+                isActive: 1,
+                updatedAt: new Date(),
+            }).where(eq(Users.clerkUserId, clerkUserId));
+
+            return { success: true, mode: 'updated' };
+        }
+
+        await db.insert(Users).values({
+            clerkUserId,
+            email,
+            displayName,
+            role,
+            isActive: 1,
+        });
+
+        return { success: true, mode: 'created' };
+    } catch (error) {
+        console.error('Error syncing current user profile:', error);
+        return { success: false, reason: 'sync_failed' };
+    }
+}
+
 // Best-effort audit trail: this must never throw to business actions.
 const createAdminAuditLogEntry = async ({ action, targetType, targetCount, message }) => {
     try {
-        const actorEmail = await getCurrentActorEmail();
+        const { email: actorEmail, userId: actorUserId } = await getCurrentActorIdentity();
         await db.insert(AdminAuditLogs).values({
             action,
             targetType,
             targetCount: Number(targetCount || 0),
             message,
             actorEmail,
+            actorUserId,
             createdAt: new Date().toISOString(),
         });
     } catch (error) {
@@ -124,11 +241,15 @@ const createAdminAuditLogEntry = async ({ action, targetType, targetCount, messa
 // ── Budgets ───────────────────────────────────────────────────────────────────
 
 export async function checkUserBudgetsAction(email) {
-  if (!email) return [];
-  const result = await db.select()
-    .from(Budgets)
-    .where(eq(Budgets.createdBy, email));
-  return result;
+    if (!email) return [];
+    const userId = await getUserIdByEmail(email);
+    const ownerFilter = buildBudgetOwnerFilter(email, userId);
+    if (!ownerFilter) return [];
+
+    const result = await db.select()
+        .from(Budgets)
+        .where(ownerFilter);
+    return result;
 }
 
 // Core create-budget transaction used by dashboard budget module.
@@ -139,11 +260,20 @@ export async function createBudgetAction(data) {
             return { error: "Invalid budget amount" }
         }
 
+        const { email: actorEmail, userId: actorUserId } = await getCurrentActorIdentity();
+        const createdBy = String(data.createdBy || actorEmail || '').trim().toLowerCase();
+        if (!createdBy) {
+            return { error: 'Missing budget owner email' };
+        }
+
+        const createdByUserId = actorUserId || await getUserIdByEmail(createdBy);
+
         const result = await db.insert(Budgets)
             .values({
                 name: data.name,
                 amount: normalizedAmount,
-                createdBy: data.createdBy,
+                createdBy,
+                createdByUserId,
                 icon: data.icon,
                 category: data.category || null,
             });
@@ -168,6 +298,10 @@ export async function createBudgetAction(data) {
 export async function getBudgetInfoAction(email, budgetId) {
     if (!email || !budgetId) return null;
     try {
+        const userId = await getUserIdByEmail(email);
+        const ownerFilter = buildBudgetOwnerFilter(email, userId);
+        if (!ownerFilter) return null;
+
         const result = await db.select({
             id: Budgets.id,
             name: Budgets.name,
@@ -175,12 +309,13 @@ export async function getBudgetInfoAction(email, budgetId) {
             icon: Budgets.icon,
             category: Budgets.category,
             createdBy: Budgets.createdBy,
+            createdByUserId: Budgets.createdByUserId,
             totalSpend: sql`coalesce(sum(${Expenses.amount}), 0)`.mapWith(Number),
             totalItem: sql`coalesce(count(${Expenses.id}), 0)`.mapWith(Number),
         })
         .from(Budgets)
         .leftJoin(Expenses, eq(Budgets.id, Expenses.budgetId))
-        .where(and(eq(Budgets.createdBy, email), eq(Budgets.id, budgetId)))
+        .where(and(ownerFilter, eq(Budgets.id, budgetId)))
         .groupBy(Budgets.id);
 
         getExpensesListAction();
@@ -204,10 +339,16 @@ export async function addNewExpenseAction(data) {
 
         const normalizedDate = toDateValue(data.createdAt) || new Date();
 
+        const owner = await db.select({ createdByUserId: Budgets.createdByUserId })
+            .from(Budgets)
+            .where(eq(Budgets.id, Number(data.budgetId)))
+            .limit(1);
+
         const result = await db.insert(Expenses).values({
             name: data.name,
             amount: normalizedAmount,
                 budgetId: data.budgetId,
+                createdByUserId: owner[0]?.createdByUserId ?? null,
                 category: data.category || null,
             createdAt: normalizedDate
         });
@@ -240,6 +381,13 @@ export async function addBulkExpensesAction(payload) {
             return { success: false, error: 'Missing bulk expense data' };
         }
 
+        const owner = await db.select({ createdByUserId: Budgets.createdByUserId })
+            .from(Budgets)
+            .where(eq(Budgets.id, budgetId))
+            .limit(1);
+
+        const createdByUserId = owner[0]?.createdByUserId ?? null;
+
         const values = rawItems
             .map((item) => ({
                 name: String(item?.name || '').trim(),
@@ -251,6 +399,7 @@ export async function addBulkExpensesAction(payload) {
                 name: item.name,
                 amount: item.amount,
                 budgetId,
+                createdByUserId,
                 category,
                 createdAt,
             }));
@@ -446,6 +595,10 @@ export const getBudgetListAction = async (email) => {
   if (!email) return [];
 
   try {
+        const userId = await getUserIdByEmail(email);
+        const ownerFilter = buildBudgetOwnerFilter(email, userId);
+        if (!ownerFilter) return [];
+
     const result = await db.select({
       id: Budgets.id,
       name: Budgets.name,
@@ -453,12 +606,13 @@ export const getBudgetListAction = async (email) => {
       icon: Budgets.icon, // <--- ตรวจสอบว่าใน Schema ตั้งชื่อว่า icon ใช่ไหม
             category: Budgets.category,
       createdBy: Budgets.createdBy,
+            createdByUserId: Budgets.createdByUserId,
         totalSpend: sql`coalesce(sum(${Expenses.amount}), 0)`.mapWith(Number),
       totalItem: sql`coalesce(count(${Expenses.id}), 0)`.mapWith(Number),
     })
     .from(Budgets)
     .leftJoin(Expenses, eq(Budgets.id, Expenses.budgetId))
-    .where(eq(Budgets.createdBy, email))
+        .where(ownerFilter)
     .groupBy(Budgets.id)
     .orderBy(desc(Budgets.id));
 
@@ -485,21 +639,53 @@ export async function getAdminMonitoringDashboardAction() {
         const appUrl = String(process.env.NEXT_PUBLIC_APP_URL || '');
         const httpsReady = process.env.NODE_ENV !== 'production' || appUrl.startsWith('https://');
 
-        const [storedAlerts, auditRows] = await Promise.all([
+        const [storedAlerts, auditRows, userRows] = await Promise.all([
             db.select().from(AdminAlerts).orderBy(desc(AdminAlerts.id)),
             db.select().from(AdminAuditLogs).orderBy(desc(AdminAuditLogs.id)),
+            db.select({
+                id: Users.id,
+                email: Users.email,
+                displayName: Users.displayName,
+            }).from(Users),
         ]);
+
+        const usersById = new Map(
+            userRows
+                .map((row) => [Number(row.id), row])
+                .filter(([id]) => Number.isInteger(id) && id > 0)
+        );
+        const usersByEmail = new Map(
+            userRows
+                .map((row) => [normalizeEmail(row.email), row])
+                .filter(([email]) => Boolean(email))
+        );
+
+        const resolveUser = (userId, email) => {
+            const numericId = Number(userId);
+            if (Number.isInteger(numericId) && numericId > 0 && usersById.has(numericId)) {
+                return usersById.get(numericId);
+            }
+
+            const normalizedEmail = normalizeEmail(email);
+            if (normalizedEmail && usersByEmail.has(normalizedEmail)) {
+                return usersByEmail.get(normalizedEmail);
+            }
+
+            return null;
+        };
 
         const rows = await db.select({
             budgetId: Budgets.id,
             budgetName: Budgets.name,
             budgetAmount: Budgets.amount,
             createdBy: Budgets.createdBy,
+            createdByUserId: Budgets.createdByUserId,
             expenseId: Expenses.id,
             expenseName: Expenses.name,
             expenseAmount: Expenses.amount,
             expenseCategory: Expenses.category,
             expenseDate: Expenses.createdAt,
+            expenseCreatedByUserId: Expenses.createdByUserId,
         })
         .from(Budgets)
         .leftJoin(Expenses, eq(Budgets.id, Expenses.budgetId))
@@ -513,7 +699,14 @@ export async function getAdminMonitoringDashboardAction() {
 
         for (const row of rows) {
             if (row.budgetId) uniqueBudgetIds.add(row.budgetId);
-            if (row.createdBy) uniqueUsers.add(String(row.createdBy).toLowerCase());
+
+            const ownerUser = resolveUser(row.createdByUserId, row.createdBy);
+            const ownerEmail = normalizeEmail(ownerUser?.email) || normalizeEmail(row.createdBy);
+            const ownerUserId = ownerUser?.id ?? normalizeUserId(row.createdByUserId) ?? normalizeUserId(row.expenseCreatedByUserId);
+            const ownerKey = ownerUserId ? `uid:${ownerUserId}` : ownerEmail ? `email:${ownerEmail}` : null;
+            const ownerLabel = getDisplayLabel(ownerUser, ownerEmail);
+
+            if (ownerKey) uniqueUsers.add(ownerKey);
 
             const budgetAmount = Number(row.budgetAmount || 0);
             if (row.budgetId && !budgetAmountById.has(row.budgetId)) {
@@ -529,7 +722,9 @@ export async function getAdminMonitoringDashboardAction() {
                     category: row.expenseCategory,
                     createdAt: toIsoDateTime(row.expenseDate),
                     budgetId: row.budgetId,
-                    createdBy: row.createdBy,
+                    createdBy: ownerEmail,
+                    createdByUserId: ownerUserId,
+                    createdByLabel: ownerLabel,
                 });
                 const prev = budgetSpendById.get(row.budgetId) || 0;
                 budgetSpendById.set(row.budgetId, prev + amount);
@@ -640,21 +835,33 @@ export async function getAdminMonitoringDashboardAction() {
                 .filter((row) => row.budgetId)
                 .reduce((acc, row) => {
                     if (!acc.some((item) => item.id === row.budgetId)) {
+                        const ownerUser = resolveUser(row.createdByUserId, row.createdBy);
+                        const ownerEmail = normalizeEmail(ownerUser?.email) || normalizeEmail(row.createdBy);
+                        const ownerUserId = ownerUser?.id ?? normalizeUserId(row.createdByUserId);
                         acc.push({
                             id: row.budgetId,
                             name: row.budgetName,
                             amount: Number(row.budgetAmount || 0),
-                            createdBy: row.createdBy,
+                            createdBy: ownerEmail,
+                            createdByUserId: ownerUserId,
+                            createdByLabel: getDisplayLabel(ownerUser, ownerEmail),
                         });
                     }
                     return acc;
                 }, []),
             expenseRows,
             alertStates,
-            auditRows: auditRows.slice(0, 20).map((row) => ({
-                ...row,
-                createdAt: toIsoDateTime(row.createdAt),
-            })),
+            auditRows: auditRows.slice(0, 20).map((row) => {
+                const actorUser = resolveUser(row.actorUserId, row.actorEmail);
+                const actorEmail = normalizeEmail(actorUser?.email) || normalizeEmail(row.actorEmail);
+
+                return {
+                    ...row,
+                    actorEmail,
+                    actorLabel: getDisplayLabel(actorUser, actorEmail),
+                    createdAt: toIsoDateTime(row.createdAt),
+                };
+            }),
             recentExpenses: expenseRows.slice(0, 10),
             security: {
                 checks: securityChecks,
@@ -699,7 +906,7 @@ export async function setAdminAlertStatusAction(alertKey, acknowledged) {
             return { success: false, error: 'Missing alert key' };
         }
 
-        const actorEmail = await getCurrentActorEmail();
+        const { email: actorEmail, userId: actorUserId } = await getCurrentActorIdentity();
         const existing = await db.select()
             .from(AdminAlerts)
             .where(eq(AdminAlerts.alertKey, normalizedKey))
@@ -710,6 +917,7 @@ export async function setAdminAlertStatusAction(alertKey, acknowledged) {
             status,
             acknowledgedAt: acknowledged ? new Date().toISOString() : null,
             acknowledgedBy: acknowledged ? actorEmail : null,
+            acknowledgedByUserId: acknowledged ? actorUserId : null,
         };
 
         if (existing[0]) {
@@ -741,25 +949,55 @@ export async function setAdminAlertStatusAction(alertKey, acknowledged) {
 
 export async function getAdminUsersSummaryAction() {
     try {
-        const rows = await db.select({
-            createdBy: Budgets.createdBy,
-            budgetId: Budgets.id,
-            budgetAmount: Budgets.amount,
-            expenseId: Expenses.id,
-            expenseAmount: Expenses.amount,
-        })
-        .from(Budgets)
-        .leftJoin(Expenses, eq(Budgets.id, Expenses.budgetId));
+        const [rows, userRows] = await Promise.all([
+            db.select({
+                createdBy: Budgets.createdBy,
+                createdByUserId: Budgets.createdByUserId,
+                budgetId: Budgets.id,
+                budgetAmount: Budgets.amount,
+                expenseId: Expenses.id,
+                expenseAmount: Expenses.amount,
+            })
+            .from(Budgets)
+            .leftJoin(Expenses, eq(Budgets.id, Expenses.budgetId)),
+
+            db.select({
+                id: Users.id,
+                email: Users.email,
+                displayName: Users.displayName,
+            }).from(Users),
+        ]);
+
+        const usersById = new Map(
+            userRows
+                .map((row) => [Number(row.id), row])
+                .filter(([id]) => Number.isInteger(id) && id > 0)
+        );
+        const usersByEmail = new Map(
+            userRows
+                .map((row) => [normalizeEmail(row.email), row])
+                .filter(([email]) => Boolean(email))
+        );
 
         const userMap = new Map();
 
         for (const row of rows) {
-            const email = String(row.createdBy || '').toLowerCase();
-            if (!email) continue;
+            const normalizedEmail = normalizeEmail(row.createdBy);
+            const userById = usersById.get(Number(row.createdByUserId || 0)) || null;
+            const userByEmail = normalizedEmail ? usersByEmail.get(normalizedEmail) || null : null;
+            const matchedUser = userById || userByEmail;
 
-            if (!userMap.has(email)) {
-                userMap.set(email, {
+            const email = normalizeEmail(matchedUser?.email) || normalizedEmail;
+            const userId = matchedUser?.id ?? normalizeUserId(row.createdByUserId);
+            if (!email && !userId) continue;
+
+            const userKey = userId ? `uid:${userId}` : `email:${email}`;
+
+            if (!userMap.has(userKey)) {
+                userMap.set(userKey, {
+                    userId,
                     email,
+                    displayName: getDisplayLabel(matchedUser, email),
                     budgets: new Set(),
                     expenses: 0,
                     totalBudget: 0,
@@ -767,7 +1005,7 @@ export async function getAdminUsersSummaryAction() {
                 });
             }
 
-            const entry = userMap.get(email);
+            const entry = userMap.get(userKey);
 
             if (row.budgetId && !entry.budgets.has(row.budgetId)) {
                 entry.budgets.add(row.budgetId);
@@ -782,7 +1020,9 @@ export async function getAdminUsersSummaryAction() {
 
         return Array.from(userMap.values())
             .map((entry) => ({
+                userId: entry.userId,
                 email: entry.email,
+                displayName: entry.displayName,
                 budgets: entry.budgets.size,
                 expenses: entry.expenses,
                 totalBudget: entry.totalBudget,
@@ -799,6 +1039,15 @@ export async function getAdminUserDetailAction(email) {
     try {
         const normalizedEmail = String(email || '').trim().toLowerCase();
         if (!normalizedEmail) return null;
+
+        const matchedUser = await db.select({
+            id: Users.id,
+            email: Users.email,
+            displayName: Users.displayName,
+        })
+        .from(Users)
+        .where(eq(Users.email, normalizedEmail))
+        .limit(1);
 
         const budgets = await db.select()
             .from(Budgets)
@@ -824,6 +1073,7 @@ export async function getAdminUserDetailAction(email) {
 
         return {
             email: normalizedEmail,
+            displayName: getDisplayLabel(matchedUser[0], normalizedEmail),
             summary: {
                 budgets: budgets.length,
                 expenses: expenses.length,
@@ -846,7 +1096,7 @@ export async function getAdminUserDetailAction(email) {
 // Fetch raw management datasets for admin workbench tables.
 export async function getAdminDatabaseManagementAction() {
     try {
-        const [budgetRows, expenseRows, alertRows, auditRows] = await Promise.all([
+        const [budgetRows, expenseRows, alertRows, auditRows, userRows] = await Promise.all([
             db.select({
                 id: Budgets.id,
                 name: Budgets.name,
@@ -854,6 +1104,7 @@ export async function getAdminDatabaseManagementAction() {
                 icon: Budgets.icon,
                 category: Budgets.category,
                 createdBy: Budgets.createdBy,
+                createdByUserId: Budgets.createdByUserId,
                 totalSpend: sql`coalesce(sum(${Expenses.amount}), 0)`.mapWith(Number),
                 totalItem: sql`coalesce(count(${Expenses.id}), 0)`.mapWith(Number),
             })
@@ -869,6 +1120,7 @@ export async function getAdminDatabaseManagementAction() {
                 category: Expenses.category,
                 createdAt: Expenses.createdAt,
                 budgetId: Expenses.budgetId,
+                createdByUserId: Expenses.createdByUserId,
                 budgetName: Budgets.name,
                 createdBy: Budgets.createdBy,
             })
@@ -878,25 +1130,97 @@ export async function getAdminDatabaseManagementAction() {
 
             db.select().from(AdminAlerts).orderBy(desc(AdminAlerts.id)),
             db.select().from(AdminAuditLogs).orderBy(desc(AdminAuditLogs.id)),
+
+            db.select({
+                id: Users.id,
+                email: Users.email,
+                displayName: Users.displayName,
+            }).from(Users),
         ]);
 
-        const uniqueUsers = new Set(
-            budgetRows.map((row) => String(row.createdBy || '').toLowerCase()).filter(Boolean)
+        const usersById = new Map(
+            userRows
+                .map((row) => [Number(row.id), row])
+                .filter(([id]) => Number.isInteger(id) && id > 0)
+        );
+        const usersByEmail = new Map(
+            userRows
+                .map((row) => [normalizeEmail(row.email), row])
+                .filter(([email]) => Boolean(email))
         );
 
-        const activeAlerts = alertRows.filter((row) => row.status !== 'acknowledged').length;
-        const normalizedExpenses = expenseRows.map((row) => ({
-            ...row,
-            createdAt: toIsoDateTime(row.createdAt),
-        }));
-        const normalizedAlerts = alertRows.map((row) => ({
-            ...row,
-            acknowledgedAt: toIsoDateTime(row.acknowledgedAt),
-        }));
-        const normalizedAuditRows = auditRows.map((row) => ({
-            ...row,
-            createdAt: toIsoDateTime(row.createdAt),
-        }));
+        const resolveUser = (userId, email) => {
+            const numericId = Number(userId);
+            if (Number.isInteger(numericId) && numericId > 0 && usersById.has(numericId)) {
+                return usersById.get(numericId);
+            }
+
+            const normalizedEmail = normalizeEmail(email);
+            if (normalizedEmail && usersByEmail.has(normalizedEmail)) {
+                return usersByEmail.get(normalizedEmail);
+            }
+
+            return null;
+        };
+
+        const normalizedBudgetRows = budgetRows.map((row) => {
+            const ownerUser = resolveUser(row.createdByUserId, row.createdBy);
+            const ownerEmail = normalizeEmail(ownerUser?.email) || normalizeEmail(row.createdBy);
+            const ownerUserId = ownerUser?.id ?? normalizeUserId(row.createdByUserId);
+
+            return {
+                ...row,
+                createdBy: ownerEmail,
+                createdByUserId: ownerUserId,
+                createdByLabel: getDisplayLabel(ownerUser, ownerEmail),
+            };
+        });
+
+        const normalizedExpenses = expenseRows.map((row) => {
+            const ownerUser = resolveUser(row.createdByUserId, row.createdBy);
+            const ownerEmail = normalizeEmail(ownerUser?.email) || normalizeEmail(row.createdBy);
+            const ownerUserId = ownerUser?.id ?? normalizeUserId(row.createdByUserId);
+
+            return {
+                ...row,
+                createdAt: toIsoDateTime(row.createdAt),
+                createdBy: ownerEmail,
+                createdByUserId: ownerUserId,
+                createdByLabel: getDisplayLabel(ownerUser, ownerEmail),
+            };
+        });
+
+        const normalizedAlerts = alertRows.map((row) => {
+            const actorUser = resolveUser(row.acknowledgedByUserId, row.acknowledgedBy);
+            const actorEmail = normalizeEmail(actorUser?.email) || normalizeEmail(row.acknowledgedBy);
+
+            return {
+                ...row,
+                acknowledgedAt: toIsoDateTime(row.acknowledgedAt),
+                acknowledgedBy: actorEmail,
+                acknowledgedByLabel: getDisplayLabel(actorUser, actorEmail),
+            };
+        });
+
+        const normalizedAuditRows = auditRows.map((row) => {
+            const actorUser = resolveUser(row.actorUserId, row.actorEmail);
+            const actorEmail = normalizeEmail(actorUser?.email) || normalizeEmail(row.actorEmail);
+
+            return {
+                ...row,
+                createdAt: toIsoDateTime(row.createdAt),
+                actorEmail,
+                actorLabel: getDisplayLabel(actorUser, actorEmail),
+            };
+        });
+
+        const uniqueUsers = new Set(
+            normalizedBudgetRows
+                .map((row) => row.createdByUserId ? `uid:${row.createdByUserId}` : row.createdBy ? `email:${row.createdBy}` : null)
+                .filter(Boolean)
+        );
+
+        const activeAlerts = normalizedAlerts.filter((row) => row.status !== 'acknowledged').length;
 
         return {
             summary: {
@@ -907,12 +1231,12 @@ export async function getAdminDatabaseManagementAction() {
                 auditEvents: normalizedAuditRows.length,
             },
             tableCounts: {
-                budgets: budgetRows.length,
+                budgets: normalizedBudgetRows.length,
                 expenses: normalizedExpenses.length,
                 alerts: normalizedAlerts.length,
                 audit: normalizedAuditRows.length,
             },
-            budgets: budgetRows,
+            budgets: normalizedBudgetRows,
             expenses: normalizedExpenses,
             alerts: normalizedAlerts,
             auditLogs: normalizedAuditRows,
@@ -1009,17 +1333,22 @@ export async function adminBulkDeleteExpensesAction(expenseIds) {
 export async function getAllExpensesAction(email) {
     if (!email) return [];
     try {
+        const userId = await getUserIdByEmail(email);
+        const ownerFilter = buildBudgetOwnerFilter(email, userId);
+        if (!ownerFilter) return [];
+
         const result = await db.select({
             id: Expenses.id,
             name: Expenses.name,
             amount: Expenses.amount,
             createdAt: Expenses.createdAt,
             budgetId: Expenses.budgetId,
+                createdByUserId: Expenses.createdByUserId,
                 category: Expenses.category,
             budgetName: Budgets.name,
         }).from(Budgets)
         .rightJoin(Expenses, eq(Budgets.id, Expenses.budgetId))
-        .where(eq(Budgets.createdBy, email))
+        .where(ownerFilter)
         .orderBy(desc(Expenses.id));
 
         // console.log("All Expenses Data:", result);
