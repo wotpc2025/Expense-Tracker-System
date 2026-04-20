@@ -1,7 +1,7 @@
 @startuml ExpenseManagementSystemDiagram
 skinparam defaultFontName Tahoma
-skinparam defaultFontSize 22
-skinparam titleFontSize 26
+skinparam defaultFontSize 32
+skinparam titleFontSize 42
 skinparam dpi 160
 skinparam shadowing false
 skinparam backgroundColor white
