@@ -23,6 +23,8 @@
  *   - extractJson() handles non-standard JSON responses (markdown fences, etc.)
  */
 import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { checkAndTrackReceiptScanRateLimit } from '@/lib/securityTelemetry';
 
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'qwen/qwen2.5-vl-72b-instruct';
 
