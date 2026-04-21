@@ -17,7 +17,8 @@ import Link from 'next/link'
 import { getTranslation } from '@/lib/translations'
 
 function Hero() {
-    const language = 'en';return (
+    const language = 'en';
+    return (
       <section className="bg-gray-50 dark:bg-gray-900 flex items-center flex-col">
           <div className="mx-auto w-screen max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8 lg:py-32">
               <div className="mx-auto max-w-prose text-center">
