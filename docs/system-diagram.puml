@@ -1,10 +1,11 @@
 @startuml ExpenseManagementSystemDiagram
-left to right direction
+top to bottom direction
+scale max 1600 width
 
 skinparam defaultFontName Tahoma
-skinparam defaultFontSize 18
-skinparam titleFontSize 30
-skinparam dpi 180
+skinparam defaultFontSize 16
+skinparam titleFontSize 24
+skinparam dpi 120
 skinparam shadowing false
 skinparam backgroundColor white
 skinparam packageStyle rectangle
@@ -34,11 +35,11 @@ package "Primary Application Region" #f9fff2 {
 		component "Web UI\nDashboard / Budgets / Expenses / Reports" as WEBUI
 		component "Server Actions\ndbActions" as ACTIONS
 		component "API Routes\n/ai/scan-receipt\n/health/db" as API
-		rectangle "Business Logic\nValidation + Normalization\nAlert/Audit Rules" as LOGIC
+		rectangle "Business Logic\nValidation + Normalization\nAlert & Audit Rules" as LOGIC
 	}
 
 	package "Data Layer" #eef6ff {
-		database "MySQL (MariaDB)\nexpense_tracker\nusers\nbudgets\nexpenses\nadmin_alerts\nadmin_audit_logs" as DB
+		database "MySQL (MariaDB)\nexpense_tracker\nusers | budgets | expenses\nadmin_alerts | admin_audit_logs" as DB
 	}
 }
 
@@ -60,10 +61,12 @@ ACTIONS --> LOGIC : ตรวจสอบข้อมูล/เงื่อน�
 API --> LOGIC : parse + validate
 
 LOGIC --> DB : Drizzle ORM + mysql2
-API --> OAI : ส่งภาพใบเสร็จเพื่อสแกน
-ACTIONS --> CLERK : verify user/session
+API -down-> OAI : ส่งภาพใบเสร็จเพื่อสแกน
+ACTIONS -down-> CLERK : verify user/session
 
 DB --> WEBUI : Dashboard/Report data
 DB --> LOGIC : Alert + Audit source
+
+CLERK -[hidden]- OAI
 
 @enduml
