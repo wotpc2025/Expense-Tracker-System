@@ -1,16 +1,19 @@
 @startuml ExpenseManagementSystemDiagram
 top to bottom direction
-scale max 1600 width
+scale max 1700 width
 
 skinparam defaultFontName Tahoma
-skinparam defaultFontSize 16
+skinparam defaultFontSize 15
 skinparam titleFontSize 24
-skinparam dpi 120
+skinparam dpi 140
 skinparam shadowing false
 skinparam backgroundColor white
 skinparam packageStyle rectangle
 skinparam componentStyle rectangle
 skinparam ArrowColor #2f2f2f
+skinparam linetype ortho
+skinparam nodesep 70
+skinparam ranksep 90
 skinparam packageBorderColor #8a8a8a
 skinparam packageBackgroundColor #f7f7f7
 skinparam RectangleBorderColor #6f6f6f
@@ -20,6 +23,7 @@ title System Architecture Diagram: Expense Management System
 
 actor "User" as USER
 actor "Admin" as ADMIN
+USER -[hidden]- ADMIN
 
 package "Client Layer" #f2f6ff {
 	node "Web Browser\n(Chrome / Edge)" as BROWSER
@@ -36,37 +40,46 @@ package "Primary Application Region" #f9fff2 {
 		component "Server Actions\ndbActions" as ACTIONS
 		component "API Routes\n/ai/scan-receipt\n/health/db" as API
 		rectangle "Business Logic\nValidation + Normalization\nAlert & Audit Rules" as LOGIC
+
+		WEBUI -[hidden]down- ACTIONS
+		ACTIONS -[hidden]- API
+		ACTIONS -[hidden]down- LOGIC
+		API -[hidden]down- LOGIC
 	}
 
 	package "Data Layer" #eef6ff {
-		database "MySQL (MariaDB)\nexpense_tracker\nusers | budgets | expenses\nadmin_alerts | admin_audit_logs" as DB
+		database "MySQL (MariaDB)" as DB
 	}
+
+	LOGIC -[hidden]down- DB
 }
 
 package "External Managed Services" #f7f1ff {
 	cloud "Clerk\nIdentity + Session" as CLERK
 	cloud "OpenRouter AI\nReceipt Scan Service" as OAI
+	CLERK -[hidden]- OAI
 }
 
-USER --> BROWSER : ใช้งานระบบ
-ADMIN --> BROWSER : ใช้งานระบบ/หน้าผู้ดูแล
+USER --> BROWSER : Use system
+ADMIN --> BROWSER : Admin access
 
 BROWSER --> CF : HTTPS
 CF --> NGINX : Tunnel / Gateway
 NGINX --> WEBUI : Reverse Proxy
 
-WEBUI --> ACTIONS : เพิ่ม/แก้ไข Budget-Expense
-WEBUI --> API : เรียกใช้งาน API
-ACTIONS --> LOGIC : ตรวจสอบข้อมูล/เงื่อนไข
-API --> LOGIC : parse + validate
+WEBUI --> ACTIONS : Budget/Expense actions
+WEBUI --> API : API calls
+ACTIONS --> LOGIC : Validate rules
+API --> LOGIC : Parse + validate
 
 LOGIC --> DB : Drizzle ORM + mysql2
-API -down-> OAI : ส่งภาพใบเสร็จเพื่อสแกน
-ACTIONS -down-> CLERK : verify user/session
+ACTIONS --> CLERK : verify user/session
+API --> OAI : Receipt image scan
 
 DB --> WEBUI : Dashboard/Report data
 DB --> LOGIC : Alert + Audit source
 
-CLERK -[hidden]- OAI
+WEBUI -[hidden]down- CLERK
+DB -[hidden]down- OAI
 
 @enduml
