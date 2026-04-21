@@ -230,7 +230,7 @@ const createAdminAuditLogEntry = async ({ action, targetType, targetCount, messa
             message,
             actorEmail,
             actorUserId,
-            createdAt: new Date().toISOString(),
+            createdAt: new Date(),
         });
     } catch (error) {
         console.error('Error creating admin audit log:', error);
@@ -915,7 +915,7 @@ export async function setAdminAlertStatusAction(alertKey, acknowledged) {
         const status = acknowledged ? 'acknowledged' : 'active';
         const payload = {
             status,
-            acknowledgedAt: acknowledged ? new Date().toISOString() : null,
+            acknowledgedAt: acknowledged ? new Date() : null,
             acknowledgedBy: acknowledged ? actorEmail : null,
             acknowledgedByUserId: acknowledged ? actorUserId : null,
         };
