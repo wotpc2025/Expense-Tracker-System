@@ -149,7 +149,8 @@ docker compose down
 ## Deployment Notes
 
 - มีไฟล์ deploy.sh สำหรับ flow deploy ด้วย Docker (stop, pull, build, up)
-- ตรวจสอบค่า environment ให้ครบก่อน deploy โดยเฉพาะ Clerk และ Database
+- deploy.sh จะโหลดค่าจากไฟล์ .env ที่ root โปรเจกต์อัตโนมัติ ก่อนเริ่มขั้นตอน deploy
+- ตรวจสอบค่า environment ให้ครบก่อน deploy โดยเฉพาะ Clerk, Database และ DISCORD_WEBHOOK_URL
 - ถ้าใช้งาน AI scan บน production ต้องตั้งค่า OPENROUTER_API_KEY ด้วย
 - production ควรตั้ง NEXT_PUBLIC_APP_URL เป็น https://...
 
@@ -181,7 +182,7 @@ npm run test
 ## Known Notes
 
 - metadata ของแอปใน app/layout.js ยังเป็นค่าเริ่มต้น สามารถปรับ title/description เพิ่มได้
-- ไฟล์ deploy.sh มีค่า webhook ตรงในไฟล์ ควรจัดการ secrets ผ่าน environment ใน production
+- deploy.sh อ่าน Discord webhook จาก .env ผ่านตัวแปร DISCORD_WEBHOOK_URL และดึงชื่อโปรเจกต์จากชื่อ repository ใน git อัตโนมัติ
 
 ## License
 

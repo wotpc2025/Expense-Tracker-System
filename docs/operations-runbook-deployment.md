@@ -12,7 +12,7 @@
 
 - Deployment owner: ผู้ดูแลระบบ/DevOps ประจำทีม
 - ช่องทางแจ้งผล: Discord Webhook (ผ่านตัวแปร DISCORD_WEBHOOK_URL)
-- ชื่อโปรเจกต์ในแจ้งเตือน: Expense-Tracker-App
+- ชื่อโปรเจกต์ในแจ้งเตือน: ดึงอัตโนมัติจากชื่อ repository ใน git
 
 ## 3) Architecture Snapshot (เชิงปฏิบัติการ)
 
@@ -31,7 +31,7 @@
   - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
   - NEXT_PUBLIC_CLERK_SIGN_IN_URL
   - NEXT_PUBLIC_CLERK_SIGN_UP_URL
-  - DISCORD_WEBHOOK_URL (ถ้าต้องการแจ้งเตือน)
+  - DISCORD_WEBHOOK_URL (deploy.sh ต้องใช้ ถ้าไม่ตั้งค่าสคริปต์จะหยุดทันที)
 - Docker พร้อมใช้งาน:
   - docker compose version
 - Git พร้อมใช้งาน:
@@ -54,6 +54,7 @@ bash
 ผลลัพธ์ที่คาดหวัง:
 
 - มีแจ้งเตือนเริ่ม deploy ไป Discord
+- ชื่อโปรเจกต์ในข้อความแจ้งเตือนตรงกับชื่อ repository ปัจจุบัน
 - docker compose down สำเร็จ
 - git pull origin main สำเร็จ
 - docker compose build สำเร็จ
@@ -127,6 +128,7 @@ git checkout "$PREV_COMMIT"
 - ห้ามแก้โค้ดตรงบน production โดยตรง
 - ทุกการเปลี่ยนแปลงผ่าน branch/PR และ merge เข้า main
 - ตั้งรอบ deploy ที่ชัดเจน (เช่น หลัง test ผ่าน)
+- เก็บค่าลับ เช่น DISCORD_WEBHOOK_URL ไว้ใน .env หรือ secret manager เท่านั้น
 - เก็บบันทึกเหตุการณ์ deploy ทุกครั้ง (เวลา, ผู้ deploy, commit, ผลลัพธ์)
 
 ## 10) Handover Checklist (สำหรับรุ่นน้อง)
