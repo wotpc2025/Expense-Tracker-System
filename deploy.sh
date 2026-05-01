@@ -44,13 +44,31 @@
 # - Required runtime secrets exist in `.env` for compose.
 
 # --- Configuration Section ---
-# Replace with your actual Discord Webhook URL
-# URL สำหรับส่งแจ้งเตือนไป Discord (อ่านจากตัวแปรแวดล้อม)
-# ถ้าไม่ตั้งค่า DISCORD_WEBHOOK_URL คำสั่ง curl จะล้มเหลวและสคริปต์หยุดตาม set -e
-DISCORD_WEBHOOK=$DISCORD_WEBHOOK_URL
-# Define your project name for identification in Discord notifications
-# ชื่อโปรเจกต์ที่จะแสดงในข้อความแจ้งเตือน
-PROJECT_NAME="Expense-Tracker-App" 
+# โหลดค่าตัวแปรจากไฟล์ .env ที่ root โปรเจกต์ (ถ้าไฟล์มีอยู่)
+# set -a จะ export ตัวแปรที่ source เข้ามาโดยอัตโนมัติ
+if [ -f .env ]; then
+    set -a
+    . ./.env
+    set +a
+fi
+
+# URL สำหรับส่งแจ้งเตือนไป Discord (อ่านจาก .env: DISCORD_WEBHOOK_URL)
+DISCORD_WEBHOOK="$DISCORD_WEBHOOK_URL"
+
+# ดึงชื่อโปรเจกต์จากชื่อ repository อัตโนมัติ เพื่อลดการแก้มือ
+# ถ้าหาไม่ได้ให้ fallback เป็นชื่อเดิม
+PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [ -n "$PROJECT_ROOT" ]; then
+    PROJECT_NAME="$(basename "$PROJECT_ROOT")"
+else
+    PROJECT_NAME="Expense-Tracker-App"
+fi
+
+# Validate ค่าจำเป็นก่อนเริ่ม deploy
+if [ -z "$DISCORD_WEBHOOK" ]; then
+    echo "[ERROR] ไม่พบ DISCORD_WEBHOOK_URL ใน .env"
+    exit 1
+fi
 # -----------------------------
 
 # Exit immediately if any command exits with a non-zero status (error)
