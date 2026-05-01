@@ -153,6 +153,12 @@ docker compose down
 - ถ้าใช้งาน AI scan บน production ต้องตั้งค่า OPENROUTER_API_KEY ด้วย
 - production ควรตั้ง NEXT_PUBLIC_APP_URL เป็น https://...
 
+## Operations Runbook (สำหรับส่งต่องาน)
+
+- เอกสารปฏิบัติการแบบละเอียดอยู่ที่ docs/operations-runbook-deployment.md
+- ครอบคลุมขั้นตอนก่อน deploy, วิธี deploy มาตรฐาน, การตรวจหลัง deploy, incident playbook และ rollback
+- แนะนำให้ผู้รับช่วงงานใหม่อ่านเอกสารนี้ก่อนเข้าถึงเครื่อง production
+
 ## API Endpoints (สำคัญ)
 
 - POST /api/ai/scan-receipt: สแกนใบเสร็จด้วย AI (multipart/form-data, field ชื่อ `receipt`, ต้อง login, จำกัดขนาดไฟล์ 5MB, มี rate limit)

@@ -1,40 +1,53 @@
 # Docker Compose configuration for production-like single-service deployment.
+# ไฟล์นี้กำหนดการ deploy แอปแบบ 1 service สำหรับใช้งานจริง/ใกล้เคียง production
 #
 # Runtime flow summary:
 # 1) Build image from local Dockerfile with NEXT_PUBLIC_* build args.
 # 2) Start one app container and expose container port 3000 on host port 3068.
 # 3) Load secrets/runtime vars from .env + explicit environment overrides.
+# สรุปการทำงาน:
+# 1) สร้าง image จาก Dockerfile พร้อมส่ง build args ที่จำเป็น
+# 2) รันคอนเทนเนอร์แอป 1 ตัว และเปิดพอร์ต host 3068 ไปยังพอร์ตในคอนเทนเนอร์ 3000
+# 3) โหลดตัวแปรแวดล้อมจาก .env และกำหนดค่าที่ต้องการ override เพิ่มเติม
 services:
   expense-tracker-app:
     # Build-stage settings passed into Dockerfile.
     # NEXT_PUBLIC_* vars must be available at build time so Next.js can inline them.
+    # ส่วนนี้คือค่าที่ส่งเข้าไปตอน build image
+    # NEXT_PUBLIC_* ต้องมีตั้งแต่ตอน build เพื่อให้ Next.js ฝังค่าไปในฝั่ง client
     build:
       context: . # Path to the Dockerfile context
       args:
         # Pass build-time environment variables (Required for NEXT_PUBLIC_ vars)
+        # ส่งตัวแปรที่ต้องใช้ตอน build เข้า Dockerfile
         - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
         - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
         - NEXT_PUBLIC_CLERK_SIGN_IN_URL=${NEXT_PUBLIC_CLERK_SIGN_IN_URL:-/sign-in}
         - NEXT_PUBLIC_CLERK_SIGN_UP_URL=${NEXT_PUBLIC_CLERK_SIGN_UP_URL:-/sign-up}
 
     # Stable container name for easier ops commands (logs, restart, exec).
+    # ตั้งชื่อคอนเทนเนอร์คงที่ เพื่อให้ง่ายต่อการดู log/restart/exec
     container_name: expense-tracker-app
 
     # Keep service alive across daemon restarts unless explicitly stopped by operator.
+    # ให้คอนเทนเนอร์กลับมาทำงานอัตโนมัติเมื่อ Docker daemon รีสตาร์ต
     restart: unless-stopped
 
     # Port mapping: [Host Port] : [Container Port]
     # Access app at http://<host>:3068
+    # map พอร์ต host:container เพื่อให้เข้าถึงแอปจากภายนอกได้
     ports:
       - "3068:3000"
 
     # Load base environment variables from .env in project root.
     # Note: compose file currently points to .env (not .env.local).
+    # โหลดค่าพื้นฐานจากไฟล์ .env ที่ root โปรเจกต์
     env_file:
       - .env
   
     # Runtime-only environment variables (server-side secrets stay in env file).
     # Explicit keys here document what the app expects in production.
+    # ตัวแปรที่ใช้ตอน runtime (ค่าลับฝั่ง server ควรอยู่ใน .env)
     environment:
       - NODE_ENV=production
       - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
