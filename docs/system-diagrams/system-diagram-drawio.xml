@@ -1,0 +1,183 @@
+﻿<mxGraphModel dx="690" dy="599" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+    <mxCell id="title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=20;fontStyle=1;align=left;" value="System Architecture Diagram: Expense Tracker System" vertex="1">
+      <mxGeometry height="40" width="900" x="30" y="20" as="geometry" />
+    </mxCell>
+    <mxCell id="sec-users" parent="1" style="swimlane;startSize=30;fillColor=#fff7f0;strokeColor=#FF8000;fontColor=#FF8000;fontSize=14;fontStyle=1;strokeWidth=2;rounded=1;arcSize=4;" value="users" vertex="1">
+      <mxGeometry height="340" width="140" x="30" y="180" as="geometry" />
+    </mxCell>
+    <mxCell id="n-user" parent="sec-users" style="shape=mxgraph.flowchart.actor;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;align=center;" value="User" vertex="1">
+      <mxGeometry height="90" width="100" x="20" y="40" as="geometry" />
+    </mxCell>
+    <mxCell id="n-admin" parent="sec-users" style="shape=mxgraph.flowchart.actor;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=13;fontStyle=1;align=center;" value="Admin" vertex="1">
+      <mxGeometry height="90" width="100" x="20" y="200" as="geometry" />
+    </mxCell>
+    <mxCell id="sec-client" parent="1" style="swimlane;startSize=30;fillColor=#f2f6ff;strokeColor=#FF8000;fontColor=#FF8000;fontSize=14;fontStyle=1;strokeWidth=2;rounded=1;arcSize=4;" value="client layer" vertex="1">
+      <mxGeometry height="340" width="180" x="210" y="180" as="geometry" />
+    </mxCell>
+    <mxCell id="n-browser" parent="sec-client" style="rounded=1;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="Web Browser&#xa;(Chrome / Edge)" vertex="1">
+      <mxGeometry height="80" width="150" x="15" y="115" as="geometry" />
+    </mxCell>
+    <mxCell id="sec-edge" parent="1" style="swimlane;startSize=30;fillColor=#f4f4f4;strokeColor=#FF8000;fontColor=#FF8000;fontSize=14;fontStyle=1;strokeWidth=2;rounded=1;arcSize=4;" value="edge routing &amp; security" vertex="1">
+      <mxGeometry height="380" width="210" x="430" y="140" as="geometry" />
+    </mxCell>
+    <mxCell id="n-cf" parent="sec-edge" style="ellipse;whiteSpace=wrap;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" value="Cloudflare&#xa;Zero Trust" vertex="1">
+      <mxGeometry height="100" width="180" x="15" y="50" as="geometry" />
+    </mxCell>
+    <mxCell id="n-nginx" parent="sec-edge" style="rounded=1;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" value="Nginx Proxy Manager&#xa;Reverse Proxy (:3068)" vertex="1">
+      <mxGeometry height="80" width="180" x="15" y="220" as="geometry" />
+    </mxCell>
+    <mxCell id="e4" edge="1" parent="sec-edge" source="n-cf" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#FF8000;strokeWidth=2;" target="n-nginx">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e4lbl" connectable="0" parent="e4" style="edgeLabel;fontSize=10;fillColor=#ffffff;" value="Tunnel / Gateway" vertex="1">
+      <mxGeometry relative="0.5" as="geometry" />
+    </mxCell>
+    <mxCell id="sec-app" parent="1" style="swimlane;startSize=30;fillColor=#f9fff2;strokeColor=#FF8000;fontColor=#FF8000;fontSize=14;fontStyle=1;strokeWidth=2;rounded=1;arcSize=4;" value="application services (Next.js)" vertex="1">
+      <mxGeometry height="610" width="560" x="680" y="90" as="geometry" />
+    </mxCell>
+    <mxCell id="n-webui" parent="sec-app" style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" value="Web UI - Dashboard / Budgets / Expenses / Reports" vertex="1">
+      <mxGeometry height="70" width="520" x="20" y="50" as="geometry" />
+    </mxCell>
+    <mxCell id="n-actions" parent="sec-app" style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" value="Server Actions&#xa;dbActions" vertex="1">
+      <mxGeometry height="80" width="230" x="20" y="180" as="geometry" />
+    </mxCell>
+    <mxCell id="n-api" parent="sec-app" style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" value="API Routes&#xa;/ai/scan-receipt   /health/db" vertex="1">
+      <mxGeometry height="80" width="250" x="290" y="180" as="geometry" />
+    </mxCell>
+    <mxCell id="n-logic" parent="sec-app" style="rounded=1;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" value="Business Logic - Validation + Normalization | Alert and Audit Rules" vertex="1">
+      <mxGeometry height="80" width="520" x="20" y="320" as="geometry" />
+    </mxCell>
+    <mxCell id="sec-data" parent="sec-app" style="swimlane;startSize=25;fillColor=#eef6ff;strokeColor=#6c8ebf;fontColor=#6c8ebf;fontSize=13;fontStyle=1;rounded=1;" value="data layer" vertex="1">
+      <mxGeometry height="140" width="520" x="20" y="450" as="geometry" />
+    </mxCell>
+    <mxCell id="n-db" parent="sec-data" style="shape=cylinder3;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;" value="MySQL (MariaDB)" vertex="1">
+      <mxGeometry height="90" width="210" x="155" y="28" as="geometry" />
+    </mxCell>
+    <mxCell id="e6" edge="1" parent="sec-app" source="n-webui" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#555555;strokeWidth=1.5;" target="n-actions">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e6lbl" connectable="0" parent="e6" style="edgeLabel;fontSize=10;fillColor=#ffffff;" value="Budget/Expense actions" vertex="1">
+      <mxGeometry relative="0.5" as="geometry" />
+    </mxCell>
+    <mxCell id="e7" edge="1" parent="sec-app" source="n-webui" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#555555;strokeWidth=1.5;" target="n-api">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e7lbl" connectable="0" parent="e7" style="edgeLabel;fontSize=10;fillColor=#ffffff;" value="API calls" vertex="1">
+      <mxGeometry relative="0.5" as="geometry" />
+    </mxCell>
+    <mxCell id="e8" edge="1" parent="sec-app" source="n-actions" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#555555;strokeWidth=1.5;" target="n-logic">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e8lbl" connectable="0" parent="e8" style="edgeLabel;fontSize=10;fillColor=#ffffff;" value="Validate rules" vertex="1">
+      <mxGeometry relative="0.5" as="geometry" />
+    </mxCell>
+    <mxCell id="e9" edge="1" parent="sec-app" source="n-api" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#555555;strokeWidth=1.5;" target="n-logic">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e9lbl" connectable="0" parent="e9" style="edgeLabel;fontSize=10;fillColor=#ffffff;" value="Parse + validate" vertex="1">
+      <mxGeometry relative="0.5" as="geometry" />
+    </mxCell>
+    <mxCell id="e10" edge="1" parent="sec-app" source="n-logic" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#555555;strokeWidth=1.5;" target="n-db">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e10lbl" connectable="0" parent="e10" style="edgeLabel;fontSize=10;fillColor=#ffffff;" value="Drizzle ORM + mysql2" vertex="1">
+      <mxGeometry relative="0.5" as="geometry" />
+    </mxCell>
+    <mxCell id="e13" edge="1" parent="sec-app" source="n-db" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;strokeWidth=1.5;" target="n-webui">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e13lbl" connectable="0" parent="e13" style="edgeLabel;fontSize=10;fillColor=#ffffff;" value="Dashboard/Report data" vertex="1">
+      <mxGeometry relative="0.5" as="geometry" />
+    </mxCell>
+    <mxCell id="e14" edge="1" parent="sec-app" source="n-db" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;strokeWidth=1.5;" target="n-logic">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e14lbl" connectable="0" parent="e14" style="edgeLabel;fontSize=10;fillColor=#ffffff;" value="Alert + Audit source" vertex="1">
+      <mxGeometry relative="0.5" as="geometry" />
+    </mxCell>
+    <mxCell id="sec-ext" parent="1" style="swimlane;startSize=30;fillColor=#f7f1ff;strokeColor=#FF8000;fontColor=#FF8000;fontSize=14;fontStyle=1;strokeWidth=2;rounded=1;arcSize=4;" value="external managed services" vertex="1">
+      <mxGeometry height="380" width="260" x="1285" y="140" as="geometry" />
+    </mxCell>
+    <mxCell id="n-clerk" parent="sec-ext" style="ellipse;whiteSpace=wrap;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" value="Clerk&#xa;Identity + Session" vertex="1">
+      <mxGeometry height="110" width="230" x="15" y="50" as="geometry" />
+    </mxCell>
+    <mxCell id="n-oai" parent="sec-ext" style="ellipse;whiteSpace=wrap;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" value="OpenRouter AI&#xa;Receipt Scan Service" vertex="1">
+      <mxGeometry height="110" width="230" x="15" y="240" as="geometry" />
+    </mxCell>
+    <mxCell id="e1" edge="1" parent="1" source="n-user" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#FF8000;strokeWidth=2;" target="n-browser">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e2" edge="1" parent="1" source="n-admin" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#FF8000;strokeWidth=2;" target="n-browser">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e3" edge="1" parent="1" source="n-browser" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#FF8000;strokeWidth=2;" target="n-cf">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e3lbl" connectable="0" parent="e3" style="edgeLabel;fontSize=10;fillColor=#ffffff;" value="HTTPS" vertex="1">
+      <mxGeometry relative="0.5" as="geometry" />
+    </mxCell>
+    <mxCell id="e5" edge="1" parent="1" source="n-nginx" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#FF8000;strokeWidth=2;" target="n-webui">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e5lbl" connectable="0" parent="e5" style="edgeLabel;fontSize=10;fillColor=#ffffff;" value="Reverse Proxy" vertex="1">
+      <mxGeometry relative="0.5" as="geometry" />
+    </mxCell>
+    <mxCell id="e11" edge="1" parent="1" source="n-actions" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;strokeWidth=1.5;dashed=1;" target="n-clerk">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e11lbl" connectable="0" parent="e11" style="edgeLabel;fontSize=10;fillColor=#ffffff;" value="verify user/session" vertex="1">
+      <mxGeometry relative="0.5" as="geometry" />
+    </mxCell>
+    <mxCell id="e12" edge="1" parent="1" source="n-api" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;strokeWidth=1.5;dashed=1;" target="n-oai">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e12lbl" connectable="0" parent="e12" style="edgeLabel;fontSize=10;fillColor=#ffffff;" value="Receipt image scan" vertex="1">
+      <mxGeometry relative="0.5" as="geometry" />
+    </mxCell>
+    <mxCell id="c1" parent="1" style="ellipse;fillColor=#1a1a1a;fontColor=#ffffff;strokeColor=none;fontSize=11;fontStyle=1;align=center;" value="1" vertex="1">
+      <mxGeometry height="24" width="24" x="193" y="316" as="geometry" />
+    </mxCell>
+    <mxCell id="c2" parent="1" style="ellipse;fillColor=#1a1a1a;fontColor=#ffffff;strokeColor=none;fontSize=11;fontStyle=1;align=center;" value="2" vertex="1">
+      <mxGeometry height="24" width="24" x="193" y="406" as="geometry" />
+    </mxCell>
+    <mxCell id="c3" parent="1" style="ellipse;fillColor=#1a1a1a;fontColor=#ffffff;strokeColor=none;fontSize=11;fontStyle=1;align=center;" value="3" vertex="1">
+      <mxGeometry height="24" width="24" x="408" y="326" as="geometry" />
+    </mxCell>
+    <mxCell id="c4" parent="1" style="ellipse;fillColor=#1a1a1a;fontColor=#ffffff;strokeColor=none;fontSize=11;fontStyle=1;align=center;" value="4" vertex="1">
+      <mxGeometry height="24" width="24" x="548" y="346" as="geometry" />
+    </mxCell>
+    <mxCell id="c5" parent="1" style="ellipse;fillColor=#1a1a1a;fontColor=#ffffff;strokeColor=none;fontSize=11;fontStyle=1;align=center;" value="5" vertex="1">
+      <mxGeometry height="24" width="24" x="658" y="316" as="geometry" />
+    </mxCell>
+    <mxCell id="c6" parent="1" style="ellipse;fillColor=#1a1a1a;fontColor=#ffffff;strokeColor=none;fontSize=11;fontStyle=1;align=center;" value="6" vertex="1">
+      <mxGeometry height="24" width="24" x="820" y="266" as="geometry" />
+    </mxCell>
+    <mxCell id="c7" parent="1" style="ellipse;fillColor=#1a1a1a;fontColor=#ffffff;strokeColor=none;fontSize=11;fontStyle=1;align=center;" value="7" vertex="1">
+      <mxGeometry height="24" width="24" x="1060" y="266" as="geometry" />
+    </mxCell>
+    <mxCell id="c8" parent="1" style="ellipse;fillColor=#1a1a1a;fontColor=#ffffff;strokeColor=none;fontSize=11;fontStyle=1;align=center;" value="8" vertex="1">
+      <mxGeometry height="24" width="24" x="760" y="406" as="geometry" />
+    </mxCell>
+    <mxCell id="c9" parent="1" style="ellipse;fillColor=#1a1a1a;fontColor=#ffffff;strokeColor=none;fontSize=11;fontStyle=1;align=center;" value="9" vertex="1">
+      <mxGeometry height="24" width="24" x="1100" y="406" as="geometry" />
+    </mxCell>
+    <mxCell id="c10" parent="1" style="ellipse;fillColor=#1a1a1a;fontColor=#ffffff;strokeColor=none;fontSize=11;fontStyle=1;align=center;" value="10" vertex="1">
+      <mxGeometry height="24" width="24" x="948" y="546" as="geometry" />
+    </mxCell>
+    <mxCell id="c11" parent="1" style="ellipse;fillColor=#1a1a1a;fontColor=#ffffff;strokeColor=none;fontSize=11;fontStyle=1;align=center;" value="11" vertex="1">
+      <mxGeometry height="24" width="24" x="1130" y="296" as="geometry" />
+    </mxCell>
+    <mxCell id="c12" parent="1" style="ellipse;fillColor=#1a1a1a;fontColor=#ffffff;strokeColor=none;fontSize=11;fontStyle=1;align=center;" value="12" vertex="1">
+      <mxGeometry height="24" width="24" x="1260" y="406" as="geometry" />
+    </mxCell>
+    <mxCell id="c13" parent="1" style="ellipse;fillColor=#1a1a1a;fontColor=#ffffff;strokeColor=none;fontSize=11;fontStyle=1;align=center;" value="13" vertex="1">
+      <mxGeometry height="24" width="24" x="748" y="546" as="geometry" />
+    </mxCell>
+    <mxCell id="c14" parent="1" style="ellipse;fillColor=#1a1a1a;fontColor=#ffffff;strokeColor=none;fontSize=11;fontStyle=1;align=center;" value="14" vertex="1">
+      <mxGeometry height="24" width="24" x="998" y="546" as="geometry" />
+    </mxCell>
+  </root>
+</mxGraphModel>

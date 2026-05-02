@@ -156,7 +156,7 @@ docker compose down
 
 ## Operations Runbook (สำหรับส่งต่องาน)
 
-- เอกสารปฏิบัติการแบบละเอียดอยู่ที่ docs/operations-runbook-deployment.md
+- เอกสารปฏิบัติการแบบละเอียดอยู่ที่ `docs/operations-runbook-deployment.md`
 - ครอบคลุมขั้นตอนก่อน deploy, วิธี deploy มาตรฐาน, การตรวจหลัง deploy, incident playbook และ rollback
 - แนะนำให้ผู้รับช่วงงานใหม่อ่านเอกสารนี้ก่อนเข้าถึงเครื่อง production
 
