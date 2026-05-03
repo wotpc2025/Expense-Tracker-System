@@ -2,6 +2,8 @@
 
 ระบบจัดการรายรับรายจ่ายส่วนบุคคลด้วย Next.js (App Router) ที่เน้นการบริหารงบประมาณ, ติดตามค่าใช้จ่าย, และมีฟีเจอร์ AI ช่วยสแกนใบเสร็จเพื่อเพิ่มรายการได้เร็วขึ้น
 
+หมายเหตุ: โปรเจกต์นี้ถูกใช้เป็น Demo Workload สำหรับงานด้าน Infrastructure/DevOps บนสภาพแวดล้อม Homelab โดยเน้นการติดตั้งโครงสร้างพื้นฐาน, การ deploy แบบกึ่งอัตโนมัติ, และการปฏิบัติการระบบร่วมกับเครื่องมือภายนอก
+
 ## Features (Current)
 
 - Authentication ด้วย Clerk (Sign-in / Sign-up)
@@ -80,6 +82,9 @@ OPENROUTER_MODEL=qwen/qwen2.5-vl-72b-instruct
 
 # App URL (optional, used by OpenRouter headers)
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Deployment Notifications (required by deploy.sh)
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/xxx/yyy
 ```
 
 หมายเหตุ:
@@ -156,9 +161,13 @@ docker compose down
 
 ## Operations Runbook (สำหรับส่งต่องาน)
 
-- เอกสารปฏิบัติการแบบละเอียดอยู่ที่ `docs/operations-runbook-deployment.md`
+- เอกสารปฏิบัติการแบบละเอียดอยู่ที่ `docs/operations/expense-tracker-system-operations-runbook-deployment.md`
 - ครอบคลุมขั้นตอนก่อน deploy, วิธี deploy มาตรฐาน, การตรวจหลัง deploy, incident playbook และ rollback
 - แนะนำให้ผู้รับช่วงงานใหม่อ่านเอกสารนี้ก่อนเข้าถึงเครื่อง production
+
+## Full Appendix (เอกสารฉบับเต็ม)
+
+- เอกสารภาคผนวกฉบับเต็ม (รวม Data Dictionary, Diagram และเอกสารประกอบหลัก) อยู่ที่ `docs/appendix/expense-tracker-system-full-appendix.md`
 
 ## API Endpoints (สำคัญ)
 
